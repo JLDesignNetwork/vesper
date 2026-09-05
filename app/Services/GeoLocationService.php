@@ -218,4 +218,62 @@ class GeoLocationService
             ];
         });
     }
+
+    /**
+     * Map geographic location indicators (country code, country name, freeform location text)
+     * to the most common supported platform language ('en', 'ru', 'fr', 'it').
+     */
+    public function resolveLanguageFromLocation(?string $countryCode = null, ?string $country = null, ?string $locationText = null): string
+    {
+        $code = strtoupper(trim((string) $countryCode));
+        $countryName = strtolower(trim((string) $country));
+        $text = strtolower(trim((string) $locationText));
+
+        // 1. Italian: IT, SM (San Marino), VA (Vatican City)
+        $italianCodes = ['IT', 'SM', 'VA'];
+        if (in_array($code, $italianCodes, true)) {
+            return 'it';
+        }
+
+        // 2. French: FR, MC (Monaco), SN (Senegal), CI (Ivory Coast), etc.
+        $frenchCodes = ['FR', 'MC', 'SN', 'CI', 'CD', 'CG', 'MG', 'CM', 'BF', 'NE', 'ML', 'GN', 'TD', 'BJ', 'GA', 'DJ', 'KM', 'LU'];
+        if (in_array($code, $frenchCodes, true)) {
+            return 'fr';
+        }
+
+        // 3. Russian: RU, BY (Belarus), KZ (Kazakhstan), KG (Kyrgyzstan), etc.
+        $russianCodes = ['RU', 'BY', 'KZ', 'KG', 'TJ', 'UZ', 'AM', 'AZ', 'MD'];
+        if (in_array($code, $russianCodes, true)) {
+            return 'ru';
+        }
+
+        // 4. Country name inspection
+        if ($countryName !== '') {
+            if (str_contains($countryName, 'italy') || str_contains($countryName, 'italia') || str_contains($countryName, 'san marino') || str_contains($countryName, 'vatican')) {
+                return 'it';
+            }
+            if (str_contains($countryName, 'france') || str_contains($countryName, 'monaco') || str_contains($countryName, 'senegal') || str_contains($countryName, 'belgique') || str_contains($countryName, 'belgium')) {
+                return 'fr';
+            }
+            if (str_contains($countryName, 'russia') || str_contains($countryName, 'россия') || str_contains($countryName, 'belarus') || str_contains($countryName, 'kazakhstan') || str_contains($countryName, 'kyrgyzstan')) {
+                return 'ru';
+            }
+        }
+
+        // 5. Freeform location text inspection (e.g. "Rome, Italy", "Paris, France", "Moscow")
+        if ($text !== '') {
+            if (preg_match('/\b(italy|italia|rome|roma|milan|milano|napoli|florence|firenze|venice|venezia|turin|torino|palermo)\b/u', $text)) {
+                return 'it';
+            }
+            if (preg_match('/\b(france|paris|marseille|lyon|toulouse|nice|nantes|strasbourg|bordeaux|lille|monaco)\b/u', $text)) {
+                return 'fr';
+            }
+            if (preg_match('/\b(russia|россия|moscow|москва|saint petersburg|петербург|saint-petersburg|novosibirsk|kazan|казань|minsk|минск|almaty|алматы|astana|астана)\b/u', $text)) {
+                return 'ru';
+            }
+        }
+
+        return 'en';
+    }
 }
+

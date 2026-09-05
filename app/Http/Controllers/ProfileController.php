@@ -38,10 +38,13 @@ class ProfileController extends Controller
             'hide_birthday' => ['nullable', 'boolean'],
             'hide_location' => ['nullable', 'boolean'],
             'hide_bio' => ['nullable', 'boolean'],
+            'preferred_locale' => ['nullable', 'string', 'in:auto,en,ru,fr,it'],
             'room_id' => ['nullable', 'string'],
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
             'remove_avatar' => ['nullable', 'boolean'],
         ]);
+
+        $oldLocation = $user->location;
 
         $user->name = trim($validated['name']);
         $user->email = strtolower(trim($validated['email']));
@@ -54,6 +57,19 @@ class ProfileController extends Controller
         $user->hide_birthday = $request->boolean('hide_birthday');
         $user->hide_location = $request->boolean('hide_location');
         $user->hide_bio = $request->boolean('hide_bio');
+
+        if ($request->has('preferred_locale')) {
+            $pref = $request->input('preferred_locale');
+            if (empty($pref) || $pref === 'auto') {
+                $user->preferred_locale = null;
+                $request->session()->put('locale', $user->resolveLocationLocale());
+            } elseif (in_array($pref, ['en', 'ru', 'fr', 'it'], true)) {
+                $user->preferred_locale = $pref;
+                $request->session()->put('locale', $pref);
+            }
+        } elseif (empty($user->preferred_locale) && $oldLocation !== $user->location) {
+            $request->session()->put('locale', $user->resolveLocationLocale());
+        }
 
         if (! empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
@@ -107,6 +123,8 @@ class ProfileController extends Controller
                     'hide_location' => $user->hide_location,
                     'hide_bio' => $user->hide_bio,
                     'email_notifications' => $user->email_notifications,
+                    'preferred_locale' => $user->preferred_locale,
+                    'effective_locale' => $user->effectiveLocale(),
                     'avatar_url' => $user->avatarUrl(),
                 ],
             ]);

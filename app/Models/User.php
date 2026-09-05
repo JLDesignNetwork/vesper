@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role', 'birthday', 'gender', 'location', 'latitude', 'longitude', 'city', 'country', 'country_code', 'location_synced_at', 'hide_age', 'hide_birthday', 'hide_location', 'hide_bio', 'bio', 'email_notifications', 'avatar_path'])]
+#[Fillable(['name', 'email', 'password', 'role', 'birthday', 'gender', 'location', 'latitude', 'longitude', 'city', 'country', 'country_code', 'location_synced_at', 'hide_age', 'hide_birthday', 'hide_location', 'hide_bio', 'bio', 'email_notifications', 'avatar_path', 'preferred_locale'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -26,6 +26,8 @@ class User extends Authenticatable
      */
     protected $appends = [
         'latest_ip',
+        'effective_locale',
+        'location_locale',
     ];
 
     /**
@@ -194,4 +196,49 @@ class User extends Authenticatable
     {
         return $this->avatar_path ? asset('storage/'.$this->avatar_path) : null;
     }
+
+    /**
+     * Resolve the common language of this user's registered location.
+     */
+    public function resolveLocationLocale(): string
+    {
+        return app(\App\Services\GeoLocationService::class)->resolveLanguageFromLocation(
+            $this->country_code,
+            $this->country,
+            $this->location
+        );
+    }
+
+    /**
+     * Get the effective platform language for this user.
+     * If user explicitly set preferred_locale ('en', 'ru', 'fr', 'it'), this overrides the location language.
+     * Otherwise, defaults to the common language of the registered location.
+     */
+    public function effectiveLocale(): string
+    {
+        $supported = ['en', 'ru', 'fr', 'it'];
+
+        if (! empty($this->preferred_locale) && in_array($this->preferred_locale, $supported, true)) {
+            return $this->preferred_locale;
+        }
+
+        return $this->resolveLocationLocale();
+    }
+
+    /**
+     * Get the effective_locale attribute for JSON serialization.
+     */
+    public function getEffectiveLocaleAttribute(): string
+    {
+        return $this->effectiveLocale();
+    }
+
+    /**
+     * Get the location_locale attribute for JSON serialization.
+     */
+    public function getLocationLocaleAttribute(): string
+    {
+        return $this->resolveLocationLocale();
+    }
 }
+

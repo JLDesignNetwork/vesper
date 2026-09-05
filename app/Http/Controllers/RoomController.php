@@ -158,6 +158,9 @@ class RoomController extends Controller
                 'email_notifications' => ['nullable', 'boolean'],
             ]);
 
+            $prefLocale = $request->input('preferred_locale');
+            $validLocale = (in_array($prefLocale, ['en', 'ru', 'fr', 'it'], true)) ? $prefLocale : null;
+
             $member = User::create([
                 'name' => trim($validated['name']),
                 'email' => strtolower(trim($validated['email'])),
@@ -167,11 +170,15 @@ class RoomController extends Controller
                 'gender' => ! empty($validated['gender']) ? trim($validated['gender']) : null,
                 'location' => ! empty($validated['location']) ? trim($validated['location']) : null,
                 'bio' => ! empty($validated['bio']) ? trim($validated['bio']) : null,
+                'preferred_locale' => $validLocale,
                 'email_notifications' => $request->boolean('email_notifications'),
             ]);
 
             Auth::login($member, true);
             $request->session()->regenerate();
+            $effectiveLocale = $member->effectiveLocale();
+            $request->session()->put('locale', $effectiveLocale);
+            app()->setLocale($effectiveLocale);
             $alias = $member->name;
             $isAdmin = false;
         } elseif ($mode === 'login') {
@@ -191,6 +198,9 @@ class RoomController extends Controller
 
             $request->session()->regenerate();
             $user = Auth::user();
+            $effectiveLocale = $user->effectiveLocale();
+            $request->session()->put('locale', $effectiveLocale);
+            app()->setLocale($effectiveLocale);
             $alias = $user->name;
             $isAdmin = $user->isAdmin();
         } elseif (Auth::check()) {
@@ -423,6 +433,9 @@ class RoomController extends Controller
             'bio' => $user->bioForViewer($viewer),
             'is_self' => ($viewer && $viewer->id === $user->id),
             'is_admin' => ($viewer && $viewer->isAdmin()),
+            'preferred_locale' => ($viewer && ($viewer->isAdmin() || $viewer->id === $user->id)) ? $user->preferred_locale : null,
+            'effective_locale' => $user->effectiveLocale(),
+            'location_locale' => $user->resolveLocationLocale(),
             'privacy' => [
                 'age_hidden' => (bool) $user->hide_age,
                 'birthday_hidden' => (bool) $user->hide_birthday,

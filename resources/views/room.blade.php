@@ -671,6 +671,51 @@
                         >{{ Auth::user()->bio }}</textarea>
                     </div>
 
+                    <!-- Language Preference Setting -->
+                    <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <label class="block font-medium text-slate-300 text-xs flex items-center gap-1.5">
+                                <span>🌐</span>
+                                <span>{{ __('Language Preference') }}</span>
+                            </label>
+                            @php
+                                $detectedLang = Auth::user()->resolveLocationLocale();
+                                $langMap = [
+                                    'en' => 'English (EN)',
+                                    'ru' => 'Russian (RU)',
+                                    'fr' => 'French (FR)',
+                                    'it' => 'Italian (IT)',
+                                ];
+                            @endphp
+                            <span class="text-[10px] font-mono text-emerald-400/80">
+                                {{ __('Detected') }}: {{ $langMap[$detectedLang] ?? strtoupper($detectedLang) }}
+                            </span>
+                        </div>
+                        <select
+                            name="preferred_locale"
+                            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500 font-sans cursor-pointer"
+                        >
+                            <option value="auto" {{ empty(Auth::user()->preferred_locale) ? 'selected' : '' }}>
+                                🌐 {{ __('Auto-detect from Registered Location') }} ({{ $langMap[$detectedLang] ?? strtoupper($detectedLang) }})
+                            </option>
+                            <option value="en" {{ Auth::user()->preferred_locale === 'en' ? 'selected' : '' }}>
+                                🇬🇧 English (EN)
+                            </option>
+                            <option value="ru" {{ Auth::user()->preferred_locale === 'ru' ? 'selected' : '' }}>
+                                🇷🇺 Russian (RU) - Русский
+                            </option>
+                            <option value="fr" {{ Auth::user()->preferred_locale === 'fr' ? 'selected' : '' }}>
+                                🇫🇷 French (FR) - Français
+                            </option>
+                            <option value="it" {{ Auth::user()->preferred_locale === 'it' ? 'selected' : '' }}>
+                                🇮🇹 Italian (IT) - Italiano
+                            </option>
+                        </select>
+                        <p class="text-[10px] text-slate-400 leading-snug">
+                            {{ __('Selecting a preferred language overrides your registered location language across all devices.') }}
+                        </p>
+                    </div>
+
                     <!-- Privacy & Visibility Settings -->
                     <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
                         <div class="flex items-center justify-between">
@@ -1715,6 +1760,12 @@
                     // Reset removal flag
                     const removeFlag = document.getElementById('remove-avatar-flag');
                     if (removeFlag) removeFlag.value = '0';
+
+                    // If language changed, refresh page to reflect localized strings
+                    if (data.user.effective_locale && data.user.effective_locale !== CURRENT_LOCALE) {
+                        setTimeout(() => window.location.reload(), 600);
+                        return;
+                    }
 
                     setTimeout(() => closeProfileModal(), 1000);
                 } else {

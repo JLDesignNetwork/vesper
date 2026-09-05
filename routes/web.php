@@ -19,10 +19,18 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
 Route::post('/profile/gps', [ProfileController::class, 'updateGps'])->name('profile.gps')->middleware('auth');
 
-// Multilingual Locale Switcher (EN, RU, FR, IT)
+// Multilingual Locale Switcher (EN, RU, FR, IT, or auto)
 Route::get('/locale/{locale}', function (string $locale) {
     if (in_array($locale, ['en', 'ru', 'fr', 'it'], true)) {
         session(['locale' => $locale]);
+        if (Auth::check()) {
+            Auth::user()->update(['preferred_locale' => $locale]);
+        }
+    } elseif ($locale === 'auto') {
+        session()->forget('locale');
+        if (Auth::check()) {
+            Auth::user()->update(['preferred_locale' => null]);
+        }
     }
 
     return back();

@@ -517,16 +517,30 @@
                                         @php
                                             $hiddenCount = ($regUser->hide_age ? 1 : 0) + ($regUser->hide_birthday ? 1 : 0) + ($regUser->hide_location ? 1 : 0) + ($regUser->hide_bio ? 1 : 0);
                                         @endphp
-                                        @if($hiddenCount > 0)
-                                            <span class="inline-flex items-center gap-1 text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 text-[10px] font-mono" title="{{ __('User has hidden :count profile field(s) from members', ['count' => $hiddenCount]) }}">
-                                                <span>🔒</span>
-                                                <span>{{ $hiddenCount }} {{ __('Private') }}</span>
-                                            </span>
-                                        @else
-                                            <span class="inline-flex items-center gap-1 text-slate-500 text-[10px] font-mono">
-                                                {{ __('Public') }}
-                                            </span>
-                                        @endif
+                                        <div class="flex items-center gap-1 flex-wrap">
+                                            @if($hiddenCount > 0)
+                                                <span class="inline-flex items-center gap-1 text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 text-[10px] font-mono" title="{{ __('User has hidden :count profile field(s) from members', ['count' => $hiddenCount]) }}">
+                                                    <span>🔒</span>
+                                                    <span>{{ $hiddenCount }} {{ __('Private') }}</span>
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center gap-1 text-slate-500 text-[10px] font-mono">
+                                                    {{ __('Public') }}
+                                                </span>
+                                            @endif
+
+                                            @if($regUser->preferred_locale)
+                                                <span class="inline-flex items-center gap-1 text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/20 text-[10px] font-mono" title="{{ __('User preferred language override') }}">
+                                                    <span>🌐</span>
+                                                    <span>{{ strtoupper($regUser->preferred_locale) }}</span>
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center gap-1 text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-[10px] font-mono" title="{{ __('Auto-detected from registered location') }}">
+                                                    <span>🌐</span>
+                                                    <span>{{ strtoupper($regUser->resolveLocationLocale()) }} (auto)</span>
+                                                </span>
+                                            @endif
+                                        </div>
                                     </div>
                                 </td>
                                 <td class="py-3.5 px-4 font-mono text-slate-400 text-[11px]">
@@ -831,6 +845,11 @@
                         <div id="dossier-alerts" class="text-slate-200 mt-1 font-semibold"></div>
                     </div>
 
+                    <div class="p-3 rounded-xl bg-slate-950 border border-slate-800/80">
+                        <div class="text-[10px] text-slate-500 uppercase">{{ __('Language Preference') }}</div>
+                        <div id="dossier-language" class="text-slate-200 mt-1 font-semibold flex items-center gap-1.5"></div>
+                    </div>
+
                     <div class="p-3 rounded-xl bg-slate-950 border border-slate-800/80 col-span-2">
                         <div class="text-[10px] text-slate-500 uppercase mb-1">{{ __('Member Privacy Controls (What regular members can see)') }}</div>
                         <div id="dossier-privacy-summary" class="text-slate-300 font-mono text-[11px]"></div>
@@ -1107,6 +1126,51 @@
                         >{{ $adminUser->bio }}</textarea>
                     </div>
 
+                    <!-- Language Preference Setting -->
+                    <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800 space-y-1.5 font-sans">
+                        <div class="flex items-center justify-between">
+                            <label class="block font-medium text-slate-300 text-xs flex items-center gap-1.5">
+                                <span>🌐</span>
+                                <span>{{ __('Language Preference') }}</span>
+                            </label>
+                            @php
+                                $detectedAdminLang = $adminUser->resolveLocationLocale();
+                                $adminLangMap = [
+                                    'en' => 'English (EN)',
+                                    'ru' => 'Russian (RU)',
+                                    'fr' => 'French (FR)',
+                                    'it' => 'Italian (IT)',
+                                ];
+                            @endphp
+                            <span class="text-[10px] font-mono text-emerald-400/80">
+                                {{ __('Detected') }}: {{ $adminLangMap[$detectedAdminLang] ?? strtoupper($detectedAdminLang) }}
+                            </span>
+                        </div>
+                        <select
+                            name="preferred_locale"
+                            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500 font-sans cursor-pointer"
+                        >
+                            <option value="auto" {{ empty($adminUser->preferred_locale) ? 'selected' : '' }}>
+                                🌐 {{ __('Auto-detect from Registered Location') }} ({{ $adminLangMap[$detectedAdminLang] ?? strtoupper($detectedAdminLang) }})
+                            </option>
+                            <option value="en" {{ $adminUser->preferred_locale === 'en' ? 'selected' : '' }}>
+                                🇬🇧 English (EN)
+                            </option>
+                            <option value="ru" {{ $adminUser->preferred_locale === 'ru' ? 'selected' : '' }}>
+                                🇷🇺 Russian (RU) - Русский
+                            </option>
+                            <option value="fr" {{ $adminUser->preferred_locale === 'fr' ? 'selected' : '' }}>
+                                🇫🇷 French (FR) - Français
+                            </option>
+                            <option value="it" {{ $adminUser->preferred_locale === 'it' ? 'selected' : '' }}>
+                                🇮🇹 Italian (IT) - Italiano
+                            </option>
+                        </select>
+                        <p class="text-[10px] text-slate-400 leading-snug">
+                            {{ __('Selecting a preferred language overrides your registered location language across all devices.') }}
+                        </p>
+                    </div>
+
                     <!-- Privacy & Visibility Settings -->
                     <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
                         <div class="flex items-center justify-between">
@@ -1309,6 +1373,26 @@
             }
 
             document.getElementById('dossier-alerts').textContent = user.email_notifications ? 'Enabled' : 'Disabled';
+
+            // Language
+            const langEl = document.getElementById('dossier-language');
+            if (langEl) {
+                const langNames = {
+                    'en': 'English (EN)',
+                    'ru': 'Russian (RU)',
+                    'fr': 'French (FR)',
+                    'it': 'Italian (IT)'
+                };
+                if (user.preferred_locale) {
+                    const name = langNames[user.preferred_locale] || user.preferred_locale.toUpperCase();
+                    langEl.innerHTML = `<span class="text-sky-300 font-medium">${name}</span> <span class="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20 font-mono">User Override</span>`;
+                } else {
+                    const eff = user.effective_locale || user.location_locale || 'en';
+                    const name = langNames[eff] || eff.toUpperCase();
+                    langEl.innerHTML = `<span class="text-slate-300 font-medium">${name}</span> <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 font-mono">Auto (Location)</span>`;
+                }
+            }
+
             document.getElementById('dossier-joined').textContent = user.created_at ? new Date(user.created_at).toLocaleString() : '—';
 
             // Bio
