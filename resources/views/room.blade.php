@@ -855,6 +855,13 @@
             hidden: "{{ __('Hidden') }}"
         };
 
+        const GENDER_LABELS = {
+            'Male': "{{ __('Male') }}",
+            'Female': "{{ __('Female') }}",
+            'Non-binary': "{{ __('Non-binary') }}",
+            'Other': "{{ __('Other') }}"
+        };
+
         let lastMessageId = 0;
         let isPolling = false;
         let soundEnabled = true;
@@ -1929,7 +1936,7 @@
             const ageText = member.age ? `${member.age} yrs` : '—';
             document.getElementById('card-age').textContent = ageText;
             document.getElementById('card-birthday').textContent = member.birthday || '—';
-            document.getElementById('card-gender').textContent = member.gender || '—';
+            document.getElementById('card-gender').textContent = GENDER_LABELS[member.gender] || member.gender || '—';
             document.getElementById('card-location').textContent = member.location || (member.city ? `${member.city}, ${member.country}` : '—');
 
             if (member.bio) {
@@ -2015,7 +2022,7 @@
                             }
 
                             // Gender
-                            document.getElementById('card-gender').textContent = live.gender || '—';
+                            document.getElementById('card-gender').textContent = GENDER_LABELS[live.gender] || live.gender || '—';
 
                             // Location
                             const locEl = document.getElementById('card-location');

@@ -475,7 +475,7 @@
                                     @endif
                                 </td>
                                 <td class="py-3.5 px-4 font-mono text-slate-300">
-                                    {{ $regUser->gender ? ucfirst($regUser->gender) : '—' }}
+                                    {{ $regUser->gender ? __($regUser->gender) : '—' }}
                                 </td>
                                 <td class="py-3.5 px-4 font-mono text-slate-300">
                                     @if($regUser->hasGps())
@@ -1363,7 +1363,13 @@
                 ageEl.innerHTML = `<span>${ageText}</span>${badges}`;
             }
 
-            document.getElementById('dossier-gender').textContent = user.gender ? (user.gender.charAt(0).toUpperCase() + user.gender.slice(1)) : '—';
+            const genderLabels = {
+                'Male': "{{ __('Male') }}",
+                'Female': "{{ __('Female') }}",
+                'Non-binary': "{{ __('Non-binary') }}",
+                'Other': "{{ __('Other') }}"
+            };
+            document.getElementById('dossier-gender').textContent = user.gender ? (genderLabels[user.gender] || user.gender) : '—';
 
             // Location
             const locEl = document.getElementById('dossier-location');
