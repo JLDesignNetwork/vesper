@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Admin Section Telemetry Integrity**: Full visibility inside the Admin section (`/admin`) is completely preserved. The Admin Global Traffic Map, Registered Users table, and User Dossier continue to render real-time GPS telemetry, coordinates, and unmasked locations with the `🔒 Hidden` privacy status indicator.
 - **Automated Test Coverage**: Added comprehensive feature test verifying coordinates suppression on channel radar maps, masking for peers, and full visibility in the Admin section.
 
+### Fixed
+- **Message Transmission 500 Error**: Resolved fatal `Class "App\Http\Controllers\Log" not found` error during message transmission caused by missing `Log`, `Mail`, and `NewMessageNotification` imports in `MessageController.php`. Messages now transmit and display immediately with audio chime without triggering false transmission failure alerts.
+
 ---
 
 ## [1.3.0] - 2026-09-05

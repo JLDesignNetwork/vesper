@@ -1239,8 +1239,8 @@
                     textInput.style.height = 'auto';
                     clearSelectedAttachment();
                 } else {
-                    const errData = await res.json();
-                    alert(errData.error || 'Failed to transmit message.');
+                    const errData = await res.json().catch(() => ({}));
+                    alert(errData.error || errData.message || 'Failed to transmit message.');
                 }
             } catch (err) {
                 console.error('Send error:', err);

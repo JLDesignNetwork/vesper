@@ -140,3 +140,61 @@ test('live polling returns new messages since after_id', function () {
     $response->assertJsonPath('messages.0.content', 'Second transmission');
 });
 
+test('message transmission succeeds and dispatches notifications without throwing errors', function () {
+    $admin = \App\Models\User::create([
+        'name' => 'NotifyAdmin',
+        'email' => 'admin_notify@example.com',
+        'password' => Hash::make('secret'),
+        'role' => 'admin',
+    ]);
+
+    $member = \App\Models\User::create([
+        'name' => 'NotifyMember',
+        'email' => 'member_notify@example.com',
+        'password' => Hash::make('secret'),
+        'role' => 'member',
+        'email_notifications' => true,
+    ]);
+
+    $room = Room::create([
+        'code' => 'NOTIFY-01',
+        'passcode_hash' => Hash::make('secret'),
+        'status' => 'active',
+        'notify_admin' => true,
+        'created_by_user_id' => $admin->id,
+    ]);
+
+    // Member has previously posted in the room
+    Message::create([
+        'room_id' => $room->id,
+        'user_id' => $member->id,
+        'sender_name' => $member->name,
+        'sender_session_id' => 'sess_member',
+        'content' => 'Initial message',
+    ]);
+
+    $sender = \App\Models\User::create([
+        'name' => 'SenderUser',
+        'email' => 'sender@example.com',
+        'password' => Hash::make('secret'),
+        'role' => 'member',
+    ]);
+
+    \Illuminate\Support\Facades\Mail::fake();
+
+    $response = $this->actingAs($sender)
+        ->withSession([
+            "room_clearance_{$room->id}" => true,
+        ])
+        ->postJson(route('messages.store', ['room' => 'NOTIFY-01']), [
+            'content' => 'Transmission with notification broadcast.',
+        ]);
+
+    $response->assertStatus(200);
+    $response->assertJsonPath('success', true);
+    $response->assertJsonPath('message.content', 'Transmission with notification broadcast.');
+
+    \Illuminate\Support\Facades\Mail::assertSent(\App\Mail\NewMessageNotification::class);
+});
+
+
