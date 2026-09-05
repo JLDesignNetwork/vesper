@@ -45,140 +45,6 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                 </div>
-
-        <!-- Registered Users Section -->
-        <div class="rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md overflow-hidden">
-            <div class="p-5 border-b border-slate-800/80 flex items-center justify-between">
-                <div>
-                    <h3 class="text-base font-semibold text-white tracking-tight">{{ __('Registered Users') }}</h3>
-                    <p class="text-xs text-slate-400 mt-0.5">{{ __('Discreet database of all registered accounts and member profiles') }}</p>
-                </div>
-                <div class="px-3 py-1 rounded-xl bg-slate-800/80 border border-slate-700/80 font-mono text-xs text-slate-300">
-                    {{ $registeredUsers->count() }} {{ __('Total') }}
-                </div>
-            </div>
-
-            <!-- Table of Users -->
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse text-xs">
-                    <thead>
-                        <tr class="border-b border-slate-800 text-slate-400 font-mono text-[11px] uppercase bg-slate-950/40">
-                            <th class="py-3 px-4">{{ __('Operative') }}</th>
-                            <th class="py-3 px-4">{{ __('Email') }}</th>
-                            <th class="py-3 px-4">{{ __('Age & Birthday') }}</th>
-                            <th class="py-3 px-4">{{ __('Gender') }}</th>
-                            <th class="py-3 px-4">{{ __('Location') }}</th>
-                            <th class="py-3 px-4">{{ __('Alerts') }}</th>
-                            <th class="py-3 px-4">{{ __('Joined') }}</th>
-                            <th class="py-3 px-4 text-right">{{ __('Actions') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-800/60 font-sans">
-                        @forelse($registeredUsers as $regUser)
-                            <tr class="hover:bg-white/[0.02] transition-colors">
-                                <td class="py-3.5 px-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 flex items-center justify-center font-mono font-bold text-xs text-emerald-400 shrink-0">
-                                            @if($regUser->avatar_path)
-                                                <img src="{{ $regUser->avatarUrl() }}" class="w-full h-full object-cover" alt="">
-                                            @else
-                                                {{ strtoupper(substr($regUser->name, 0, 2)) }}
-                                            @endif
-                                        </div>
-                                        <div>
-                                            <div class="font-semibold text-white flex items-center gap-2">
-                                                <span>{{ $regUser->name }}</span>
-                                            </div>
-                                            @if($regUser->bio)
-                                                <div class="text-[11px] text-slate-400 truncate max-w-[200px]" title="{{ $regUser->bio }}">
-                                                    {{ $regUser->bio }}
-                                                </div>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="py-3.5 px-4 font-mono">
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-slate-200">{{ $regUser->email }}</span>
-                                        <button
-                                            type="button"
-                                            onclick="copyText('{{ $regUser->email }}', this, '{{ __('Email copied!') }}')"
-                                            title="{{ __('Copy email') }}"
-                                            class="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-emerald-300 transition-colors cursor-pointer"
-                                        >
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                                        </button>
-                                    </div>
-                                </td>
-                                <td class="py-3.5 px-4 font-mono text-slate-300">
-                                    @if($regUser->age())
-                                        <span class="text-emerald-400 font-semibold">{{ $regUser->age() }} {{ __('yrs') }}</span>
-                                        @if($regUser->birthday)
-                                            <span class="text-[10px] text-slate-500 block">({{ $regUser->birthday->format('M d, Y') }})</span>
-                                        @endif
-                                    @elseif($regUser->birthday)
-                                        <span class="text-slate-400">{{ $regUser->birthday->format('M d, Y') }}</span>
-                                    @else
-                                        <span class="text-slate-500">—</span>
-                                    @endif
-                                </td>
-                                <td class="py-3.5 px-4 font-mono text-slate-300">
-                                    {{ $regUser->gender ? ucfirst($regUser->gender) : '—' }}
-                                </td>
-                                <td class="py-3.5 px-4 font-mono text-slate-300">
-                                    {{ $regUser->location ?: '—' }}
-                                </td>
-                                <td class="py-3.5 px-4 font-mono">
-                                    @if($regUser->email_notifications)
-                                        <span class="inline-flex items-center gap-1 text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 text-[10px]">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                            {{ __('On') }}
-                                        </span>
-                                    @else
-                                        <span class="inline-flex items-center gap-1 text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700 text-[10px]">
-                                            {{ __('Off') }}
-                                        </span>
-                                    @endif
-                                </td>
-                                <td class="py-3.5 px-4 font-mono text-slate-400 text-[11px]">
-                                    {{ $regUser->created_at?->diffForHumans() ?? '—' }}
-                                </td>
-                                <td class="py-3.5 px-4 text-right">
-                                    <div class="flex items-center justify-end gap-1.5 font-mono">
-                                        <button
-                                            type="button"
-                                            onclick='openUserDossier(@json($regUser))'
-                                            class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors text-[11px] cursor-pointer"
-                                        >
-                                            {{ __('Inspect') }}
-                                        </button>
-
-                                        @if($regUser->id !== Auth::id())
-                                            <form method="POST" action="{{ route('admin.users.destroy', ['id' => $regUser->id]) }}" class="inline" onsubmit="return confirm('{{ __('Permanently delete this user account?') }}')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button
-                                                    type="submit"
-                                                    class="px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 transition-colors text-[11px] cursor-pointer"
-                                                >
-                                                    {{ __('Purge') }}
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="8" class="py-8 text-center text-slate-500 font-mono">
-                                    {{ __('No registered users found.') }}
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
                 <div>
                     <div class="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
                         {{ __('Sunday City') }}
@@ -186,14 +52,6 @@
                     <div class="text-[11px] text-slate-400 font-mono">
                         {{ __('Admin Dashboard') }} • {{ $adminUser->name }}
                     </div>
-                </div>
-
-                <div class="pt-1">
-                    <label class="flex items-center gap-2 cursor-pointer text-slate-300 select-none">
-                        <input type="checkbox" name="notify_admin" value="1" id="edit-notify-admin" class="rounded bg-slate-950 border-slate-800 text-emerald-500">
-                        <span>{{ __('Notify Admin on New Messages') }}</span>
-                    </label>
-                    <p class="text-[11px] text-slate-500 ml-6">{{ __('Receive an email alert whenever a message is posted in this channel.') }}</p>
                 </div>
             </div>
 
@@ -475,6 +333,140 @@
                             <tr>
                                 <td colspan="8" class="py-8 text-center text-slate-500 font-mono">
                                     No channels exist yet. Click "Create Channel" to create your first secure channel.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Registered Users Section -->
+        <div class="rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md overflow-hidden">
+            <div class="p-5 border-b border-slate-800/80 flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-semibold text-white tracking-tight">{{ __('Registered Users') }}</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">{{ __('Discreet database of all registered accounts and member profiles') }}</p>
+                </div>
+                <div class="px-3 py-1 rounded-xl bg-slate-800/80 border border-slate-700/80 font-mono text-xs text-slate-300">
+                    {{ $registeredUsers->count() }} {{ __('Total') }}
+                </div>
+            </div>
+
+            <!-- Table of Users -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="border-b border-slate-800 text-slate-400 font-mono text-[11px] uppercase bg-slate-950/40">
+                            <th class="py-3 px-4">{{ __('User') }}</th>
+                            <th class="py-3 px-4">{{ __('Email') }}</th>
+                            <th class="py-3 px-4">{{ __('Age & Birthday') }}</th>
+                            <th class="py-3 px-4">{{ __('Gender') }}</th>
+                            <th class="py-3 px-4">{{ __('Location') }}</th>
+                            <th class="py-3 px-4">{{ __('Alerts') }}</th>
+                            <th class="py-3 px-4">{{ __('Joined') }}</th>
+                            <th class="py-3 px-4 text-right">{{ __('Actions') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60 font-sans">
+                        @forelse($registeredUsers as $regUser)
+                            <tr class="hover:bg-white/[0.02] transition-colors">
+                                <td class="py-3.5 px-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 flex items-center justify-center font-mono font-bold text-xs text-emerald-400 shrink-0">
+                                            @if($regUser->avatar_path)
+                                                <img src="{{ $regUser->avatarUrl() }}" class="w-full h-full object-cover" alt="">
+                                            @else
+                                                {{ strtoupper(substr($regUser->name, 0, 2)) }}
+                                            @endif
+                                        </div>
+                                        <div>
+                                            <div class="font-semibold text-white flex items-center gap-2">
+                                                <span>{{ $regUser->name }}</span>
+                                            </div>
+                                            @if($regUser->bio)
+                                                <div class="text-[11px] text-slate-400 truncate max-w-[200px]" title="{{ $regUser->bio }}">
+                                                    {{ $regUser->bio }}
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-3.5 px-4 font-mono">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-slate-200">{{ $regUser->email }}</span>
+                                        <button
+                                            type="button"
+                                            onclick="copyText('{{ $regUser->email }}', this, '{{ __('Email copied!') }}')"
+                                            title="{{ __('Copy email') }}"
+                                            class="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-emerald-300 transition-colors cursor-pointer"
+                                        >
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                        </button>
+                                    </div>
+                                </td>
+                                <td class="py-3.5 px-4 font-mono text-slate-300">
+                                    @if($regUser->age())
+                                        <span class="text-emerald-400 font-semibold">{{ $regUser->age() }} {{ __('yrs') }}</span>
+                                        @if($regUser->birthday)
+                                            <span class="text-[10px] text-slate-500 block">({{ $regUser->birthday->format('M d, Y') }})</span>
+                                        @endif
+                                    @elseif($regUser->birthday)
+                                        <span class="text-slate-400">{{ $regUser->birthday->format('M d, Y') }}</span>
+                                    @else
+                                        <span class="text-slate-500">—</span>
+                                    @endif
+                                </td>
+                                <td class="py-3.5 px-4 font-mono text-slate-300">
+                                    {{ $regUser->gender ? ucfirst($regUser->gender) : '—' }}
+                                </td>
+                                <td class="py-3.5 px-4 font-mono text-slate-300">
+                                    {{ $regUser->location ?: '—' }}
+                                </td>
+                                <td class="py-3.5 px-4 font-mono">
+                                    @if($regUser->email_notifications)
+                                        <span class="inline-flex items-center gap-1 text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 text-[10px]">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            {{ __('On') }}
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700 text-[10px]">
+                                            {{ __('Off') }}
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="py-3.5 px-4 font-mono text-slate-400 text-[11px]">
+                                    {{ $regUser->created_at?->diffForHumans() ?? '—' }}
+                                </td>
+                                <td class="py-3.5 px-4 text-right">
+                                    <div class="flex items-center justify-end gap-1.5 font-mono">
+                                        <button
+                                            type="button"
+                                            onclick='openUserDossier(@json($regUser))'
+                                            class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors text-[11px] cursor-pointer"
+                                        >
+                                            {{ __('Inspect') }}
+                                        </button>
+
+                                        @if($regUser->id !== Auth::id())
+                                            <form method="POST" action="{{ route('admin.users.destroy', ['id' => $regUser->id]) }}" class="inline" onsubmit="return confirm('{{ __('Permanently delete this user account?') }}')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button
+                                                    type="submit"
+                                                    class="px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 transition-colors text-[11px] cursor-pointer"
+                                                >
+                                                    {{ __('Purge') }}
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="py-8 text-center text-slate-500 font-mono">
+                                    {{ __('No registered users found.') }}
                                 </td>
                             </tr>
                         @endforelse
