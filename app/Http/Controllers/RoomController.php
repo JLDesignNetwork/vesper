@@ -31,7 +31,7 @@ class RoomController extends Controller
     public function index(): RedirectResponse
     {
         if (Auth::check()) {
-            return redirect()->route('admin.dashboard');
+            return redirect()->to(Auth::user()->homeRoute());
         }
 
         return redirect()->route('login');
@@ -59,6 +59,7 @@ class RoomController extends Controller
 
         $expiresAt = null;
         if (! empty($validated['expires_in_hours']) && (int) $validated['expires_in_hours'] > 0) {
+            $expiresAt = now()->addHours((int) $validated['expires_in_hours']);
         }
 
         $room = Room::create([
@@ -68,12 +69,16 @@ class RoomController extends Controller
             'burn_after_reading' => (bool) ($validated['burn_after_reading'] ?? false),
             'expires_at' => $expiresAt,
             'created_by_ip' => $clientIp,
-            'created_by_ip' => $clientIp,
+            'created_by_user_id' => Auth::id(),
             'status' => 'active',
         ]);
 
-        $alias = trim($validated['alias'] ?? '') ?: 'Commander';
+        $alias = trim($validated['alias'] ?? '') ?: (Auth::check() ? Auth::user()->name : 'Commander');
         $sessionId = $request->session()->getId();
+
+        if (Auth::check()) {
+            $room->addMember(Auth::user(), 'owner', null, $alias);
+        }
 
         $request->session()->put("room_clearance_{$room->id}", true);
         $request->session()->put("room_alias_{$room->id}", $alias);
@@ -248,6 +253,10 @@ class RoomController extends Controller
             ]
         );
 
+        if ($user) {
+            $room->addMember($user, 'member', null, $alias);
+        }
+
         return redirect()->route('rooms.show', ['room' => $room->code]);
     }
 
@@ -284,6 +293,12 @@ class RoomController extends Controller
                 $request->session()->put("room_is_admin_{$room->id}", true);
                 $hasClearance = true;
                 $isAdmin = true;
+            } elseif ($room->isMember($currentUser) && $currentUser->canUsePinlessEntry()) {
+                $request->session()->put("room_clearance_{$room->id}", true);
+                $request->session()->put("room_alias_{$room->id}", $currentUser->name);
+                $request->session()->put("room_is_admin_{$room->id}", false);
+                $hasClearance = true;
+                $room->touchMemberAccess($currentUser);
             } elseif ($hasClearance) {
                 $request->session()->put("room_alias_{$room->id}", $currentUser->name);
                 $request->session()->put("room_is_admin_{$room->id}", false);

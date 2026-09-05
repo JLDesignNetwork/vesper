@@ -140,6 +140,23 @@
             </div>
         @endif
 
+        @if(session('generated_invite'))
+            <div class="p-4 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-xs flex items-center justify-between shadow-lg">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                    <span>{{ __('Channel Invitation Code:') }} <strong class="font-mono text-white text-sm ml-1 select-all">{{ session('generated_invite')['code'] }}</strong></span>
+                </div>
+                <button
+                    type="button"
+                    onclick="navigator.clipboard.writeText('{{ session('generated_invite')['url'] }}'); this.innerText = 'Copied!';"
+                    class="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 font-mono text-[11px] cursor-pointer flex items-center gap-1.5"
+                >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                    <span>{{ __('Copy Invite Link') }}</span>
+                </button>
+            </div>
+        @endif
+
         <!-- Metric Stat Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <!-- Active Channels -->
@@ -332,6 +349,14 @@
                                             class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors text-[11px] cursor-pointer"
                                         >
                                             {{ __('Edit') }}
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onclick="openInviteModal({{ $room->id }}, '{{ $room->code }}', '{{ addslashes($room->title ?: $room->code) }}')"
+                                            class="px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-colors text-[11px] cursor-pointer"
+                                        >
+                                            {{ __('Invite') }}
                                         </button>
 
                                         <a
@@ -780,6 +805,74 @@
                         class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium shadow-lg transition-all cursor-pointer"
                     >
                         {{ __('Create Channel') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Invite Operative / Generate Channel Invitation Modal -->
+    <div id="invite-channel-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 font-sans">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div>
+                    <h3 class="text-base font-semibold text-white tracking-tight">{{ __('Channel Invitation Protocol') }}</h3>
+                    <p class="text-xs text-slate-400 font-mono mt-0.5" id="invite-channel-subtitle"></p>
+                </div>
+                <button type="button" onclick="closeInviteModal()" class="text-slate-400 hover:text-white cursor-pointer">✕</button>
+            </div>
+
+            <form id="invite-channel-form" method="POST" action="" class="space-y-4 text-xs">
+                @csrf
+
+                <!-- Option A: Direct Assignment to Registered Operative -->
+                <div class="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2">
+                    <label class="block font-semibold text-emerald-400 font-mono text-[11px] uppercase tracking-wider">{{ __('Direct Assignment') }}</label>
+                    <p class="text-[11px] text-slate-400">{{ __('Instantly grant clearance to an existing registered operative.') }}</p>
+                    <select name="user_id" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-emerald-500">
+                        <option value="">{{ __('-- Select Registered Operative --') }}</option>
+                        @foreach($registeredUsers as $regUser)
+                            @if(!$regUser->isAdmin())
+                                <option value="{{ $regUser->id }}">{{ $regUser->name }} ({{ $regUser->email }})</option>
+                            @endif
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="text-center text-[10px] font-mono text-slate-500 uppercase tracking-widest">{{ __('— OR Generate Invite Token / Code —') }}</div>
+
+                <!-- Option B: Clearance Code & Link -->
+                <div class="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-3">
+                    <label class="block font-semibold text-cyan-400 font-mono text-[11px] uppercase tracking-wider">{{ __('Shareable Clearance Token') }}</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-slate-400 text-[11px] mb-1">{{ __('Max Redemptions') }}</label>
+                            <input type="number" name="max_uses" min="1" max="100" placeholder="Unlimited" class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-cyan-500">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 text-[11px] mb-1">{{ __('Expires After') }}</label>
+                            <select name="expires_in_days" class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-cyan-500">
+                                <option value="7">{{ __('7 Days') }}</option>
+                                <option value="1">{{ __('24 Hours') }}</option>
+                                <option value="30">{{ __('30 Days') }}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-2 flex items-center justify-end gap-2 font-mono">
+                    <button
+                        type="button"
+                        onclick="closeInviteModal()"
+                        class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+                    >
+                        {{ __('Cancel') }}
+                    </button>
+                    <button
+                        type="submit"
+                        class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-medium shadow-lg transition-all cursor-pointer"
+                    >
+                        {{ __('Issue Invitation') }}
                     </button>
                 </div>
             </form>
@@ -1554,6 +1647,16 @@
 
         function closeCreateModal() {
             document.getElementById('create-modal').classList.add('hidden');
+        }
+
+        function openInviteModal(roomId, roomCode, roomTitle) {
+            document.getElementById('invite-channel-form').action = `/admin/channels/${roomId}/invite`;
+            document.getElementById('invite-channel-subtitle').innerText = `Target Channel: [${roomCode}] ${roomTitle}`;
+            document.getElementById('invite-channel-modal').classList.remove('hidden');
+        }
+
+        function closeInviteModal() {
+            document.getElementById('invite-channel-modal').classList.add('hidden');
         }
 
         function openEditModal(room) {

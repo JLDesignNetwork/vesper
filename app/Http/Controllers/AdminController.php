@@ -275,6 +275,40 @@ class AdminController extends Controller
     }
 
     /**
+     * Generate an invite link/code or directly invite an operative to a channel.
+     */
+    public function createInvite(Request $request, string $id): RedirectResponse
+    {
+        $room = Room::findOrFail($id);
+
+        $validated = $request->validate([
+            'user_id' => ['nullable', 'exists:users,id'],
+            'max_uses' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'expires_in_days' => ['nullable', 'integer', 'min:1', 'max:90'],
+        ]);
+
+        if (! empty($validated['user_id'])) {
+            $targetUser = User::findOrFail($validated['user_id']);
+            $room->inviteUser($targetUser, Auth::id());
+
+            return redirect()->route('admin.dashboard')->with('status', "Direct invitation issued to Operative [{$targetUser->name}] for channel [{$room->code}].");
+        }
+
+        $invitation = \App\Models\ChannelInvitation::createForRoom(
+            room: $room,
+            createdByUser: Auth::user(),
+            maxUses: ! empty($validated['max_uses']) ? (int) $validated['max_uses'] : null,
+            expiresAt: ! empty($validated['expires_in_days']) ? now()->addDays((int) $validated['expires_in_days']) : null
+        );
+
+        return redirect()->route('admin.dashboard')->with('generated_invite', [
+            'room_code' => $room->code,
+            'code' => $invitation->code,
+            'url' => route('invites.show', ['token' => $invitation->token]),
+        ])->with('status', "Invitation generated for channel [{$room->code}]: Code [{$invitation->code}].");
+    }
+
+    /**
      * Format raw byte count into human-readable representation.
      */
     protected function formatBytes(int $bytes): string

@@ -101,7 +101,7 @@ class WebAuthnController extends Controller
             return response()->json([
                 'success' => true,
                 'requires_2fa' => false,
-                'redirect' => $user->isAdmin() ? route('admin.dashboard') : route('portal'),
+                'redirect' => $user->homeRoute(),
             ]);
         } catch (\Throwable $e) {
             return response()->json([

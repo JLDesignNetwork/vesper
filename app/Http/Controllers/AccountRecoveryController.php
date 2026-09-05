@@ -203,6 +203,6 @@ class AccountRecoveryController extends Controller
         Auth::login($user, true);
         $request->session()->regenerate();
 
-        return redirect()->route('admin.dashboard')->with('status', __('Account recovered successfully. Please re-configure your two-factor credentials and biometrics.'));
+        return redirect()->to($user->homeRoute())->with('status', __('Account recovered successfully. Please re-configure your two-factor credentials and biometrics.'));
     }
 }

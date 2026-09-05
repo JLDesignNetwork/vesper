@@ -37,6 +37,7 @@ test('admin can log in with either username or email', function () {
         'name' => 'AgentAdmin',
         'email' => 'agent@sundaycity.local',
         'password' => Hash::make('password123'),
+        'role' => 'admin',
     ]);
 
     // Test login with username

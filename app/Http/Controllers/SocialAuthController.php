@@ -68,7 +68,7 @@ class SocialAuthController extends Controller
             Auth::login($user, true);
             $request->session()->regenerate();
 
-            return redirect()->intended($user->isAdmin() ? route('admin.dashboard') : route('portal'));
+            return redirect()->intended($user->homeRoute());
         } catch (\Throwable $e) {
             return redirect()->route('login')->withErrors([
                 'login' => __('Authentication with :provider failed: :error', [

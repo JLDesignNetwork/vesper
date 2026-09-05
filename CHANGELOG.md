@@ -11,6 +11,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.6.0] - 2026-09-05
+
+### Added
+- **Post-Login Role-Based Routing**:
+  - `admin` accounts automatically routed to Admin Command Center (`/admin`).
+  - `member` accounts automatically routed to Operative Channels Hub (`/channels`).
+  - Implemented centralized `$user->homeRoute()` on the `User` model, standardizing post-auth redirection across password, WebAuthn biometrics, 2FA challenge, OAuth SSO, and account recovery workflows.
+- **Strict Zero-Discovery Operative Channels Hub (`/channels`)**:
+  - Operatives can strictly view only channels where they are verified enrolled members.
+  - Zero channel exploration, public directory, or arbitrary channel discovery.
+  - Interactive cards display channel title, code, role badge, message metrics, and last access timestamp.
+- **Channel Invitation Protocol & Token Engine**:
+  - `channel_invitations` table tracking secure token links (`/invite/{token}`) and shareable alphanumeric codes (`INV-XXXX-XXXX`).
+  - Administrators can directly enroll registered operatives into channels or generate rate-limited / expiring clearance codes.
+  - "Redeem Invite Code" modal on `/channels` enabling operatives to claim clearance into new channels.
+  - Direct invitation acceptance banner on `/channels` with 1-click Accept / Decline actions.
+- **2FA-Guarded Pinless Channel Re-Entry**:
+  - Operatives with active 2FA (TOTP authenticator) or WebAuthn hardware biometrics qualify for **1-click pinless entry** (`channels.enter`) into any enrolled channel without entering PINs repeatedly.
+  - Operatives without 2FA are routed to the PIN gate with a clear prompt to configure 2FA in profile settings to unlock instant pinless access.
+- **Automated Feature Test Suite**:
+  - `tests/Feature/MemberChannelsAndInviteTest.php` with 8 comprehensive tests verifying role-based routing, zero-discovery isolation, pinless re-entry, and invite redemption workflows (76 total tests passing project-wide).
+
+---
+
 ## [1.5.0] - 2026-09-05
 
 ### Added

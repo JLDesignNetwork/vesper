@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -61,6 +62,85 @@ class Room extends Model
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class);
+    }
+
+    /**
+     * Get all active enrolled members of this channel.
+     */
+    public function members(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'room_user')
+            ->wherePivot('status', 'active')
+            ->withPivot(['role', 'alias', 'status', 'last_accessed_at'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Get all secure invitations generated for this channel.
+     */
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(ChannelInvitation::class);
+    }
+
+    /**
+     * Determine if a user is an active enrolled member of this room.
+     */
+    public function isMember(User|int|null $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        $userId = $user instanceof User ? $user->id : $user;
+
+        return $this->members()->where('users.id', $userId)->exists();
+    }
+
+    /**
+     * Enroll a user as an active member of this room.
+     */
+    public function addMember(User|int $user, string $role = 'member', ?int $invitedBy = null, ?string $alias = null): void
+    {
+        $userId = $user instanceof User ? $user->id : $user;
+
+        $this->belongsToMany(User::class, 'room_user')->syncWithoutDetaching([
+            $userId => [
+                'role' => $role,
+                'status' => 'active',
+                'alias' => $alias,
+                'invited_by_user_id' => $invitedBy,
+                'last_accessed_at' => now(),
+            ],
+        ]);
+    }
+
+    /**
+     * Issue a pending direct invitation to a user for this room.
+     */
+    public function inviteUser(User|int $user, ?int $invitedBy = null): void
+    {
+        $userId = $user instanceof User ? $user->id : $user;
+
+        $this->belongsToMany(User::class, 'room_user')->syncWithoutDetaching([
+            $userId => [
+                'role' => 'member',
+                'status' => 'invited',
+                'invited_by_user_id' => $invitedBy,
+            ],
+        ]);
+    }
+
+    /**
+     * Update the last accessed timestamp for an enrolled member.
+     */
+    public function touchMemberAccess(User|int $user): void
+    {
+        $userId = $user instanceof User ? $user->id : $user;
+
+        $this->members()->updateExistingPivot($userId, [
+            'last_accessed_at' => now(),
+        ]);
     }
 
     /**

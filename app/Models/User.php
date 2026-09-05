@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -56,6 +57,28 @@ class User extends Authenticatable
             'recovery_email_verified_at' => 'datetime',
             'recovery_token_expires_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Get all channels this user is an active enrolled member of.
+     */
+    public function channels(): BelongsToMany
+    {
+        return $this->belongsToMany(Room::class, 'room_user')
+            ->wherePivot('status', 'active')
+            ->withPivot(['role', 'alias', 'status', 'last_accessed_at'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Get all pending channel invitations for this user.
+     */
+    public function pendingChannelInvitations(): BelongsToMany
+    {
+        return $this->belongsToMany(Room::class, 'room_user')
+            ->wherePivot('status', 'invited')
+            ->withPivot(['role', 'alias', 'status', 'invited_by_user_id'])
+            ->withTimestamps();
     }
 
     /**
@@ -121,6 +144,23 @@ class User extends Authenticatable
     public function isMember(): bool
     {
         return $this->role === 'member';
+    }
+
+    /**
+     * Determine the user's primary post-login destination based on role.
+     */
+    public function homeRoute(): string
+    {
+        return $this->isAdmin() ? route('admin.dashboard') : route('channels.index');
+    }
+
+    /**
+     * Determine if this user is eligible for instant pinless channel re-entry.
+     * Requires active Two-Factor Authentication or Hardware Biometrics.
+     */
+    public function canUsePinlessEntry(): bool
+    {
+        return $this->hasTwoFactor() || $this->hasBiometrics();
     }
 
     /**

@@ -3,6 +3,8 @@
 use App\Http\Controllers\AccountRecoveryController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ChannelHubController;
+use App\Http\Controllers\ChannelInviteController;
 use App\Http\Controllers\IntelController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ProfileController;
@@ -24,6 +26,14 @@ Route::post('/webauthn/login/options', [WebAuthnController::class, 'optionsLogin
 Route::post('/webauthn/login/verify', [WebAuthnController::class, 'verifyLogin'])->name('webauthn.login.verify');
 
 Route::middleware('auth')->group(function () {
+    // Operative Channels Hub (Enrolled channels only)
+    Route::get('/channels', [ChannelHubController::class, 'index'])->name('channels.index');
+    Route::post('/channels/enter/{room}', [ChannelHubController::class, 'enter'])->name('channels.enter');
+    Route::post('/channels/invites/{roomId}/accept', [ChannelHubController::class, 'acceptInvite'])->name('channels.invites.accept');
+    Route::post('/channels/invites/{roomId}/decline', [ChannelHubController::class, 'declineInvite'])->name('channels.invites.decline');
+    Route::post('/channels/redeem', [ChannelHubController::class, 'redeemCode'])->name('channels.redeem');
+
+    // WebAuthn registration
     Route::get('/webauthn/register/options', [WebAuthnController::class, 'optionsRegister'])->name('webauthn.register.options');
     Route::post('/webauthn/register', [WebAuthnController::class, 'register'])->name('webauthn.register');
     Route::delete('/webauthn/credentials/{id}', [WebAuthnController::class, 'destroy'])->name('webauthn.destroy');
@@ -83,9 +93,14 @@ Route::middleware(['auth', EnsureAdmin::class])->prefix('admin')->group(function
     Route::put('/channels/{id}', [AdminController::class, 'updateChannel'])->name('admin.channels.update');
     Route::post('/channels/{id}/toggle', [AdminController::class, 'toggleChannel'])->name('admin.channels.toggle');
     Route::post('/channels/{id}/toggle-notifications', [AdminController::class, 'toggleNotifications'])->name('admin.channels.toggle-notifications');
+    Route::post('/channels/{id}/invite', [AdminController::class, 'createInvite'])->name('admin.channels.invite');
     Route::delete('/channels/{id}', [AdminController::class, 'destroyChannel'])->name('admin.channels.destroy');
     Route::delete('/users/{id}', [AdminController::class, 'destroyUser'])->name('admin.users.destroy');
 });
+
+// Channel Invitation Links (Acceptance flow)
+Route::get('/invite/{token}', [ChannelInviteController::class, 'showInvite'])->name('invites.show');
+Route::post('/invite/{token}/accept', [ChannelInviteController::class, 'acceptInviteLink'])->name('invites.accept')->middleware('auth');
 
 // Private Channel Direct Access (Zero public discovery)
 Route::post('/rooms/{room}/verify', [RoomController::class, 'verify'])->name('rooms.verify');

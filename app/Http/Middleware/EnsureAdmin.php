@@ -21,7 +21,7 @@ class EnsureAdmin
         }
 
         if (! Auth::user()->isAdmin()) {
-            abort(403, 'Unauthorized. Access restricted to platform administrators.');
+            return redirect()->route('channels.index');
         }
 
         return $next($request);

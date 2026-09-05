@@ -171,7 +171,7 @@ class TwoFactorController extends Controller
                     Auth::login($user, $remember);
                     $request->session()->regenerate();
 
-                    return redirect()->intended($user->isAdmin() ? route('admin.dashboard') : route('portal'));
+                    return redirect()->intended($user->homeRoute());
                 }
             } catch (\Throwable $e) {
                 // fall through to error
@@ -187,7 +187,7 @@ class TwoFactorController extends Controller
                 Auth::login($user, $remember);
                 $request->session()->regenerate();
 
-                return redirect()->intended($user->isAdmin() ? route('admin.dashboard') : route('portal'))
+                return redirect()->intended($user->homeRoute())
                     ->with('status', __('Signed in using emergency backup code. Please review your active 2FA codes.'));
             }
 

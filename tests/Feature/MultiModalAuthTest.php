@@ -398,6 +398,7 @@ test('emergency password reset updates user password and clears token', function
         'password' => Hash::make('outdated-secret'),
         'recovery_token' => hash('sha256', $token),
         'recovery_token_expires_at' => now()->addMinutes(30),
+        'role' => 'admin',
     ]);
 
     // View reset form

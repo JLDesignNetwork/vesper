@@ -17,7 +17,7 @@ class AuthController extends Controller
     public function showLogin(): View|RedirectResponse
     {
         if (Auth::check()) {
-            return redirect()->route('admin.dashboard');
+            return redirect()->to(Auth::user()->homeRoute());
         }
 
         $needsSetup = User::count() === 0;
@@ -80,7 +80,7 @@ class AuthController extends Controller
             Auth::login($user, $remember);
             $request->session()->regenerate();
 
-            return redirect()->intended(route('admin.dashboard'));
+            return redirect()->intended($user->homeRoute());
         }
 
         return back()->withInput($request->only('login'))->withErrors([
