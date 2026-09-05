@@ -1,0 +1,75 @@
+<?php
+
+namespace App\Models;
+
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+
+#[Fillable(['name', 'email', 'password', 'role', 'birthday', 'gender', 'location', 'bio', 'email_notifications', 'avatar_path'])]
+#[Hidden(['password', 'remember_token'])]
+class User extends Authenticatable
+{
+    /** @use HasFactory<UserFactory> */
+    use HasFactory, Notifiable;
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'birthday' => 'date',
+            'email_notifications' => 'boolean',
+        ];
+    }
+
+    /**
+     * Get all rooms created by this user.
+     */
+    public function rooms(): HasMany
+    {
+        return $this->hasMany(Room::class, 'created_by_user_id');
+    }
+
+    /**
+     * Determine if this user is the platform administrator.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Determine if this user is a regular chat member.
+     */
+    public function isMember(): bool
+    {
+        return $this->role === 'member';
+    }
+
+    /**
+     * Calculate age from birthday if set.
+     */
+    public function age(): ?int
+    {
+        return $this->birthday ? (int) $this->birthday->diffInYears(now()) : null;
+    }
+
+    /**
+     * Get the absolute public URL to the user's custom avatar, if uploaded.
+     */
+    public function avatarUrl(): ?string
+    {
+        return $this->avatar_path ? asset('storage/'.$this->avatar_path) : null;
+    }
+}
