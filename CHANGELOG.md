@@ -11,7 +11,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.4.0] - 2026-09-05
+## [1.5.0] - 2026-09-05
+
+### Added
+- **Hardware Biometrics & Passkeys (WebAuthn / FIDO2)**:
+  - Native passwordless biometrics support for Apple Touch ID, Face ID, and Windows Hello platform authenticators.
+  - Challenge generation, clientDataJSON / authenticatorData parsing, counter verification, and COSE public key enrollment via `WebAuthnService` and `WebAuthnController`.
+  - 1-click biometric sign-in directly on `/login` and enrollment interface in Admin and Channel operative profile settings.
+- **Two-Factor Authentication (TOTP, RFC 6238)**:
+  - Time-based one-time password security compatible with Google Authenticator, Apple Passwords (iCloud Keychain), and 1Password.
+  - Built-in offline SVG QR code generator powered by `bacon/bacon-qr-code`, eliminating third-party tracking or external image services.
+  - Interactive 2FA challenge login interception (`/two-factor/challenge`) with rolling 30-second window verification and password-protected deactivation.
+- **Single-Use Emergency Recovery Codes**:
+  - Generation and cryptographically secure hashing of 8 emergency backup recovery codes during 2FA setup.
+  - Immediate single-use consumption and automatic purge upon successful authentication bypass with instant dual security alert notifications.
+- **Secondary Recovery Email & Emergency Account Reset**:
+  - Configurable and cryptographically signed secondary recovery email channel (`/recovery/request`).
+  - Emergency 15-minute expiring access tokens dispatched to verified recovery addresses to safely regain access when primary devices are lost.
+  - Dual-channel security alert notifications sent to both primary and secondary emails on sensitive security events.
+- **OAuth 2.0 Social Single Sign-On (Google & Apple)**:
+  - Fast single-click authentication with Google and Apple with full support for Apple's *Hide My Email* private relay.
+  - Native implementation using Laravel's `Http` client, eliminating dependency incompatibilities and enabling full mocking test coverage.
+- **Localization & Test Suite**:
+  - Added comprehensive localization strings across English (`en`), French (`fr`), Italian (`it`), and Russian (`ru`).
+  - Created automated test suite `tests/Feature/MultiModalAuthTest.php` with 18 comprehensive tests (400 total assertions across the 68 platform tests, all 100% passing).
 
 ### Changed
 - **Platform Rebrand to Vesper (Ghostwire Protocol)**:

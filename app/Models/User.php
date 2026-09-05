@@ -12,8 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role', 'birthday', 'gender', 'location', 'latitude', 'longitude', 'city', 'country', 'country_code', 'location_synced_at', 'hide_age', 'hide_birthday', 'hide_location', 'hide_bio', 'bio', 'email_notifications', 'avatar_path', 'preferred_locale'])]
-#[Hidden(['password', 'remember_token'])]
+#[Fillable(['name', 'email', 'password', 'role', 'birthday', 'gender', 'location', 'latitude', 'longitude', 'city', 'country', 'country_code', 'location_synced_at', 'hide_age', 'hide_birthday', 'hide_location', 'hide_bio', 'bio', 'email_notifications', 'avatar_path', 'preferred_locale', 'two_factor_secret', 'two_factor_confirmed_at', 'two_factor_recovery_codes', 'recovery_email', 'recovery_email_verified_at', 'recovery_token', 'recovery_token_expires_at'])]
+#[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes', 'recovery_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -28,6 +28,8 @@ class User extends Authenticatable
         'latest_ip',
         'effective_locale',
         'location_locale',
+        'has_two_factor',
+        'has_biometrics',
     ];
 
     /**
@@ -49,6 +51,10 @@ class User extends Authenticatable
             'hide_location' => 'boolean',
             'hide_bio' => 'boolean',
             'email_notifications' => 'boolean',
+            'two_factor_confirmed_at' => 'datetime',
+            'two_factor_recovery_codes' => 'array',
+            'recovery_email_verified_at' => 'datetime',
+            'recovery_token_expires_at' => 'datetime',
         ];
     }
 
@@ -240,5 +246,121 @@ class User extends Authenticatable
     {
         return $this->resolveLocationLocale();
     }
+
+    /**
+     * Registered hardware biometric authenticators (Touch ID, Face ID, Passkeys).
+     */
+    public function webauthnCredentials(): HasMany
+    {
+        return $this->hasMany(WebAuthnCredential::class);
+    }
+
+    /**
+     * Linked external social/OAuth identities (Google, Apple).
+     */
+    public function socialAccounts(): HasMany
+    {
+        return $this->hasMany(SocialAccount::class);
+    }
+
+    /**
+     * Whether this operative has confirmed two-factor authentication enabled.
+     */
+    public function hasTwoFactor(): bool
+    {
+        return ! empty($this->two_factor_secret) && ! empty($this->two_factor_confirmed_at);
+    }
+
+    /**
+     * Accessor for has_two_factor.
+     */
+    public function getHasTwoFactorAttribute(): bool
+    {
+        return $this->hasTwoFactor();
+    }
+
+    /**
+     * Whether this operative has at least one enrolled hardware biometric passkey.
+     */
+    public function hasBiometrics(): bool
+    {
+        return $this->webauthnCredentials()->exists();
+    }
+
+    /**
+     * Accessor for has_biometrics.
+     */
+    public function getHasBiometricsAttribute(): bool
+    {
+        return $this->hasBiometrics();
+    }
+
+    /**
+     * Whether this operative has a verified recovery email address.
+     */
+    public function hasVerifiedRecoveryEmail(): bool
+    {
+        return ! empty($this->recovery_email) && ! empty($this->recovery_email_verified_at);
+    }
+
+    /**
+     * Check if user is linked to a specific social provider.
+     */
+    public function hasSocial(string $provider): bool
+    {
+        return $this->socialAccounts()->where('provider', $provider)->exists();
+    }
+
+    /**
+     * Generate 8 cryptographically secure single-use recovery codes.
+     * Returns raw codes array for display to user; stores bcrypt hashes in DB.
+     *
+     * @return array<int, string>
+     */
+    public function generateTwoFactorRecoveryCodes(): array
+    {
+        $rawCodes = [];
+        $hashedCodes = [];
+
+        for ($i = 0; $i < 8; $i++) {
+            $code = strtoupper(bin2hex(random_bytes(4))); // 8 hex characters e.g. 7F4A2B9C
+            $rawCodes[] = substr($code, 0, 4) . '-' . substr($code, 4, 4);
+            $hashedCodes[] = password_hash(str_replace('-', '', $code), PASSWORD_DEFAULT);
+        }
+
+        $this->update([
+            'two_factor_recovery_codes' => $hashedCodes,
+        ]);
+
+        return $rawCodes;
+    }
+
+    /**
+     * Verify and consume a single-use emergency recovery code.
+     */
+    public function consumeRecoveryCode(string $code): bool
+    {
+        $storedHashes = $this->two_factor_recovery_codes;
+        if (empty($storedHashes) || ! is_array($storedHashes)) {
+            return false;
+        }
+
+        $cleanCode = strtoupper(str_replace(['-', ' '], '', trim($code)));
+
+        foreach ($storedHashes as $index => $hash) {
+            if (password_verify($cleanCode, $hash)) {
+                // Consume code (remove from array)
+                unset($storedHashes[$index]);
+                $this->update([
+                    'two_factor_recovery_codes' => array_values($storedHashes),
+                ]);
+
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
+
 

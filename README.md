@@ -36,7 +36,15 @@ Under the hood, **Ghostwire Protocol** provides end-to-end verified communicatio
 - **Smart Birth Year Masking**: If a user hides their age while keeping their birthday visible, the system automatically conceals the birth year on the backend, only exposing the Month and Day (e.g. `June 20`) to prevent age deduction.
 - **Administrative Intelligence Oversight**: Platform administrators maintain full unmasked visibility (including real-time IP address inspection, Global Traffic Map coordinates, and privacy override badges) across all registered accounts inside the Admin Control Center (`/admin`).
 
-### 5. Operative Profiles & Intelligence Dossiers
+### 5. Multi-Modal Authentication & Account Defense
+- **Hardware Biometrics & Passkeys**: WebAuthn/FIDO2 standard support for passwordless authentication using Apple Touch ID, Face ID, or Windows Hello.
+- **Two-Factor Authentication (TOTP, RFC 6238)**: Time-based one-time passwords compatible with Apple Passwords (iCloud Keychain), Google Authenticator, and 1Password with pure, offline SVG QR code rendering.
+- **Single-Use Emergency Recovery Codes**: 8 cryptographically hashed bypass codes generated during 2FA setup, immediately invalidated and purged upon successful single use.
+- **Secondary Emergency Recovery Email**: Cryptographically signed secondary recovery address to safely dispatch 15-minute emergency reset tokens when primary devices are inaccessible.
+- **OAuth 2.0 Single Sign-On (Google & Apple)**: Native 1-click authentication with Google and Apple, with full support for Apple's *Hide My Email* private relay.
+- **Dual-Channel Security Notifications**: Automatic email security alerts dispatched to both primary and verified secondary emails on critical credential events.
+
+### 6. Operative Profiles & Intelligence Dossiers
 - **Custom Avatar System**: High-resolution image uploads (JPG, PNG, WEBP, GIF up to 5MB) with dynamic initials fallback badges.
 - **Viewport-Safe Modals**: Ergonomic, `max-h-[90vh]` scrollable modals with pinned headers and action footers for seamless laptop and mobile usability.
 - **Admin Dossier Modal**: Instant operative dossiers featuring quick-copy IP addresses, communication status, email alerts, and privacy audit summaries.
@@ -48,7 +56,7 @@ Under the hood, **Ghostwire Protocol** provides end-to-end verified communicatio
 - **Backend**: Laravel 12.x (PHP 8.4+)
 - **Frontend**: Blade templates, TailwindCSS, Vanilla JavaScript (ES6+), Leaflet.js
 - **Asset Pipeline**: Vite 8.x
-- **Testing**: Pest PHP (50 tests, 300 assertions)
+- **Testing**: Pest PHP (68 tests, 400 assertions — 100% passing)
 - **Mail Handling**: ServBay Mailpit (SMTP port 1025, Web UI port 18025)
 - **Local Environment**: ServBay Pro / macOS / PHP 8.4
 

@@ -772,6 +772,131 @@
                         </div>
                     </div>
 
+                    <!-- Security, Biometrics & Account Defense -->
+                    <div class="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="text-[11px] font-semibold text-white uppercase font-mono tracking-wider flex items-center gap-1.5">
+                                <span>🛡️</span>
+                                <span>{{ __('Security & Clearances') }}</span>
+                            </div>
+                            <span class="text-[10px] font-mono text-emerald-400">{{ __('MFA & Biometrics') }}</span>
+                        </div>
+
+                        <!-- Hardware Biometrics (Touch ID / Face ID) -->
+                        <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm">🔒</span>
+                                    <div>
+                                        <div class="text-xs font-semibold text-white">{{ __('Hardware Biometrics / Passkeys') }}</div>
+                                        <div class="text-[10px] text-slate-400 font-mono" id="biometrics-count-label">
+                                            {{ Auth::user()->webauthnCredentials->count() }} {{ __('registered keys') }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onclick="enrollCurrentDeviceBiometrics()"
+                                    id="enroll-bio-btn"
+                                    class="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-mono text-[11px] cursor-pointer transition-colors"
+                                >
+                                    + {{ __('Enroll This Device') }}
+                                </button>
+                            </div>
+
+                            <div id="biometrics-keys-list" class="space-y-1.5 pt-1">
+                                @forelse(Auth::user()->webauthnCredentials as $credential)
+                                    <div class="flex items-center justify-between px-2 py-1 rounded bg-slate-950/60 border border-slate-800/80 text-[11px] font-mono text-slate-300">
+                                        <div class="flex items-center gap-1.5 truncate">
+                                            <span class="text-emerald-400">⚡</span>
+                                            <span class="truncate">{{ $credential->device_name }}</span>
+                                            <span class="text-[9px] text-slate-500">({{ $credential->created_at->format('M d') }})</span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onclick="revokeBiometricKey({{ $credential->id }}, this)"
+                                            class="text-rose-400 hover:text-rose-300 text-[10px] ml-2 cursor-pointer"
+                                            title="{{ __('Revoke Key') }}"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                @empty
+                                    <p class="text-[10px] text-slate-500 font-mono">{{ __('No biometric keys enrolled on this identity yet.') }}</p>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        <!-- Two-Factor Authentication (TOTP) -->
+                        <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm">🔑</span>
+                                    <div>
+                                        <div class="text-xs font-semibold text-white">{{ __('Authenticator App (TOTP 2FA)') }}</div>
+                                        <div class="text-[10px] text-slate-400 font-mono">
+                                            @if(Auth::user()->hasTwoFactor())
+                                                <span class="text-emerald-400">● {{ __('Active & Enforced') }}</span>
+                                            @else
+                                                <span class="text-slate-500">○ {{ __('Not Configured') }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                                @if(Auth::user()->hasTwoFactor())
+                                    <button
+                                        type="button"
+                                        onclick="openDisable2faModal()"
+                                        class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 font-mono text-[11px] cursor-pointer transition-colors"
+                                    >
+                                        {{ __('Disable') }}
+                                    </button>
+                                @else
+                                    <button
+                                        type="button"
+                                        onclick="openTwoFactorSetupModal()"
+                                        class="px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 font-mono text-[11px] cursor-pointer transition-colors"
+                                    >
+                                        {{ __('Setup 2FA') }}
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Secondary Recovery Email -->
+                        <div class="p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <div class="text-xs font-semibold text-white flex items-center gap-1.5">
+                                    <span>✉️</span>
+                                    <span>{{ __('Secondary Recovery Email') }}</span>
+                                </div>
+                                <span class="text-[10px] font-mono {{ Auth::user()->hasVerifiedRecoveryEmail() ? 'text-emerald-400' : 'text-amber-400' }}">
+                                    {{ Auth::user()->hasVerifiedRecoveryEmail() ? __('Verified') : (Auth::user()->recovery_email ? __('Pending') : __('Unset')) }}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input
+                                    type="email"
+                                    id="profile-recovery-email-input"
+                                    value="{{ Auth::user()->recovery_email }}"
+                                    placeholder="backup@securemail.com"
+                                    class="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 text-xs font-mono focus:outline-none focus:border-emerald-500"
+                                >
+                                <button
+                                    type="button"
+                                    onclick="saveRecoveryEmail()"
+                                    id="save-recovery-email-btn"
+                                    class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-mono cursor-pointer transition-colors shrink-0"
+                                >
+                                    {{ __('Save') }}
+                                </button>
+                            </div>
+                            <p class="text-[10px] text-slate-500 font-mono leading-tight">
+                                {{ __('Emergency recovery links and critical account security alerts are dispatched to this address.') }}
+                            </p>
+                        </div>
+                    </div>
+
                     <div>
                         <label class="block font-medium text-slate-300 mb-1">{{ __('New Password') }} <span class="text-slate-500 text-[10px]">({{ __('leave blank to keep current') }})</span></label>
                         <input
@@ -819,6 +944,142 @@
         </div>
     </div>
     @endif
+
+    <!-- Two-Factor Setup Modal -->
+    <div id="two-factor-setup-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden overflow-y-auto p-3 sm:p-4 flex items-center justify-center font-sans">
+        <div class="w-full max-w-md my-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                    <span>🔑</span>
+                    <span>{{ __('Two-Factor Authentication Setup') }}</span>
+                </h3>
+                <button type="button" onclick="closeTwoFactorSetupModal()" class="text-slate-400 hover:text-white cursor-pointer">✕</button>
+            </div>
+
+            <!-- Step 1: Scan QR Code & Confirm -->
+            <div id="two-factor-step-1" class="space-y-4">
+                <p class="text-xs text-slate-400">
+                    {{ __('Scan this QR code with Apple Passwords (iCloud Keychain), Google Authenticator, or 1Password to bind your operative identity.') }}
+                </p>
+
+                <div id="two-factor-setup-alert" class="hidden p-2.5 rounded-xl text-xs font-mono"></div>
+
+                <div class="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-xl bg-slate-950 border border-slate-800">
+                    <div id="two-factor-qr-code-wrap" class="p-2 bg-white rounded-lg shrink-0 flex items-center justify-center min-w-[140px] min-h-[140px]">
+                        <span class="text-slate-500 font-mono text-xs">{{ __('Generating...') }}</span>
+                    </div>
+                    <div class="space-y-2 text-xs">
+                        <div class="font-medium text-slate-300">{{ __('Manual Setup Key:') }}</div>
+                        <div id="two-factor-secret-code" class="font-mono text-[11px] text-emerald-400 bg-slate-900 p-2 rounded border border-slate-800 break-all select-all">
+                            —
+                        </div>
+                        <p class="text-[10px] text-slate-500 font-mono">
+                            {{ __('Time-based One-Time Password (TOTP, RFC 6238)') }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-medium text-slate-300">{{ __('Enter 6-Digit Code from Authenticator') }}</label>
+                    <div class="flex gap-2">
+                        <input
+                            type="text"
+                            inputmode="numeric"
+                            maxlength="6"
+                            id="two-factor-confirm-code-input"
+                            placeholder="123456"
+                            class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-center font-mono text-base tracking-widest text-slate-100 focus:outline-none focus:border-emerald-500"
+                        >
+                        <button
+                            type="button"
+                            onclick="submitConfirmTwoFactor()"
+                            id="submit-confirm-2fa-btn"
+                            class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium shadow-lg transition-all cursor-pointer text-xs"
+                        >
+                            {{ __('Verify & Enable') }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Emergency Recovery Codes -->
+            <div id="two-factor-step-2" class="hidden space-y-4">
+                <div class="p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-300 text-xs">
+                    <div class="font-semibold flex items-center gap-1.5 mb-1">
+                        <span>⚠️</span>
+                        <span>{{ __('Emergency Recovery Codes') }}</span>
+                    </div>
+                    <p class="text-[11px] text-amber-200/90 leading-relaxed">
+                        {{ __('Save these 8 single-use bypass codes in a secure offline vault. Each code can be used exactly once if you lose your phone or hardware passkey.') }}
+                    </p>
+                </div>
+
+                <div id="emergency-recovery-codes-grid" class="grid grid-cols-2 gap-2 font-mono text-xs text-center text-slate-200">
+                    <!-- Populated dynamically via JS -->
+                </div>
+
+                <div class="flex items-center justify-between gap-2 pt-2">
+                    <button
+                        type="button"
+                        onclick="copyRecoveryCodes()"
+                        id="copy-recovery-codes-btn"
+                        class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer text-xs font-mono"
+                    >
+                        {{ __('Copy All Codes') }}
+                    </button>
+                    <button
+                        type="button"
+                        onclick="finishTwoFactorSetup()"
+                        class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium shadow-lg transition-all cursor-pointer text-xs"
+                    >
+                        {{ __('Done') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Two-Factor Disable Confirmation Modal -->
+    <div id="two-factor-disable-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden overflow-y-auto p-3 sm:p-4 flex items-center justify-center font-sans">
+        <div class="w-full max-w-sm my-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="text-sm font-semibold text-rose-400 flex items-center gap-2">
+                    <span>⚠️</span>
+                    <span>{{ __('Disable Two-Factor Authentication') }}</span>
+                </h3>
+                <button type="button" onclick="closeDisable2faModal()" class="text-slate-400 hover:text-white cursor-pointer">✕</button>
+            </div>
+            <p class="text-xs text-slate-400">
+                {{ __('Confirm your password to deactivate two-factor authentication and purge all associated security backup codes.') }}
+            </p>
+            <div id="disable-2fa-alert" class="hidden p-2.5 rounded-xl text-xs font-mono"></div>
+            <div>
+                <input
+                    type="password"
+                    id="disable-2fa-password"
+                    placeholder="{{ __('Current Password') }}"
+                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-rose-500"
+                >
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-1">
+                <button
+                    type="button"
+                    onclick="closeDisable2faModal()"
+                    class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs cursor-pointer"
+                >
+                    {{ __('Cancel') }}
+                </button>
+                <button
+                    type="button"
+                    onclick="submitDisable2fa()"
+                    id="confirm-disable-2fa-btn"
+                    class="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium cursor-pointer"
+                >
+                    {{ __('Confirm Deactivation') }}
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Leaflet JS for Intel Radar -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -2064,9 +2325,308 @@
             if (modal) modal.classList.add('hidden');
         }
 
+        /* -------------------------------------------------------------
+         * Security, Biometrics & Account Defense Handlers
+         * ------------------------------------------------------------- */
+        function showToast(msg) {
+            const toast = document.getElementById('room-toast');
+            const toastMsg = document.getElementById('room-toast-msg');
+            if (!toast || !toastMsg) return;
+            toastMsg.textContent = msg;
+            toast.classList.remove('translate-y-16', 'opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('translate-y-16', 'opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        function bufferDecode(value) {
+            return Uint8Array.from(atob(value.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+        }
+
+        async function enrollCurrentDeviceBiometrics() {
+            if (!window.PublicKeyCredential) {
+                alert('{{ __("WebAuthn biometrics are not supported by this browser.") }}');
+                return;
+            }
+
+            const btn = document.getElementById('enroll-bio-btn');
+            const originalText = btn.textContent;
+            btn.textContent = '{{ __("Awaiting Touch ID...") }}';
+
+            try {
+                const optRes = await fetch('{{ route("webauthn.register.options") }}', {
+                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN }
+                });
+                const options = await optRes.json();
+
+                options.challenge = bufferDecode(options.challenge);
+                options.user.id = bufferDecode(options.user.id);
+                if (options.excludeCredentials) {
+                    options.excludeCredentials = options.excludeCredentials.map(c => {
+                        c.id = bufferDecode(c.id);
+                        return c;
+                    });
+                }
+
+                const credential = await navigator.credentials.create({ publicKey: options });
+                if (!credential) {
+                    throw new Error('Credential creation rejected');
+                }
+
+                const deviceLabel = prompt('{{ __("Enter a label for this device (e.g. MacBook Touch ID):") }}', 'Touch ID / Platform Key') || 'Touch ID Key';
+
+                const payload = {
+                    id: credential.id,
+                    clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(credential.response.clientDataJSON))),
+                    attestationObject: btoa(String.fromCharCode(...new Uint8Array(credential.response.attestationObject))),
+                    deviceName: deviceLabel,
+                };
+
+                const regRes = await fetch('{{ route("webauthn.register") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await regRes.json();
+                if (result.success) {
+                    showToast(result.message || '{{ __("Device registered successfully.") }}');
+                    setTimeout(() => window.location.reload(), 800);
+                } else {
+                    alert(result.message || '{{ __("Biometric registration failed.") }}');
+                }
+            } catch (err) {
+                console.error(err);
+                if (err.name !== 'NotAllowedError') {
+                    alert('{{ __("Biometric enrollment error: ") }}' + err.message);
+                }
+            } finally {
+                btn.textContent = originalText;
+            }
+        }
+
+        async function revokeBiometricKey(id, btnElement) {
+            if (!confirm('{{ __("Are you sure you want to revoke this biometric passkey?") }}')) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`/webauthn/credentials/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN }
+                });
+                const result = await res.json();
+                if (result.success) {
+                    btnElement.closest('div').remove();
+                    showToast('{{ __("Biometric passkey revoked.") }}');
+                }
+            } catch (err) {
+                alert('{{ __("Failed to revoke biometric key.") }}');
+            }
+        }
+
+        let currentRecoveryCodes = [];
+
+        async function openTwoFactorSetupModal() {
+            const modal = document.getElementById('two-factor-setup-modal');
+            const step1 = document.getElementById('two-factor-step-1');
+            const step2 = document.getElementById('two-factor-step-2');
+            const qrWrap = document.getElementById('two-factor-qr-code-wrap');
+            const secretCode = document.getElementById('two-factor-secret-code');
+            const alertBox = document.getElementById('two-factor-setup-alert');
+
+            alertBox.classList.add('hidden');
+            step1.classList.remove('hidden');
+            step2.classList.add('hidden');
+            qrWrap.innerHTML = '<span class="text-slate-500 font-mono text-xs">{{ __("Generating QR Code...") }}</span>';
+            modal.classList.remove('hidden');
+
+            try {
+                const res = await fetch('{{ route("2fa.enable") }}', {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN }
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    secretCode.textContent = data.secret;
+                    qrWrap.innerHTML = data.qr_code_svg;
+                } else {
+                    alert('{{ __("Failed to initialize 2FA setup.") }}');
+                    closeTwoFactorSetupModal();
+                }
+            } catch (err) {
+                alert('{{ __("Failed to contact server.") }}');
+                closeTwoFactorSetupModal();
+            }
+        }
+
+        function closeTwoFactorSetupModal() {
+            document.getElementById('two-factor-setup-modal').classList.add('hidden');
+        }
+
+        async function submitConfirmTwoFactor() {
+            const codeInput = document.getElementById('two-factor-confirm-code-input');
+            const code = codeInput.value.trim();
+            const alertBox = document.getElementById('two-factor-setup-alert');
+            const btn = document.getElementById('submit-confirm-2fa-btn');
+
+            if (code.length !== 6) {
+                alertBox.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/40 border border-rose-500/30 text-rose-300';
+                alertBox.textContent = '{{ __("Please enter a 6-digit code.") }}';
+                alertBox.classList.remove('hidden');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '{{ __("Verifying...") }}';
+
+            try {
+                const res = await fetch('{{ route("2fa.confirm") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN },
+                    body: JSON.stringify({ code: code })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    currentRecoveryCodes = data.recovery_codes || [];
+                    const grid = document.getElementById('emergency-recovery-codes-grid');
+                    grid.innerHTML = currentRecoveryCodes.map(c => `<div class="p-2 rounded bg-slate-900 border border-slate-800 tracking-wider">${c}</div>`).join('');
+
+                    document.getElementById('two-factor-step-1').classList.add('hidden');
+                    document.getElementById('two-factor-step-2').classList.remove('hidden');
+                } else {
+                    alertBox.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/40 border border-rose-500/30 text-rose-300';
+                    alertBox.textContent = data.message || '{{ __("Invalid verification code.") }}';
+                    alertBox.classList.remove('hidden');
+                }
+            } catch (err) {
+                alertBox.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/40 border border-rose-500/30 text-rose-300';
+                alertBox.textContent = '{{ __("Verification request failed.") }}';
+                alertBox.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '{{ __("Verify & Enable 2FA") }}';
+            }
+        }
+
+        function copyRecoveryCodes() {
+            if (currentRecoveryCodes.length === 0) return;
+            const text = currentRecoveryCodes.join('\n');
+            const btn = document.getElementById('copy-recovery-codes-btn');
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    const original = btn.textContent;
+                    btn.textContent = '{{ __("Copied!") }}';
+                    setTimeout(() => btn.textContent = original, 2000);
+                }).catch(() => fallbackRoomCopy(text, () => {}));
+            } else {
+                fallbackRoomCopy(text, () => {});
+            }
+        }
+
+        function finishTwoFactorSetup() {
+            closeTwoFactorSetupModal();
+            showToast('{{ __("Two-factor authentication active.") }}');
+            setTimeout(() => window.location.reload(), 800);
+        }
+
+        function openDisable2faModal() {
+            document.getElementById('disable-2fa-password').value = '';
+            document.getElementById('disable-2fa-alert').classList.add('hidden');
+            document.getElementById('two-factor-disable-modal').classList.remove('hidden');
+        }
+
+        function closeDisable2faModal() {
+            document.getElementById('two-factor-disable-modal').classList.add('hidden');
+        }
+
+        async function submitDisable2fa() {
+            const password = document.getElementById('disable-2fa-password').value;
+            const alertBox = document.getElementById('disable-2fa-alert');
+            const btn = document.getElementById('confirm-disable-2fa-btn');
+
+            if (!password) {
+                alertBox.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/40 border border-rose-500/30 text-rose-300';
+                alertBox.textContent = '{{ __("Please enter your current password.") }}';
+                alertBox.classList.remove('hidden');
+                return;
+            }
+
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('{{ route("2fa.disable") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN },
+                    body: JSON.stringify({ password: password })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    closeDisable2faModal();
+                    showToast('{{ __("Two-factor authentication deactivated.") }}');
+                    setTimeout(() => window.location.reload(), 800);
+                } else {
+                    alertBox.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/40 border border-rose-500/30 text-rose-300';
+                    alertBox.textContent = data.message || '{{ __("Failed to disable 2FA.") }}';
+                    alertBox.classList.remove('hidden');
+                }
+            } catch (err) {
+                alertBox.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/40 border border-rose-500/30 text-rose-300';
+                alertBox.textContent = '{{ __("Server request failed.") }}';
+                alertBox.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function saveRecoveryEmail() {
+            const input = document.getElementById('profile-recovery-email-input');
+            const btn = document.getElementById('save-recovery-email-btn');
+            const email = input.value.trim();
+
+            if (!email) {
+                alert('{{ __("Please enter a valid recovery email address.") }}');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '{{ __("Saving...") }}';
+
+            try {
+                const res = await fetch('{{ route("recovery.email.update") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN },
+                    body: JSON.stringify({ recovery_email: email })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast(data.message || '{{ __("Recovery email saved. Please confirm via link in inbox.") }}');
+                } else {
+                    alert(data.message || '{{ __("Failed to save recovery email.") }}');
+                }
+            } catch (err) {
+                alert('{{ __("Request failed.") }}');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '{{ __("Save") }}';
+            }
+        }
+
         // Initialize polling loop
         fetchMessages();
         setInterval(fetchMessages, 1500);
     </script>
+
+    <!-- Room Toast Notification Container -->
+    <div id="room-toast" class="fixed bottom-6 right-6 z-50 transform transition-all duration-300 translate-y-16 opacity-0 pointer-events-none">
+        <div class="px-4 py-3 rounded-xl bg-slate-900/95 border border-emerald-500/40 shadow-2xl backdrop-blur-md text-xs font-mono text-emerald-300 flex items-center gap-2.5">
+            <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span id="room-toast-msg" class="text-slate-200"></span>
+        </div>
+    </div>
 </body>
 </html>

@@ -62,9 +62,22 @@ class AuthController extends Controller
         $loginInput = trim($validated['login']);
         $field = filter_var($loginInput, FILTER_VALIDATE_EMAIL) ? 'email' : 'name';
 
-        $remember = (bool) ($validated['remember'] ?? false);
+        $user = User::where($field, $loginInput)->first();
 
-        if (Auth::attempt([$field => $loginInput, 'password' => $validated['password']], $remember)) {
+        if ($user && Hash::check($validated['password'], $user->password)) {
+            $remember = $request->boolean('remember');
+
+            // Check if two-factor authentication is active
+            if ($user->hasTwoFactor()) {
+                session([
+                    '2fa_user_id' => $user->id,
+                    '2fa_remember' => $remember,
+                ]);
+
+                return redirect()->route('2fa.challenge');
+            }
+
+            Auth::login($user, $remember);
             $request->session()->regenerate();
 
             return redirect()->intended(route('admin.dashboard'));
