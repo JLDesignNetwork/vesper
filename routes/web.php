@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountRecoveryController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminEmailController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChannelHubController;
 use App\Http\Controllers\ChannelInviteController;
@@ -92,6 +93,12 @@ Route::middleware(['auth', EnsureAdmin::class])->prefix('admin')->group(function
     Route::get('/operatives', [AdminController::class, 'operatives'])->name('admin.operatives.index');
     Route::get('/intel', [AdminController::class, 'intel'])->name('admin.intel.index');
     Route::get('/logs', [AdminController::class, 'logs'])->name('admin.logs.index');
+    Route::get('/emails', [AdminEmailController::class, 'index'])->name('admin.emails.index');
+    Route::match(['get', 'post'], '/emails/{key}/preview', [AdminEmailController::class, 'preview'])->name('admin.emails.preview');
+    Route::put('/emails/{key}', [AdminEmailController::class, 'update'])->name('admin.emails.update');
+    Route::post('/emails/{key}/auto-translate', [AdminEmailController::class, 'autoTranslate'])->name('admin.emails.auto-translate');
+    Route::post('/emails/{key}/test', [AdminEmailController::class, 'sendTest'])->name('admin.emails.test');
+    Route::post('/emails/{key}/reset', [AdminEmailController::class, 'reset'])->name('admin.emails.reset');
 
     Route::post('/gps', [AdminController::class, 'updateGps'])->name('admin.gps');
     Route::post('/channels', [AdminController::class, 'storeChannel'])->name('admin.channels.store');

@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\User;
+use App\Services\EmailTemplateService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -19,17 +20,34 @@ class SecurityAlertNotification extends Mailable
         public string $ipAddress
     ) {}
 
+    public function getRendered(): array
+    {
+        $locale = $this->user->preferred_locale ?: app()->getLocale();
+
+        return app(EmailTemplateService::class)->render('security_alert', [
+            'operative_name' => $this->user->name,
+            'event_description' => $this->eventDescription,
+            'ip_address' => $this->ipAddress,
+            'timestamp' => now()->toIso8601String(),
+            'recovery_url' => route('recovery.request'),
+        ], $locale);
+    }
+
     public function envelope(): Envelope
     {
+        $rendered = $this->getRendered();
+
         return new Envelope(
-            subject: __('Vesper // Critical Security Alert'),
+            subject: $rendered['subject'] ?? __('Vesper // Critical Security Alert'),
         );
     }
 
     public function content(): Content
     {
+        $rendered = $this->getRendered();
+
         return new Content(
-            markdown: 'emails.security_alert',
+            htmlString: $rendered['rendered_html'],
         );
     }
 }

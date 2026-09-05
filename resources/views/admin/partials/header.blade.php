@@ -67,6 +67,13 @@
                 <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 <span>{{ __('Logs') }}</span>
             </a>
+            <a
+                href="{{ route('admin.emails.index') }}"
+                class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all {{ request()->routeIs('admin.emails.*') ? 'bg-violet-500/15 text-violet-300 border border-violet-500/30 shadow-sm shadow-violet-950/50 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/80' }}"
+            >
+                <svg class="w-3.5 h-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                <span>{{ __('Emails') }}</span>
+            </a>
         </nav>
 
         <!-- 3. Executive Control Matrix (Right) -->
@@ -211,9 +218,13 @@
                 <span class="text-indigo-400">🌐</span>
                 <span>{{ __('Intel Map') }}</span>
             </a>
-            <a href="{{ route('admin.logs.index') }}" onclick="toggleMobileAdminMenu()" class="col-span-2 p-2.5 rounded-xl border flex items-center gap-2 {{ request()->routeIs('admin.logs.*') ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 font-semibold' : 'bg-slate-900 border-slate-800 text-slate-200' }}">
+            <a href="{{ route('admin.logs.index') }}" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl border flex items-center gap-2 {{ request()->routeIs('admin.logs.*') ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 font-semibold' : 'bg-slate-900 border-slate-800 text-slate-200' }}">
                 <span class="text-amber-400">📜</span>
-                <span>{{ __('Transmission Logs') }}</span>
+                <span>{{ __('Logs') }}</span>
+            </a>
+            <a href="{{ route('admin.emails.index') }}" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl border flex items-center gap-2 {{ request()->routeIs('admin.emails.*') ? 'bg-violet-500/15 border-violet-500/40 text-violet-300 font-semibold' : 'bg-slate-900 border-slate-800 text-slate-200' }}">
+                <span class="text-violet-400">✉️</span>
+                <span>{{ __('Emails') }}</span>
             </a>
         </div>
 

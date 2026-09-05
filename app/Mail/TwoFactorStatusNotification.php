@@ -10,24 +10,26 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class RecoveryEmailVerification extends Mailable
+class TwoFactorStatusNotification extends Mailable
 {
     use Queueable, SerializesModels;
 
     public function __construct(
         public User $user,
-        public string $verificationUrl
+        public string $actionType, // 'enabled' or 'disabled'
+        public ?string $ipAddress = null
     ) {}
 
     public function getRendered(): array
     {
         $locale = $this->user->preferred_locale ?: app()->getLocale();
 
-        return app(EmailTemplateService::class)->render('recovery_verification', [
+        return app(EmailTemplateService::class)->render('two_factor_status', [
             'operative_name' => $this->user->name,
-            'email' => $this->user->email,
-            'verification_url' => $this->verificationUrl,
-            'expires_in' => '24 hours',
+            'action_type' => $this->actionType,
+            'ip_address' => $this->ipAddress ?: request()->ip() ?: 'Unknown IP',
+            'timestamp' => now()->toIso8601String(),
+            'profile_url' => route('channels.index'),
         ], $locale);
     }
 

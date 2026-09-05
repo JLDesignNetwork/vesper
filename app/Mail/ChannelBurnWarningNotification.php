@@ -2,7 +2,6 @@
 
 namespace App\Mail;
 
-use App\Models\Message;
 use App\Models\Room;
 use App\Models\User;
 use App\Services\EmailTemplateService;
@@ -11,16 +10,15 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Str;
 
-class NewMessageNotification extends Mailable
+class ChannelBurnWarningNotification extends Mailable
 {
     use Queueable, SerializesModels;
 
     public function __construct(
+        public User $recipient,
         public Room $room,
-        public Message $message,
-        public User $recipient
+        public string $hoursRemaining = '24'
     ) {}
 
     public function getRendered(): array
@@ -28,13 +26,12 @@ class NewMessageNotification extends Mailable
         $locale = $this->recipient->preferred_locale ?: app()->getLocale();
         $channelName = $this->room->title ?: $this->room->code;
 
-        return app(EmailTemplateService::class)->render('new_message', [
+        return app(EmailTemplateService::class)->render('channel_burn_warning', [
+            'operative_name' => $this->recipient->name,
             'channel_name' => $channelName,
             'channel_code' => $this->room->code,
-            'sender_name' => $this->message->sender_name,
-            'message_preview' => Str::limit($this->message->content, 200),
+            'burn_countdown' => "{$this->hoursRemaining} Hours",
             'channel_url' => route('rooms.show', ['room' => $this->room->code]),
-            'recipient_name' => $this->recipient->name,
         ], $locale);
     }
 
@@ -54,10 +51,5 @@ class NewMessageNotification extends Mailable
         return new Content(
             htmlString: $rendered['rendered_html'],
         );
-    }
-
-    public function attachments(): array
-    {
-        return [];
     }
 }

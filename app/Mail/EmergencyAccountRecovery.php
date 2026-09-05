@@ -3,6 +3,7 @@
 namespace App\Mail;
 
 use App\Models\User;
+use App\Services\EmailTemplateService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -19,17 +20,34 @@ class EmergencyAccountRecovery extends Mailable
         public string $ipAddress
     ) {}
 
+    public function getRendered(): array
+    {
+        $locale = $this->user->preferred_locale ?: app()->getLocale();
+
+        return app(EmailTemplateService::class)->render('emergency_recovery', [
+            'operative_name' => $this->user->name,
+            'email' => $this->user->email,
+            'reset_url' => $this->resetUrl,
+            'ip_address' => $this->ipAddress,
+            'expires_in' => '60 minutes',
+        ], $locale);
+    }
+
     public function envelope(): Envelope
     {
+        $rendered = $this->getRendered();
+
         return new Envelope(
-            subject: __('Vesper // Emergency Account Recovery Link'),
+            subject: $rendered['subject'] ?? __('Vesper // Emergency Account Recovery Link'),
         );
     }
 
     public function content(): Content
     {
+        $rendered = $this->getRendered();
+
         return new Content(
-            markdown: 'emails.emergency_recovery',
+            htmlString: $rendered['rendered_html'],
         );
     }
 }

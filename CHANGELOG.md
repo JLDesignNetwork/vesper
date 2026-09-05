@@ -9,6 +9,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-09-05
+
+### Added
+- **Admin Email Template Management Engine**:
+  - Implemented full tactical email template editing and customization system accessible at `/admin/emails` (`admin.emails.index`).
+  - Added support for all 9 platform communications:
+    1. `registration_welcome` (Operative Welcome & Enrollment)
+    2. `emergency_recovery` (Emergency Account Recovery)
+    3. `recovery_verification` (Secondary Recovery Email Verification)
+    4. `new_message` (New Transmission Notification)
+    5. `channel_invitation` (Channel Clearance & Direct Invitation)
+    6. `security_alert` (Security Alert & Credential Mutation)
+    7. `two_factor_status` (2FA & Biometric Defense Update)
+    8. `channel_burn_warning` (Imminent Channel Self-Destruct Warning)
+    9. `admin_operations_digest` (Executive Intelligence Digest)
+  - Created `email_templates` database table and Eloquent model `App\Models\EmailTemplate` with compound unique index `[key, locale]` and audit tracking (`updated_by_user_id`).
+  - Built `App\Services\EmailTemplateService` with master fallback registry, markdown compilation, and luxury responsive HTML email layout engine matching the Ghostwire aesthetic.
+- **Built-in One-Click Auto-Translation Engine with Variable Masking**:
+  - Integrated auto-translation allowing administrators knowing only English to automatically translate templates into Italian (`it`), French (`fr`), and Russian (`ru`) with a single click.
+  - Implemented token protection regex masking (`__VAR_X__`) to protect dynamic placeholder variables (e.g., `{{operative_name}}`, `{{reset_url}}`, `{{channel_code}}`) from being corrupted, split, or translated by external translation APIs.
+- **Interactive Split-Pane Admin Interface & Real-time Live Preview**:
+  - Designed interactive split-pane interface (`resources/views/admin/emails/index.blade.php`) with:
+    - Categorized template library navigation (Authentication, Operative Comms, Channel Activity, Security, Executive & System).
+    - Multilingual locale tabs (EN, IT, FR, RU) with customization dot indicators.
+    - Clickable dynamic variable tag pills for fast insertion into Subject or Markdown editor.
+    - Real-time debounced live HTML iframe preview with Desktop (600px) and Mobile (360px) viewport switchers.
+    - Live Test Dispatch sending rendered sample emails directly to authenticated administrator inboxes.
+    - Factory preset reset capability allowing instant restoration of default copy.
+- **Mailable Pipeline Integration**:
+  - Wired all outgoing mailables (`EmergencyAccountRecovery`, `NewMessageNotification`, `RecoveryEmailVerification`, `SecurityAlertNotification`, `OperativeWelcomeNotification`, `ChannelInvitationNotification`, `TwoFactorStatusNotification`, `ChannelBurnWarningNotification`, `AdminOperationsDigestNotification`, `TemplatePreviewMail`) to resolve copy dynamically via `EmailTemplateService` respecting recipient locales.
+- **Comprehensive Test Suite**:
+  - Created `tests/Feature/AdminEmailTemplatesTest.php` with 9 passing feature tests covering RBAC, template previews, updates, factory resets, token-preserving auto-translation, test email dispatch, and mailable rendering. Project-wide passing tests expanded to 88 (523 assertions, 100% pass rate).
+
 ## [1.7.1] - 2026-09-05
 
 ### Fixed

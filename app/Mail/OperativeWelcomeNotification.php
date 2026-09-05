@@ -10,24 +10,24 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class RecoveryEmailVerification extends Mailable
+class OperativeWelcomeNotification extends Mailable
 {
     use Queueable, SerializesModels;
 
     public function __construct(
-        public User $user,
-        public string $verificationUrl
+        public User $user
     ) {}
 
     public function getRendered(): array
     {
         $locale = $this->user->preferred_locale ?: app()->getLocale();
 
-        return app(EmailTemplateService::class)->render('recovery_verification', [
+        return app(EmailTemplateService::class)->render('registration_welcome', [
             'operative_name' => $this->user->name,
             'email' => $this->user->email,
-            'verification_url' => $this->verificationUrl,
-            'expires_in' => '24 hours',
+            'callsign' => $this->user->name,
+            'channels_url' => route('channels.index'),
+            'login_url' => route('login'),
         ], $locale);
     }
 
