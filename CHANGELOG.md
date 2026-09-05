@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.7.0] - 2026-09-05
+
+### Added
+- **Admin Area Separation of Concerns (SoC)**:
+  - Decoupled `AdminController.php` by creating `AdminDashboardService.php` (`app/Services/AdminDashboardService.php`) to isolate metrics calculation, attachment storage computation, recent visitor mapping, and Leaflet map marker geospatial compilation.
+  - Refactored monolithic 2,543-line `resources/views/admin/dashboard.blade.php` down to a clean, declarative 15-line coordinator template extending `layouts.admin`.
+  - Established dedicated layout architecture:
+    - Base layout: `resources/views/layouts/admin.blade.php` (centralizes HTML shell, fonts, meta tags, Leaflet dependencies, flash alerts, and toast container).
+    - Modular section partials (`resources/views/admin/partials/`): `metrics.blade.php`, `channels-section.blade.php`, `operatives-section.blade.php`, `intel-section.blade.php`, `logs-section.blade.php`.
+    - Dedicated modal partials (`resources/views/admin/modals/`): `create-channel.blade.php`, `edit-channel.blade.php`, `invite-channel.blade.php`, `user-dossier.blade.php`, `profile.blade.php`, `disable-2fa.blade.php`.
+    - Client-side orchestration scripts: `resources/views/admin/scripts/dashboard-scripts.blade.php`.
+- **Sleek Executive Command Header & Navigation System**:
+  - Implemented luxury dark executive header (`resources/views/admin/partials/header.blade.php`) matching the Ghostwire Protocol aesthetic.
+  - Live operational telemetry beacon with animated pulse indicator and live channel count.
+  - Desktop section navigation bar (`Overview`, `Channels`, `Operatives`, `Global Intel`, `Logs`) with active highlights and smooth scrolling.
+  - Inline GPS status badge with 1-click location sync trigger.
+  - Quick Action matrix for rapid channel establishment and clearance invitations.
+  - Interactive Operative Profile Dropdown with user avatar, name, administrator badge, 2FA verified indicator, direct navigation to `/channels`, profile/security modal trigger, multi-language switcher (`EN`, `RU`, `FR`, `IT`), and secure logout.
+  - Fully responsive mobile slide-down drawer with full section navigation and quick actions.
+
 ## [1.6.0] - 2026-09-05
 
 ### Added
