@@ -8,15 +8,25 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role', 'birthday', 'gender', 'location', 'latitude', 'longitude', 'city', 'country', 'country_code', 'location_synced_at', 'bio', 'email_notifications', 'avatar_path'])]
+#[Fillable(['name', 'email', 'password', 'role', 'birthday', 'gender', 'location', 'latitude', 'longitude', 'city', 'country', 'country_code', 'location_synced_at', 'hide_age', 'hide_birthday', 'hide_location', 'hide_bio', 'bio', 'email_notifications', 'avatar_path'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'latest_ip',
+    ];
 
     /**
      * Get the attributes that should be cast.
@@ -32,6 +42,10 @@ class User extends Authenticatable
             'latitude' => 'float',
             'longitude' => 'float',
             'location_synced_at' => 'datetime',
+            'hide_age' => 'boolean',
+            'hide_birthday' => 'boolean',
+            'hide_location' => 'boolean',
+            'hide_bio' => 'boolean',
             'email_notifications' => 'boolean',
         ];
     }
@@ -50,6 +64,31 @@ class User extends Authenticatable
     public function accessLogs(): HasMany
     {
         return $this->hasMany(AccessLog::class);
+    }
+
+    /**
+     * Get the most recent access log entry for this user.
+     */
+    public function latestAccessLog(): HasOne
+    {
+        return $this->hasOne(AccessLog::class)->latestOfMany('last_seen_at');
+    }
+
+    /**
+     * Resolve the latest recorded client IP address for this user.
+     */
+    public function latestIp(): ?string
+    {
+        return $this->latestAccessLog?->ip_address
+            ?: $this->accessLogs()->latest('last_seen_at')->value('ip_address');
+    }
+
+    /**
+     * Get the latest_ip attribute for serialization.
+     */
+    public function getLatestIpAttribute(): ?string
+    {
+        return $this->latestIp();
     }
 
     /**

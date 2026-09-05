@@ -501,7 +501,10 @@
                     <span id="card-location" class="text-slate-200"></span>
                 </div>
                 <div id="card-bio-container" class="pt-2 border-t border-slate-800/50 hidden">
-                    <span class="text-slate-500 block mb-1">{{ __('Bio') }}:</span>
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-slate-500 block">{{ __('Bio') }}:</span>
+                        <span id="card-bio-private-badge" class="hidden text-[9px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">🔒 {{ __('Private') }}</span>
+                    </div>
                     <p id="card-bio" class="text-slate-300 font-sans text-xs italic"></p>
                 </div>
             </div>
@@ -651,6 +654,62 @@
                         placeholder="A brief note about yourself..."
                         class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500"
                     >{{ Auth::user()->bio }}</textarea>
+                </div>
+
+                <!-- Privacy & Visibility Settings -->
+                <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <div class="text-[11px] font-semibold text-white uppercase font-mono tracking-wider flex items-center gap-1.5">
+                            <span>🔒</span>
+                            <span>{{ __('Privacy & Visibility') }}</span>
+                        </div>
+                        <span class="text-[10px] font-mono text-slate-500">{{ __('Member Restrictions') }}</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 leading-snug">
+                        {{ __('Choose which details are concealed when other members click your name in chat. Administrators retain full visibility.') }}
+                    </p>
+                    <div class="grid grid-cols-2 gap-2 pt-1 font-mono text-xs">
+                        <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
+                            <input
+                                type="checkbox"
+                                name="hide_age"
+                                value="1"
+                                {{ Auth::user()->hide_age ? 'checked' : '' }}
+                                class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                            >
+                            <span class="text-slate-300 text-[11px]">{{ __('Hide Age') }}</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
+                            <input
+                                type="checkbox"
+                                name="hide_birthday"
+                                value="1"
+                                {{ Auth::user()->hide_birthday ? 'checked' : '' }}
+                                class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                            >
+                            <span class="text-slate-300 text-[11px]">{{ __('Hide Birthday') }}</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
+                            <input
+                                type="checkbox"
+                                name="hide_location"
+                                value="1"
+                                {{ Auth::user()->hide_location ? 'checked' : '' }}
+                                class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                            >
+                            <span class="text-slate-300 text-[11px]">{{ __('Hide Location') }}</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
+                            <input
+                                type="checkbox"
+                                name="hide_bio"
+                                value="1"
+                                {{ Auth::user()->hide_bio ? 'checked' : '' }}
+                                class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                            >
+                            <span class="text-slate-300 text-[11px]">{{ __('Hide Bio') }}</span>
+                        </label>
+                    </div>
                 </div>
 
                 <div>
@@ -1819,13 +1878,59 @@
                                 member.avatar_url = live.avatar_url;
                                 setCardAvatar(live.avatar_url);
                             }
-                            if (live.age) document.getElementById('card-age').textContent = `${live.age} yrs`;
-                            if (live.birthday) document.getElementById('card-birthday').textContent = live.birthday;
-                            if (live.gender) document.getElementById('card-gender').textContent = live.gender;
-                            if (live.location) document.getElementById('card-location').textContent = live.location;
+                            const isPrivileged = live.is_admin || live.is_self;
+
+                            // Age
+                            const ageEl = document.getElementById('card-age');
+                            if (live.age !== null && live.age !== undefined) {
+                                let extra = (isPrivileged && live.privacy?.age_hidden) ? ' <span class="text-[9px] text-amber-300 font-mono">(Private)</span>' : '';
+                                ageEl.innerHTML = `${live.age} yrs${extra}`;
+                            } else if (live.privacy?.age_hidden) {
+                                ageEl.innerHTML = '<span class="text-slate-500 italic text-[11px]">[Classified]</span>';
+                            } else {
+                                ageEl.textContent = '—';
+                            }
+
+                            // Birthday
+                            const bdayEl = document.getElementById('card-birthday');
+                            if (live.birthday) {
+                                let extra = (isPrivileged && live.privacy?.birthday_hidden) ? ' <span class="text-[9px] text-amber-300 font-mono">(Private)</span>' : '';
+                                bdayEl.innerHTML = `${live.birthday}${extra}`;
+                            } else if (live.privacy?.birthday_hidden) {
+                                bdayEl.innerHTML = '<span class="text-slate-500 italic text-[11px]">[Classified]</span>';
+                            } else {
+                                bdayEl.textContent = '—';
+                            }
+
+                            // Gender
+                            document.getElementById('card-gender').textContent = live.gender || '—';
+
+                            // Location
+                            const locEl = document.getElementById('card-location');
+                            if (live.location) {
+                                let extra = (isPrivileged && live.privacy?.location_hidden) ? ' <span class="text-[9px] text-amber-300 font-mono">(Private)</span>' : '';
+                                locEl.innerHTML = `${live.location}${extra}`;
+                            } else if (live.privacy?.location_hidden) {
+                                locEl.innerHTML = '<span class="text-slate-500 italic text-[11px]">[Classified]</span>';
+                            } else {
+                                locEl.textContent = '—';
+                            }
+
+                            // Bio
+                            const bioEl = document.getElementById('card-bio');
+                            const bioBadge = document.getElementById('card-bio-private-badge');
                             if (live.bio) {
-                                document.getElementById('card-bio').textContent = live.bio;
+                                bioEl.textContent = live.bio;
                                 bioBox.classList.remove('hidden');
+                                if (bioBadge) {
+                                    if (isPrivileged && live.privacy?.bio_hidden) {
+                                        bioBadge.classList.remove('hidden');
+                                    } else {
+                                        bioBadge.classList.add('hidden');
+                                    }
+                                }
+                            } else {
+                                bioBox.classList.add('hidden');
                             }
                         }
                     }

@@ -34,6 +34,10 @@ class ProfileController extends Controller
             'bio' => ['nullable', 'string', 'max:500'],
             'password' => ['nullable', 'string', 'min:6'],
             'email_notifications' => ['nullable', 'boolean'],
+            'hide_age' => ['nullable', 'boolean'],
+            'hide_birthday' => ['nullable', 'boolean'],
+            'hide_location' => ['nullable', 'boolean'],
+            'hide_bio' => ['nullable', 'boolean'],
             'room_id' => ['nullable', 'string'],
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
             'remove_avatar' => ['nullable', 'boolean'],
@@ -46,6 +50,10 @@ class ProfileController extends Controller
         $user->location = ! empty($validated['location']) ? trim($validated['location']) : null;
         $user->bio = ! empty($validated['bio']) ? trim($validated['bio']) : null;
         $user->email_notifications = $request->boolean('email_notifications');
+        $user->hide_age = $request->boolean('hide_age');
+        $user->hide_birthday = $request->boolean('hide_birthday');
+        $user->hide_location = $request->boolean('hide_location');
+        $user->hide_bio = $request->boolean('hide_bio');
 
         if (! empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
@@ -94,6 +102,10 @@ class ProfileController extends Controller
                     'location' => $user->location,
                     'bio' => $user->bio,
                     'role' => $user->role,
+                    'hide_age' => $user->hide_age,
+                    'hide_birthday' => $user->hide_birthday,
+                    'hide_location' => $user->hide_location,
+                    'hide_bio' => $user->hide_bio,
                     'email_notifications' => $user->email_notifications,
                     'avatar_url' => $user->avatarUrl(),
                 ],

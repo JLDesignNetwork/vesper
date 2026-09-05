@@ -380,10 +380,11 @@
                         <tr class="border-b border-slate-800 text-slate-400 font-mono text-[11px] uppercase bg-slate-950/40">
                             <th class="py-3 px-4">{{ __('User') }}</th>
                             <th class="py-3 px-4">{{ __('Email') }}</th>
+                            <th class="py-3 px-4">{{ __('IP Address') }}</th>
                             <th class="py-3 px-4">{{ __('Age & Birthday') }}</th>
                             <th class="py-3 px-4">{{ __('Gender') }}</th>
                             <th class="py-3 px-4">{{ __('Location') }}</th>
-                            <th class="py-3 px-4">{{ __('Alerts') }}</th>
+                            <th class="py-3 px-4">{{ __('Privacy / Alerts') }}</th>
                             <th class="py-3 px-4">{{ __('Joined') }}</th>
                             <th class="py-3 px-4 text-right">{{ __('Actions') }}</th>
                         </tr>
@@ -425,6 +426,23 @@
                                         </button>
                                     </div>
                                 </td>
+                                <td class="py-3.5 px-4 font-mono">
+                                    @if($regUser->latestIp())
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="text-emerald-400 font-semibold text-[11px]">{{ $regUser->latestIp() }}</span>
+                                            <button
+                                                type="button"
+                                                onclick="copyText('{{ $regUser->latestIp() }}', this, '{{ __('IP copied!') }}')"
+                                                title="{{ __('Copy IP address') }}"
+                                                class="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-emerald-300 transition-colors cursor-pointer"
+                                            >
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                            </button>
+                                        </div>
+                                    @else
+                                        <span class="text-slate-500 font-mono text-[11px]">—</span>
+                                    @endif
+                                </td>
                                 <td class="py-3.5 px-4 font-mono text-slate-300">
                                     @if($regUser->age())
                                         <span class="text-emerald-400 font-semibold">{{ $regUser->age() }} {{ __('yrs') }}</span>
@@ -435,6 +453,11 @@
                                         <span class="text-slate-400">{{ $regUser->birthday->format('M d, Y') }}</span>
                                     @else
                                         <span class="text-slate-500">—</span>
+                                    @endif
+                                    @if($regUser->hide_age || $regUser->hide_birthday)
+                                        <span class="text-[9px] text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20 font-mono inline-block mt-0.5" title="{{ __('Hidden from members') }}">
+                                            🔒 {{ __('Private') }}
+                                        </span>
                                     @endif
                                 </td>
                                 <td class="py-3.5 px-4 font-mono text-slate-300">
@@ -457,18 +480,40 @@
                                     @else
                                         <span class="text-slate-500">—</span>
                                     @endif
-                                </td>
-                                <td class="py-3.5 px-4 font-mono">
-                                    @if($regUser->email_notifications)
-                                        <span class="inline-flex items-center gap-1 text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 text-[10px]">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                            {{ __('On') }}
-                                        </span>
-                                    @else
-                                        <span class="inline-flex items-center gap-1 text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700 text-[10px]">
-                                            {{ __('Off') }}
+                                    @if($regUser->hide_location)
+                                        <span class="text-[9px] text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20 font-mono inline-block mt-0.5" title="{{ __('Location hidden from members') }}">
+                                            🔒 {{ __('Private') }}
                                         </span>
                                     @endif
+                                </td>
+                                <td class="py-3.5 px-4 font-mono">
+                                    <div class="space-y-1">
+                                        <div>
+                                            @if($regUser->email_notifications)
+                                                <span class="inline-flex items-center gap-1 text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 text-[10px]">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                    {{ __('Alerts On') }}
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center gap-1 text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700 text-[10px]">
+                                                    {{ __('Alerts Off') }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                        @php
+                                            $hiddenCount = ($regUser->hide_age ? 1 : 0) + ($regUser->hide_birthday ? 1 : 0) + ($regUser->hide_location ? 1 : 0) + ($regUser->hide_bio ? 1 : 0);
+                                        @endphp
+                                        @if($hiddenCount > 0)
+                                            <span class="inline-flex items-center gap-1 text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 text-[10px] font-mono" title="{{ __('User has hidden :count profile field(s) from members', ['count' => $hiddenCount]) }}">
+                                                <span>🔒</span>
+                                                <span>{{ $hiddenCount }} {{ __('Private') }}</span>
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1 text-slate-500 text-[10px] font-mono">
+                                                {{ __('Public') }}
+                                            </span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="py-3.5 px-4 font-mono text-slate-400 text-[11px]">
                                     {{ $regUser->created_at?->diffForHumans() ?? '—' }}
@@ -509,7 +554,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="py-8 text-center text-slate-500 font-mono">
+                                <td colspan="9" class="py-8 text-center text-slate-500 font-mono">
                                     {{ __('No registered users found.') }}
                                 </td>
                             </tr>
@@ -735,6 +780,22 @@
                 </div>
 
                 <div class="p-3 rounded-xl bg-slate-950 border border-slate-800/80">
+                    <div class="text-[10px] text-slate-500 uppercase">{{ __('Latest IP Address') }}</div>
+                    <div class="flex items-center justify-between mt-1">
+                        <span id="dossier-ip-val" class="text-emerald-400 font-semibold truncate">—</span>
+                        <button
+                            type="button"
+                            id="dossier-copy-ip-btn"
+                            onclick="copyDossierIp()"
+                            title="{{ __('Copy IP') }}"
+                            class="text-slate-400 hover:text-emerald-300 transition-colors p-0.5 cursor-pointer"
+                        >
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-xl bg-slate-950 border border-slate-800/80">
                     <div class="text-[10px] text-slate-500 uppercase">{{ __('Age / Birthday') }}</div>
                     <div id="dossier-age" class="text-slate-200 mt-1 font-semibold"></div>
                 </div>
@@ -754,14 +815,22 @@
                     <div id="dossier-alerts" class="text-slate-200 mt-1 font-semibold"></div>
                 </div>
 
-                <div class="p-3 rounded-xl bg-slate-950 border border-slate-800/80">
+                <div class="p-3 rounded-xl bg-slate-950 border border-slate-800/80 col-span-2">
+                    <div class="text-[10px] text-slate-500 uppercase mb-1">{{ __('Member Privacy Controls (What regular members can see)') }}</div>
+                    <div id="dossier-privacy-summary" class="text-slate-300 font-mono text-[11px]"></div>
+                </div>
+
+                <div class="p-3 rounded-xl bg-slate-950 border border-slate-800/80 col-span-2">
                     <div class="text-[10px] text-slate-500 uppercase">{{ __('Registered Date') }}</div>
                     <div id="dossier-joined" class="text-slate-200 mt-1"></div>
                 </div>
             </div>
 
             <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80">
-                <div class="text-[10px] text-slate-500 uppercase font-mono mb-1.5">{{ __('Bio / Intelligence Dossier') }}</div>
+                <div class="flex items-center justify-between mb-1.5 font-mono">
+                    <div class="text-[10px] text-slate-500 uppercase">{{ __('Bio / Intelligence Dossier') }}</div>
+                    <span id="dossier-bio-badge" class="hidden text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">🔒 {{ __('Hidden from members') }}</span>
+                </div>
                 <p id="dossier-bio" class="text-xs text-slate-300 leading-relaxed italic whitespace-pre-wrap"></p>
             </div>
 
@@ -1019,6 +1088,62 @@
                     >{{ $adminUser->bio }}</textarea>
                 </div>
 
+                <!-- Privacy & Visibility Settings -->
+                <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <div class="text-[11px] font-semibold text-white uppercase font-mono tracking-wider flex items-center gap-1.5">
+                            <span>🔒</span>
+                            <span>{{ __('Privacy & Visibility') }}</span>
+                        </div>
+                        <span class="text-[10px] font-mono text-slate-500">{{ __('Member Restrictions') }}</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 leading-snug">
+                        {{ __('Choose which details are concealed when regular members inspect your profile in chat.') }}
+                    </p>
+                    <div class="grid grid-cols-2 gap-2 pt-1 font-mono text-xs">
+                        <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
+                            <input
+                                type="checkbox"
+                                name="hide_age"
+                                value="1"
+                                {{ $adminUser->hide_age ? 'checked' : '' }}
+                                class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                            >
+                            <span class="text-slate-300 text-[11px]">{{ __('Hide Age') }}</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
+                            <input
+                                type="checkbox"
+                                name="hide_birthday"
+                                value="1"
+                                {{ $adminUser->hide_birthday ? 'checked' : '' }}
+                                class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                            >
+                            <span class="text-slate-300 text-[11px]">{{ __('Hide Birthday') }}</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
+                            <input
+                                type="checkbox"
+                                name="hide_location"
+                                value="1"
+                                {{ $adminUser->hide_location ? 'checked' : '' }}
+                                class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                            >
+                            <span class="text-slate-300 text-[11px]">{{ __('Hide Location') }}</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
+                            <input
+                                type="checkbox"
+                                name="hide_bio"
+                                value="1"
+                                {{ $adminUser->hide_bio ? 'checked' : '' }}
+                                class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                            >
+                            <span class="text-slate-300 text-[11px]">{{ __('Hide Bio') }}</span>
+                        </label>
+                    </div>
+                </div>
+
                 <div>
                     <label class="block font-medium text-slate-300 mb-1">{{ __('New Password') }} <span class="text-slate-500 text-[10px]">({{ __('leave blank to keep current') }})</span></label>
                     <input
@@ -1130,21 +1255,70 @@
             }
 
             document.getElementById('dossier-name').textContent = user.name || 'Operative';
-
             document.getElementById('dossier-email').textContent = user.email || '—';
-            
+
+            // Latest IP
+            const ipEl = document.getElementById('dossier-ip-val');
+            if (ipEl) {
+                ipEl.textContent = user.latest_ip || '—';
+            }
+
+            // Age & Birthday
             let ageText = '—';
             if (user.birthday) {
                 const bday = new Date(user.birthday);
                 const ageYears = Math.floor((new Date() - bday) / (365.25 * 24 * 60 * 60 * 1000));
                 ageText = `${ageYears} yrs (${user.birthday.substring(0, 10)})`;
             }
-            document.getElementById('dossier-age').textContent = ageText;
+            const ageEl = document.getElementById('dossier-age');
+            if (ageEl) {
+                let badges = '';
+                if (user.hide_age) badges += ' <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">🔒 Age Hidden</span>';
+                if (user.hide_birthday) badges += ' <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">🔒 Bday Hidden</span>';
+                ageEl.innerHTML = `<span>${ageText}</span>${badges}`;
+            }
+
             document.getElementById('dossier-gender').textContent = user.gender ? (user.gender.charAt(0).toUpperCase() + user.gender.slice(1)) : '—';
-            document.getElementById('dossier-location').textContent = user.location || '—';
+
+            // Location
+            const locEl = document.getElementById('dossier-location');
+            if (locEl) {
+                let locBadge = user.hide_location ? ' <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">🔒 Hidden</span>' : '';
+                locEl.innerHTML = `<span>${user.location || '—'}</span>${locBadge}`;
+            }
+
             document.getElementById('dossier-alerts').textContent = user.email_notifications ? 'Enabled' : 'Disabled';
             document.getElementById('dossier-joined').textContent = user.created_at ? new Date(user.created_at).toLocaleString() : '—';
-            document.getElementById('dossier-bio').textContent = user.bio || 'No intelligence notes or biography recorded.';
+
+            // Bio
+            const bioEl = document.getElementById('dossier-bio');
+            const bioBadgeEl = document.getElementById('dossier-bio-badge');
+            if (bioEl) {
+                bioEl.textContent = user.bio || 'No intelligence notes or biography recorded.';
+            }
+            if (bioBadgeEl) {
+                if (user.hide_bio) {
+                    bioBadgeEl.classList.remove('hidden');
+                } else {
+                    bioBadgeEl.classList.add('hidden');
+                }
+            }
+
+            // Privacy summary
+            const privacyEl = document.getElementById('dossier-privacy-summary');
+            if (privacyEl) {
+                const hiddenItems = [];
+                if (user.hide_age) hiddenItems.push('Age');
+                if (user.hide_birthday) hiddenItems.push('Birthday');
+                if (user.hide_location) hiddenItems.push('Location');
+                if (user.hide_bio) hiddenItems.push('Bio');
+
+                if (hiddenItems.length > 0) {
+                    privacyEl.innerHTML = `<span class="text-amber-400 font-mono">🔒 Concealed from members: <strong>${hiddenItems.join(', ')}</strong> (Admin overrides and sees all)</span>`;
+                } else {
+                    privacyEl.innerHTML = `<span class="text-emerald-400 font-mono">✓ All profile fields visible to members</span>`;
+                }
+            }
 
             const editMyProfileBtn = document.getElementById('dossier-edit-my-profile-btn');
             if (editMyProfileBtn) {
@@ -1156,6 +1330,13 @@
             }
 
             document.getElementById('user-dossier-modal').classList.remove('hidden');
+        }
+
+        function copyDossierIp() {
+            const ip = document.getElementById('dossier-ip-val')?.textContent?.trim();
+            if (ip && ip !== '—') {
+                copyText(ip, document.getElementById('dossier-copy-ip-btn'), '{{ __("IP copied!") }}');
+            }
         }
 
         function closeUserDossier() {

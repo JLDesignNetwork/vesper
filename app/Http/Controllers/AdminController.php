@@ -36,7 +36,7 @@ class AdminController extends Controller
         $totalMessages = Message::count();
         $totalVisitors = AccessLog::count();
         $totalUsers = User::count();
-        $registeredUsers = User::latest()->get();
+        $registeredUsers = User::with('latestAccessLog')->latest()->get();
 
         // Calculate total storage consumed by attachments
         $totalBytes = (int) Message::sum('attachment_size');
@@ -95,7 +95,7 @@ class AdminController extends Controller
                     'flag' => $flag,
                     'latitude' => (float) $u->latitude,
                     'longitude' => (float) $u->longitude,
-                    'ip_address' => 'Verified GPS Node',
+                    'ip_address' => $u->latestIp() ?? 'Verified GPS Node',
                     'room_code' => $u->isAdmin() ? 'Command HQ' : 'Operative',
                     'room_title' => $u->isAdmin() ? 'Admin Command' : 'Registered Member',
                     'last_seen_human' => $u->location_synced_at?->diffForHumans() ?? 'Synced',

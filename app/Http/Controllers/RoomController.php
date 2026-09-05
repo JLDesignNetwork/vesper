@@ -410,15 +410,31 @@ class RoomController extends Controller
             ]);
         }
 
+        $viewer = Auth::user();
+        $canViewPrivate = ($viewer && $viewer->isAdmin()) || ($viewer && $viewer->id === $user->id);
+
+        $age = ($canViewPrivate || ! $user->hide_age) ? $user->age() : null;
+        $birthday = ($canViewPrivate || ! $user->hide_birthday) ? $user->birthday?->format('Y-m-d') : null;
+        $location = ($canViewPrivate || ! $user->hide_location) ? $user->location : null;
+        $bio = ($canViewPrivate || ! $user->hide_bio) ? $user->bio : null;
+
         return response()->json([
             'found' => true,
             'name' => $user->name,
             'avatar_url' => $user->avatarUrl(),
-            'age' => $user->age(),
-            'birthday' => $user->birthday?->format('Y-m-d'),
+            'age' => $age,
+            'birthday' => $birthday,
             'gender' => $user->gender,
-            'location' => $user->location,
-            'bio' => $user->bio,
+            'location' => $location,
+            'bio' => $bio,
+            'is_self' => ($viewer && $viewer->id === $user->id),
+            'is_admin' => ($viewer && $viewer->isAdmin()),
+            'privacy' => [
+                'age_hidden' => (bool) $user->hide_age,
+                'birthday_hidden' => (bool) $user->hide_birthday,
+                'location_hidden' => (bool) $user->hide_location,
+                'bio_hidden' => (bool) $user->hide_bio,
+            ],
         ]);
     }
 }
