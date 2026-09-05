@@ -219,7 +219,7 @@ test('admin subpages render consistent localized vocabulary in Italian and Frenc
     $resChannels->assertStatus(200);
     $resChannels->assertSee('Canali');
     $resChannels->assertSee('Elenco Canali');
-    $resChannels->assertSee('Attiva Frequenza');
+    $resChannels->assertSee('Crea Canale');
 
     // Dashboard in French
     $admin->update(['preferred_locale' => 'fr']);

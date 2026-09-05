@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Expanded layout canvas boundary from `max-w-7xl` (1280px) to wide-canvas `max-w-[1536px]` (`2xl`) across `layouts/admin.blade.php` and `header.blade.php` to provide abundant breathing room on modern high-resolution displays.
   - Added ultra-thin custom scrollbars (`scrollbar-thin scrollbar-thumb-slate-700`) to horizontal overflow containers.
 
+- **De-duplicated Channel Creation Buttons**:
+  - Removed the duplicate `+ Establish Frequency` button from the `channels/index.blade.php` page header banner, retaining the single, clear `+ Create Channel` (`+ Crea Canale`) button directly inside the Channels Directory table card header.
+
 - **Multilingual Terminology Standardization & Complete Locale Parity**:
   - Resolved Google Chrome auto-translate collisions caused by mixed language fallbacks by expanding `lang/it.json`, `lang/fr.json`, `lang/ru.json`, and `lang/en.json` from 180 keys to 442 keys each with 100% key parity.
   - Unified military-grade terminology across all views (`Operatives` &rarr; `Operativi`, `Registered Operatives` &rarr; `Operativi Registrati`, `Channels` &rarr; `Canali`, `Global Intel` &rarr; `Intelligence Globale`, `Overview` &rarr; `Panoramica`, `Demographics` &rarr; `Dati Anagrafici`, `Network & Location` &rarr; `Rete e Posizione`, `Inspect` &rarr; `Ispeziona`, `Purge` &rarr; `Elimina`).

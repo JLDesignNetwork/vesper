@@ -32,14 +32,6 @@
                 <span class="text-slate-400">{{ __('Archived:') }}</span>
                 <strong class="text-white">{{ $archivedRooms ?? $rooms->where('status', 'archived')->count() }}</strong>
             </div>
-            <button
-                type="button"
-                onclick="openCreateModal()"
-                class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium shadow-lg shadow-emerald-950/40 transition-all cursor-pointer flex items-center gap-2"
-            >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                <span>{{ __('Establish Frequency') }}</span>
-            </button>
         </div>
     </div>
 
