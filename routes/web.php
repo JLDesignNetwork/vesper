@@ -88,6 +88,11 @@ Route::get('/locale/{locale}', function (string $locale) {
 // Protected Admin Command Area (Restricted to Admins)
 Route::middleware(['auth', EnsureAdmin::class])->prefix('admin')->group(function () {
     Route::get('/', [AdminController::class, 'index'])->name('admin.dashboard');
+    Route::get('/channels', [AdminController::class, 'channels'])->name('admin.channels.index');
+    Route::get('/operatives', [AdminController::class, 'operatives'])->name('admin.operatives.index');
+    Route::get('/intel', [AdminController::class, 'intel'])->name('admin.intel.index');
+    Route::get('/logs', [AdminController::class, 'logs'])->name('admin.logs.index');
+
     Route::post('/gps', [AdminController::class, 'updateGps'])->name('admin.gps');
     Route::post('/channels', [AdminController::class, 'storeChannel'])->name('admin.channels.store');
     Route::put('/channels/{id}', [AdminController::class, 'updateChannel'])->name('admin.channels.update');

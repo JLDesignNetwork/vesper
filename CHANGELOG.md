@@ -14,22 +14,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.7.0] - 2026-09-05
 
 ### Added
-- **Admin Area Separation of Concerns (SoC)**:
-  - Decoupled `AdminController.php` by creating `AdminDashboardService.php` (`app/Services/AdminDashboardService.php`) to isolate metrics calculation, attachment storage computation, recent visitor mapping, and Leaflet map marker geospatial compilation.
-  - Refactored monolithic 2,543-line `resources/views/admin/dashboard.blade.php` down to a clean, declarative 15-line coordinator template extending `layouts.admin`.
-  - Established dedicated layout architecture:
-    - Base layout: `resources/views/layouts/admin.blade.php` (centralizes HTML shell, fonts, meta tags, Leaflet dependencies, flash alerts, and toast container).
-    - Modular section partials (`resources/views/admin/partials/`): `metrics.blade.php`, `channels-section.blade.php`, `operatives-section.blade.php`, `intel-section.blade.php`, `logs-section.blade.php`.
-    - Dedicated modal partials (`resources/views/admin/modals/`): `create-channel.blade.php`, `edit-channel.blade.php`, `invite-channel.blade.php`, `user-dossier.blade.php`, `profile.blade.php`, `disable-2fa.blade.php`.
-    - Client-side orchestration scripts: `resources/views/admin/scripts/dashboard-scripts.blade.php`.
-- **Sleek Executive Command Header & Navigation System**:
+- **Multi-Page Separation of Concerns (SoC)**:
+  - Deconstructed single-page scrolling admin area into dedicated, single-responsibility subpages with independent URL endpoints:
+    - **Overview / Command HQ**: `GET /admin` (`admin.dashboard`)
+    - **Encrypted Channels**: `GET /admin/channels` (`admin.channels.index`)
+    - **Operatives Intelligence**: `GET /admin/operatives` (`admin.operatives.index`)
+    - **Global Satellite Radar**: `GET /admin/intel` (`admin.intel.index`)
+    - **Transmission & Network Logs**: `GET /admin/logs` (`admin.logs.index`)
+  - Created standalone view templates extending `layouts.admin`:
+    - `resources/views/admin/channels/index.blade.php`: Dedicated full directory table, frequency counters, and channel establishment controls.
+    - `resources/views/admin/operatives/index.blade.php`: Dedicated operatives roster, role breakdowns, and dossier view triggers.
+    - `resources/views/admin/intel/index.blade.php`: Full-height interactive Leaflet radar map with dark carto tiles, GPS sync, and geolocated node stream.
+    - `resources/views/admin/logs/index.blade.php`: Real-time network and transmission audit logs table.
+  - Decoupled `AdminController.php` with dedicated action methods (`index`, `channels`, `operatives`, `intel`, `logs`).
+  - Added tailored query methods in `AdminDashboardService.php` (`getOverviewData`, `getChannelsData`, `getOperativesData`, `getIntelData`, `getLogsData`).
+- **Sleek Executive Command Header & Multi-Page Navigation**:
   - Implemented luxury dark executive header (`resources/views/admin/partials/header.blade.php`) matching the Ghostwire Protocol aesthetic.
-  - Live operational telemetry beacon with animated pulse indicator and live channel count.
-  - Desktop section navigation bar (`Overview`, `Channels`, `Operatives`, `Global Intel`, `Logs`) with active highlights and smooth scrolling.
+  - Real page routing with active tab highlighting (`request()->routeIs(...)`) across desktop navbar and mobile drawer.
+  - Live operational telemetry beacon with animated pulse indicator and live frequency count.
   - Inline GPS status badge with 1-click location sync trigger.
   - Quick Action matrix for rapid channel establishment and clearance invitations.
   - Interactive Operative Profile Dropdown with user avatar, name, administrator badge, 2FA verified indicator, direct navigation to `/channels`, profile/security modal trigger, multi-language switcher (`EN`, `RU`, `FR`, `IT`), and secure logout.
-  - Fully responsive mobile slide-down drawer with full section navigation and quick actions.
+- **Automated Test Coverage**:
+  - Added feature tests in `tests/Feature/AdminPlatformTest.php` verifying status 200 for admins across all subpages and redirecting unauthorized members to `/channels` (78 total tests passing project-wide).
 
 ## [1.6.0] - 2026-09-05
 

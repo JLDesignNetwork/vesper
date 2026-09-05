@@ -29,7 +29,7 @@ class AdminController extends Controller
     ) {}
 
     /**
-     * Display the Admin Dashboard with stats, channels, visitor logs, and map.
+     * Display the Admin Overview Dashboard.
      */
     public function index(): View
     {
@@ -38,6 +38,54 @@ class AdminController extends Controller
         return view('admin.dashboard', array_merge([
             'adminUser' => Auth::user(),
         ], $dashboardData));
+    }
+
+    /**
+     * Display the Encrypted Channels Management page.
+     */
+    public function channels(): View
+    {
+        $channelsData = $this->dashboardService->getChannelsData();
+
+        return view('admin.channels.index', array_merge([
+            'adminUser' => Auth::user(),
+        ], $channelsData));
+    }
+
+    /**
+     * Display the Registered Operatives Intelligence Roster page.
+     */
+    public function operatives(): View
+    {
+        $operativesData = $this->dashboardService->getOperativesData();
+
+        return view('admin.operatives.index', array_merge([
+            'adminUser' => Auth::user(),
+        ], $operativesData));
+    }
+
+    /**
+     * Display the Global Intelligence & Satellite Radar Map page.
+     */
+    public function intel(): View
+    {
+        $intelData = $this->dashboardService->getIntelData();
+
+        return view('admin.intel.index', array_merge([
+            'adminUser' => Auth::user(),
+        ], $intelData));
+    }
+
+    /**
+     * Display the Transmission & Connection Logs page.
+     */
+    public function logs(): View
+    {
+        $logsData = $this->dashboardService->getLogsData();
+
+        return view('admin.logs.index', array_merge([
+            'adminUser' => Auth::user(),
+        ], $logsData));
     }
 
     /**

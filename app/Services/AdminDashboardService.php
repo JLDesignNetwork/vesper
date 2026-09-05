@@ -15,9 +15,17 @@ class AdminDashboardService
     ) {}
 
     /**
-     * Aggregate core telemetry and operational metrics for the Admin Dashboard.
+     * Aggregate core telemetry and operational metrics for the Admin Dashboard (Overview).
      */
     public function getDashboardData(): array
+    {
+        return $this->getOverviewData();
+    }
+
+    /**
+     * Overview page dataset.
+     */
+    public function getOverviewData(): array
     {
         $totalRooms = Room::count();
         $activeRooms = Room::where('status', 'active')->count();
@@ -45,6 +53,71 @@ class AdminDashboardService
             'rooms' => $rooms,
             'recentVisitors' => $recentVisitors,
             'mapMarkers' => $mapMarkers,
+        ];
+    }
+
+    /**
+     * Channels management page dataset.
+     */
+    public function getChannelsData(): array
+    {
+        $rooms = Room::withCount('messages')->with('creator:id,name')->latest()->get();
+        $registeredUsers = User::select('id', 'name', 'email', 'role')->get();
+
+        return [
+            'rooms' => $rooms,
+            'registeredUsers' => $registeredUsers,
+            'totalRooms' => $rooms->count(),
+            'activeRooms' => $rooms->where('status', 'active')->count(),
+            'archivedRooms' => $rooms->where('status', 'archived')->count(),
+        ];
+    }
+
+    /**
+     * Operatives intelligence roster dataset.
+     */
+    public function getOperativesData(): array
+    {
+        $registeredUsers = User::with(['latestAccessLog', 'rooms:id,code,title'])->latest()->get();
+
+        return [
+            'registeredUsers' => $registeredUsers,
+            'totalUsers' => $registeredUsers->count(),
+            'adminCount' => $registeredUsers->where('role', 'admin')->count(),
+            'memberCount' => $registeredUsers->where('role', 'member')->count(),
+            'gpsVerifiedCount' => $registeredUsers->filter(fn (User $u): bool => $u->hasGps())->count(),
+        ];
+    }
+
+    /**
+     * Global intelligence satellite radar dataset.
+     */
+    public function getIntelData(): array
+    {
+        $registeredUsers = User::with('latestAccessLog')->latest()->get();
+        $recentVisitors = $this->getRecentVisitors(100);
+        $mapMarkers = $this->buildMapMarkers($registeredUsers, $recentVisitors);
+
+        return [
+            'registeredUsers' => $registeredUsers,
+            'recentVisitors' => $recentVisitors,
+            'mapMarkers' => $mapMarkers,
+            'totalNodes' => $mapMarkers->count(),
+            'registeredNodes' => $registeredUsers->filter(fn (User $u): bool => $u->hasGps())->count(),
+            'visitorNodes' => $mapMarkers->where('is_user', false)->count(),
+        ];
+    }
+
+    /**
+     * Transmission & connection logs dataset.
+     */
+    public function getLogsData(int $limit = 100): array
+    {
+        $recentVisitors = $this->getRecentVisitors($limit);
+
+        return [
+            'recentVisitors' => $recentVisitors,
+            'totalLogs' => AccessLog::count(),
         ];
     }
 

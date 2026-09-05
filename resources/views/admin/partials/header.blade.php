@@ -27,38 +27,42 @@
         <!-- 2. Primary Executive Navigation Menu (Desktop) -->
         <nav class="hidden lg:flex items-center gap-1 p-1 bg-slate-900/80 border border-slate-800 rounded-xl font-mono text-xs shadow-inner">
             <a
-                href="#overview-section"
-                class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors flex items-center gap-1.5"
+                href="{{ route('admin.dashboard') }}"
+                class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all {{ request()->routeIs('admin.dashboard') ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shadow-sm shadow-emerald-950/50 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/80' }}"
             >
                 <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 <span>{{ __('Overview') }}</span>
             </a>
             <a
-                href="#channels-section"
-                class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors flex items-center gap-1.5"
+                href="{{ route('admin.channels.index') }}"
+                class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all {{ request()->routeIs('admin.channels.*') ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-sm shadow-cyan-950/50 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/80' }}"
             >
                 <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                 <span>{{ __('Channels') }}</span>
-                <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 border border-slate-700">{{ $totalRooms ?? 0 }}</span>
+                @if(isset($totalRooms))
+                    <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700">{{ $totalRooms }}</span>
+                @endif
             </a>
             <a
-                href="#operatives-section"
-                class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors flex items-center gap-1.5"
+                href="{{ route('admin.operatives.index') }}"
+                class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all {{ request()->routeIs('admin.operatives.*') ? 'bg-teal-500/15 text-teal-300 border border-teal-500/30 shadow-sm shadow-teal-950/50 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/80' }}"
             >
                 <svg class="w-3.5 h-3.5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                 <span>{{ __('Operatives') }}</span>
-                <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 border border-slate-700">{{ $totalUsers ?? 0 }}</span>
+                @if(isset($totalUsers))
+                    <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700">{{ $totalUsers }}</span>
+                @endif
             </a>
             <a
-                href="#intel-section"
-                class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors flex items-center gap-1.5"
+                href="{{ route('admin.intel.index') }}"
+                class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all {{ request()->routeIs('admin.intel.*') ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shadow-sm shadow-indigo-950/50 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/80' }}"
             >
                 <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 <span>{{ __('Global Intel') }}</span>
             </a>
             <a
-                href="#logs-section"
-                class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 transition-colors flex items-center gap-1.5"
+                href="{{ route('admin.logs.index') }}"
+                class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all {{ request()->routeIs('admin.logs.*') ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 shadow-sm shadow-amber-950/50 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/80' }}"
             >
                 <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 <span>{{ __('Logs') }}</span>
@@ -191,21 +195,25 @@
     <!-- Mobile Slide-Down Command Drawer -->
     <div id="mobile-admin-drawer" class="hidden lg:hidden border-t border-slate-800/80 bg-slate-950/95 backdrop-blur-2xl px-4 py-4 space-y-3 font-mono text-xs">
         <div class="grid grid-cols-2 gap-2">
-            <a href="#overview-section" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 flex items-center gap-2">
+            <a href="{{ route('admin.dashboard') }}" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl border flex items-center gap-2 {{ request()->routeIs('admin.dashboard') ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 font-semibold' : 'bg-slate-900 border-slate-800 text-slate-200' }}">
                 <span class="text-emerald-400">📊</span>
                 <span>{{ __('Overview') }}</span>
             </a>
-            <a href="#channels-section" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 flex items-center gap-2">
+            <a href="{{ route('admin.channels.index') }}" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl border flex items-center gap-2 {{ request()->routeIs('admin.channels.*') ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300 font-semibold' : 'bg-slate-900 border-slate-800 text-slate-200' }}">
                 <span class="text-cyan-400">📡</span>
                 <span>{{ __('Channels') }}</span>
             </a>
-            <a href="#operatives-section" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 flex items-center gap-2">
+            <a href="{{ route('admin.operatives.index') }}" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl border flex items-center gap-2 {{ request()->routeIs('admin.operatives.*') ? 'bg-teal-500/15 border-teal-500/40 text-teal-300 font-semibold' : 'bg-slate-900 border-slate-800 text-slate-200' }}">
                 <span class="text-teal-400">👥</span>
                 <span>{{ __('Operatives') }}</span>
             </a>
-            <a href="#intel-section" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 flex items-center gap-2">
+            <a href="{{ route('admin.intel.index') }}" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl border flex items-center gap-2 {{ request()->routeIs('admin.intel.*') ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-300 font-semibold' : 'bg-slate-900 border-slate-800 text-slate-200' }}">
                 <span class="text-indigo-400">🌐</span>
                 <span>{{ __('Intel Map') }}</span>
+            </a>
+            <a href="{{ route('admin.logs.index') }}" onclick="toggleMobileAdminMenu()" class="col-span-2 p-2.5 rounded-xl border flex items-center gap-2 {{ request()->routeIs('admin.logs.*') ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 font-semibold' : 'bg-slate-900 border-slate-800 text-slate-200' }}">
+                <span class="text-amber-400">📜</span>
+                <span>{{ __('Transmission Logs') }}</span>
             </a>
         </div>
 

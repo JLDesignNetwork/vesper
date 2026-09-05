@@ -141,3 +141,56 @@ test('supports French and Italian localizations and translations', function () {
     expect($frResult['translated_text'])->toBe('Bonjour le monde');
     expect($frResult['target_lang'])->toBe('fr');
 });
+
+test('admin can access all dedicated admin subpages', function () {
+    $admin = User::create([
+        'name' => 'GeneralVesper',
+        'email' => 'general@vesper.test',
+        'password' => Hash::make('password123'),
+        'role' => 'admin',
+    ]);
+
+    $this->actingAs($admin);
+
+    // 1. Overview
+    $resOverview = $this->get(route('admin.dashboard'));
+    $resOverview->assertStatus(200);
+    $resOverview->assertSee('Operations Overview');
+
+    // 2. Channels Page
+    $resChannels = $this->get(route('admin.channels.index'));
+    $resChannels->assertStatus(200);
+    $resChannels->assertSee('Encrypted Channels');
+
+    // 3. Operatives Page
+    $resOperatives = $this->get(route('admin.operatives.index'));
+    $resOperatives->assertStatus(200);
+    $resOperatives->assertSee('Registered Operatives');
+
+    // 4. Global Intel Page
+    $resIntel = $this->get(route('admin.intel.index'));
+    $resIntel->assertStatus(200);
+    $resIntel->assertSee('Global Intelligence');
+
+    // 5. Transmission Logs Page
+    $resLogs = $this->get(route('admin.logs.index'));
+    $resLogs->assertStatus(200);
+    $resLogs->assertSee('Transmission Logs');
+});
+
+test('non-admin member is blocked from dedicated admin subpages', function () {
+    $member = User::create([
+        'name' => 'FootSoldier',
+        'email' => 'soldier@vesper.test',
+        'password' => Hash::make('password123'),
+        'role' => 'member',
+    ]);
+
+    $this->actingAs($member);
+
+    $this->get(route('admin.channels.index'))->assertRedirect(route('channels.index'));
+    $this->get(route('admin.operatives.index'))->assertRedirect(route('channels.index'));
+    $this->get(route('admin.intel.index'))->assertRedirect(route('channels.index'));
+    $this->get(route('admin.logs.index'))->assertRedirect(route('channels.index'));
+});
+

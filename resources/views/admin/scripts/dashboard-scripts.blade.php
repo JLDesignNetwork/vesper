@@ -406,7 +406,7 @@
                 subdomains: 'abcd',
             }).addTo(adminMapInstance);
 
-            const markers = @json($mapMarkers);
+            const markers = @json($mapMarkers ?? []);
 
             markers.forEach(m => {
                 if (m.latitude && m.longitude) {

@@ -18,7 +18,7 @@
                 <p class="text-[11px] text-slate-400">{{ __('Instantly grant clearance to an existing registered operative.') }}</p>
                 <select name="user_id" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-emerald-500">
                     <option value="">{{ __('-- Select Registered Operative --') }}</option>
-                    @foreach($registeredUsers as $regUser)
+                    @foreach($registeredUsers ?? [] as $regUser)
                         @if(!$regUser->isAdmin())
                             <option value="{{ $regUser->id }}">{{ $regUser->name }} ({{ $regUser->email }})</option>
                         @endif
