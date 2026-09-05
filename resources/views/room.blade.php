@@ -508,7 +508,7 @@
                 </div>
                 <div class="flex items-center justify-between text-slate-300">
                     <span class="text-slate-500">{{ __('Gender') }}:</span>
-                    <span id="card-gender" class="text-slate-200"></span>
+                    <span id="card-gender" class="text-slate-200 notranslate" translate="no"></span>
                 </div>
                 <div class="flex items-center justify-between text-slate-300">
                     <span class="text-slate-500">{{ __('Location') }}:</span>

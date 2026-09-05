@@ -474,7 +474,7 @@
                                         </span>
                                     @endif
                                 </td>
-                                <td class="py-3.5 px-4 font-mono text-slate-300">
+                                <td class="py-3.5 px-4 font-mono text-slate-300 notranslate" translate="no">
                                     {{ $regUser->gender ? __($regUser->gender) : '—' }}
                                 </td>
                                 <td class="py-3.5 px-4 font-mono text-slate-300">
@@ -832,7 +832,7 @@
 
                     <div class="p-3 rounded-xl bg-slate-950 border border-slate-800/80">
                         <div class="text-[10px] text-slate-500 uppercase">{{ __('Gender') }}</div>
-                        <div id="dossier-gender" class="text-slate-200 mt-1"></div>
+                        <div id="dossier-gender" class="text-slate-200 mt-1 notranslate" translate="no"></div>
                     </div>
 
                     <div class="p-3 rounded-xl bg-slate-950 border border-slate-800/80">
