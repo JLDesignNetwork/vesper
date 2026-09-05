@@ -1,6 +1,7 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
     "name": "vesper",
+    "version": "2609.8.0-bs",
     "description": "Vesper powered by Ghostwire Protocol",
     "private": true,
     "type": "module",

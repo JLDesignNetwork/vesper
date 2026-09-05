@@ -1,5 +1,10 @@
 # Vesper 🕊️⚡
 
+[![GVS Version](https://img.shields.io/badge/GVS-2609.8.0--bs-059669?style=flat-square&logo=git&logoColor=white)](CHANGELOG.md)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jldesignnetwork)
+[![Platform Status](https://img.shields.io/badge/Status-Active%20Defense-0284c7?style=flat-square)]()
+[![Pest Tests](https://img.shields.io/badge/Tests-88%20Passing-10b981?style=flat-square&logo=pest&logoColor=white)]()
+
 > **Vesper powered by Ghostwire Protocol** — Discreet, ephemeral communication network with real-time tactical intelligence, zero-trace channels, and granular privacy controls.
 
 ---
@@ -125,6 +130,14 @@ Run the full Pest test suite covering privacy restrictions, GPS synchronization,
 ```bash
 vendor/bin/pest
 ```
+
+---
+
+## Support & Security Disclosure
+
+- **Funding & Support**: [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jldesignnetwork)
+- **Official Security & Incident Reporting**: `jldesignnetwork@icloud.com`
+- **Protocol Governance**: JLDN Global Ecosystem Standards
 
 ---
 

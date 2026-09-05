@@ -1,15 +1,14 @@
 # Changelog
 
-All notable changes to the **Vesper** platform will be documented in this file.
+All notable changes to the **Vesper** platform are documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+This project adheres to the **JLDN Generational Versioning Schema (GVS)** (`[YYMM].[SUBVERSION].[REVISION]-[TAG]`) and [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions per the JLDN Global Ecosystem standard.
 
 ---
 
 ## [Unreleased]
 
-## [1.8.0] - 2026-09-05
+## [2609.8.0-bs] - 2026-09-05
 
 ### Added
 - **Admin Email Template Management Engine**:
@@ -42,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Comprehensive Test Suite**:
   - Created `tests/Feature/AdminEmailTemplatesTest.php` with 9 passing feature tests covering RBAC, template previews, updates, factory resets, token-preserving auto-translation, test email dispatch, and mailable rendering. Project-wide passing tests expanded to 88 (523 assertions, 100% pass rate).
 
-## [1.7.1] - 2026-09-05
+## [2609.7.1-bs] - 2026-09-05
 
 ### Fixed
 - **Admin Table Layout Overflow & Sticky Actions Pinning**:
@@ -62,7 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.7.0] - 2026-09-05
+## [2609.7.0-bs] - 2026-09-05
 
 ### Added
 - **Multi-Page Separation of Concerns (SoC)**:
@@ -89,7 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Automated Test Coverage**:
   - Added feature tests in `tests/Feature/AdminPlatformTest.php` verifying status 200 for admins across all subpages and redirecting unauthorized members to `/channels` (78 total tests passing project-wide).
 
-## [1.6.0] - 2026-09-05
+## [2609.6.0-bs] - 2026-09-05
 
 ### Added
 - **Post-Login Role-Based Routing**:
@@ -113,7 +112,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.5.0] - 2026-09-05
+## [2609.5.0-bs] - 2026-09-05
 
 ### Added
 - **Hardware Biometrics & Passkeys (WebAuthn / FIDO2)**:
@@ -155,7 +154,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.3.1] - 2026-09-05
+## [2609.3.1-bs] - 2026-09-05
 
 ### Security & Privacy
 - **In-Channel Map Privacy Hardening**: When an operative enables `hide_location = true`, their coordinates (`latitude`, `longitude`) are completely suppressed (`null`) from the in-channel tactical radar API (`/c/{room}/radar`), ensuring their pin never renders on Leaflet maps inside any chat channel.
@@ -169,7 +168,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.3.0] - 2026-09-05
+## [2609.3.0-bs] - 2026-09-05
 
 ### Added
 - **Location-Based Language Detection**: Automatically determines and displays platform language based on the operative's registered location (country code, country, or location text):
@@ -193,7 +192,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.2.0] - 2026-09-05
+## [2609.2.0-bs] - 2026-09-05
 
 ### Added
 - **Smart Birth Year Masking**: When a user conceals their age (`hide_age = true`) but allows their birthdate (`hide_birthday = false`), the system automatically strips the birth year on the backend, only exposing Month and Day (e.g. `June 20`).
@@ -207,7 +206,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.1] - 2026-09-05
+## [2609.1.1-bs] - 2026-09-05
 
 ### Fixed
 - **Modal Viewport Containment & Scrolling**: Re-architected `#profile-modal` and `#user-dossier-modal` in both member chat channels and Admin Dashboard:
@@ -217,7 +216,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.0] - 2026-09-05
+## [2609.1.0-bs] - 2026-09-05
 
 ### Added
 - **Granular Privacy Controls**: Members can independently hide their Age, Birthday, Location, and Bio from regular chat members via profile settings (`hide_age`, `hide_birthday`, `hide_location`, `hide_bio`).
@@ -230,7 +229,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.1] - 2026-09-05
+## [2609.0.1-bs] - 2026-09-05
 
 ### Added
 - **User-Bound GPS Synchronization**: Tied in-chat GPS sync to user profiles, ensuring coordinates update across individual accounts, session access logs, chat channels, and the Admin Global Traffic Map.
@@ -242,7 +241,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.0] - 2026-09-04
+## [2609.0.0-a] - 2026-09-04
 
 ### Added
 - **Initial Release of Sunday City**:
