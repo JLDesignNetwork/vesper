@@ -31,6 +31,20 @@
         .chat-scroll::-webkit-scrollbar-thumb:hover {
             background: rgba(16, 185, 129, 0.35);
         }
+        /* Custom scrollbar for modal dialogs */
+        .modal-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+        .modal-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .modal-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 9999px;
+        }
+        .modal-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(16, 185, 129, 0.4);
+        }
         /* Leaflet custom dark map style */
         .leaflet-container {
             background: #090d16 !important;
@@ -518,9 +532,9 @@
 
     <!-- Member / User Profile Modal -->
     @if(Auth::check())
-    <div id="profile-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
-        <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+    <div id="profile-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden overflow-y-auto p-3 sm:p-4 flex items-center justify-center">
+        <div class="w-full max-w-md my-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            <div class="flex items-center justify-between p-4 sm:p-5 pb-3 sm:pb-4 border-b border-slate-800 shrink-0 bg-slate-900">
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300 font-bold font-mono text-sm">
                         {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
@@ -532,224 +546,226 @@
                 <button type="button" onclick="closeProfileModal()" class="text-slate-400 hover:text-white cursor-pointer">✕</button>
             </div>
 
-            <form id="profile-form" onsubmit="saveProfile(event)" class="space-y-3.5 text-xs font-sans">
+            <form id="profile-form" onsubmit="saveProfile(event)" class="flex flex-col flex-1 min-h-0">
                 @csrf
                 <input type="hidden" name="room_id" value="{{ $room->id }}">
 
-                <div id="profile-alert" class="hidden p-2.5 rounded-xl text-xs font-mono"></div>
+                <div class="overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs font-sans flex-1 modal-scroll">
+                    <div id="profile-alert" class="hidden p-2.5 rounded-xl text-xs font-mono"></div>
 
-                <!-- Custom Avatar Uploader -->
-                <div class="flex items-center gap-3.5 p-3 bg-slate-950/60 rounded-xl border border-slate-800">
-                    <div class="relative group shrink-0">
-                        <div id="profile-avatar-preview-wrap" class="w-14 h-14 rounded-2xl overflow-hidden bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center text-emerald-300 font-bold font-mono text-lg">
-                            @if(Auth::user()->avatar_path)
-                                <img id="profile-avatar-preview-img" src="{{ Auth::user()->avatarUrl() }}" class="w-full h-full object-cover" alt="">
-                                <span id="profile-avatar-preview-initial" class="hidden">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
-                            @else
-                                <img id="profile-avatar-preview-img" src="" class="w-full h-full object-cover hidden" alt="">
-                                <span id="profile-avatar-preview-initial">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
-                            @endif
+                    <!-- Custom Avatar Uploader -->
+                    <div class="flex items-center gap-3.5 p-3 bg-slate-950/60 rounded-xl border border-slate-800">
+                        <div class="relative group shrink-0">
+                            <div id="profile-avatar-preview-wrap" class="w-14 h-14 rounded-2xl overflow-hidden bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center text-emerald-300 font-bold font-mono text-lg">
+                                @if(Auth::user()->avatar_path)
+                                    <img id="profile-avatar-preview-img" src="{{ Auth::user()->avatarUrl() }}" class="w-full h-full object-cover" alt="">
+                                    <span id="profile-avatar-preview-initial" class="hidden">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
+                                @else
+                                    <img id="profile-avatar-preview-img" src="" class="w-full h-full object-cover hidden" alt="">
+                                    <span id="profile-avatar-preview-initial">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
+                                @endif
+                            </div>
                         </div>
-                    </div>
-                    <div class="flex-1 space-y-1">
-                        <div class="text-[11px] font-semibold text-white">{{ __('Profile Picture') }}</div>
-                        <div class="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onclick="document.getElementById('avatar-file-input').click()"
-                                class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-medium cursor-pointer transition-colors"
-                            >
-                                {{ __('Upload Photo') }}
-                            </button>
-                            <button
-                                type="button"
-                                id="remove-avatar-btn"
-                                onclick="markAvatarForRemoval()"
-                                class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-medium cursor-pointer transition-colors {{ Auth::user()->avatar_path ? '' : 'hidden' }}"
-                            >
-                                {{ __('Remove') }}
-                            </button>
+                        <div class="flex-1 space-y-1">
+                            <div class="text-[11px] font-semibold text-white">{{ __('Profile Picture') }}</div>
+                            <div class="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onclick="document.getElementById('avatar-file-input').click()"
+                                    class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-medium cursor-pointer transition-colors"
+                                >
+                                    {{ __('Upload Photo') }}
+                                </button>
+                                <button
+                                    type="button"
+                                    id="remove-avatar-btn"
+                                    onclick="markAvatarForRemoval()"
+                                    class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-medium cursor-pointer transition-colors {{ Auth::user()->avatar_path ? '' : 'hidden' }}"
+                                >
+                                    {{ __('Remove') }}
+                                </button>
+                            </div>
+                            <p class="text-[10px] text-slate-500 font-mono">{{ __('JPG, PNG, WEBP, GIF (Max 5MB)') }}</p>
                         </div>
-                        <p class="text-[10px] text-slate-500 font-mono">{{ __('JPG, PNG, WEBP, GIF (Max 5MB)') }}</p>
+                        <input type="file" id="avatar-file-input" name="avatar" accept="image/*" class="hidden" onchange="previewAvatar(this)">
+                        <input type="hidden" id="remove-avatar-flag" name="remove_avatar" value="0">
                     </div>
-                    <input type="file" id="avatar-file-input" name="avatar" accept="image/*" class="hidden" onchange="previewAvatar(this)">
-                    <input type="hidden" id="remove-avatar-flag" name="remove_avatar" value="0">
-                </div>
 
-                <div>
-                    <label class="block font-medium text-slate-300 mb-1">{{ __('Display Name / Username') }} <span class="text-rose-400">*</span></label>
-                    <input
-                        type="text"
-                        name="name"
-                        required
-                        value="{{ Auth::user()->name }}"
-                        class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500"
-                    >
-                </div>
-
-                <div>
-                    <label class="block font-medium text-slate-300 mb-1">{{ __('Email Address') }} <span class="text-rose-400">*</span></label>
-                    <input
-                        type="email"
-                        name="email"
-                        required
-                        value="{{ Auth::user()->email }}"
-                        class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500"
-                    >
-                </div>
-
-                <div class="grid grid-cols-2 gap-2.5">
                     <div>
-                        <label class="block font-medium text-slate-300 mb-1">{{ __('Birthday') }}</label>
+                        <label class="block font-medium text-slate-300 mb-1">{{ __('Display Name / Username') }} <span class="text-rose-400">*</span></label>
                         <input
-                            type="date"
-                            name="birthday"
-                            value="{{ Auth::user()->birthday?->format('Y-m-d') }}"
-                            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs font-mono focus:outline-none focus:border-emerald-500"
+                            type="text"
+                            name="name"
+                            required
+                            value="{{ Auth::user()->name }}"
+                            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500"
                         >
                     </div>
+
                     <div>
-                        <label class="block font-medium text-slate-300 mb-1">{{ __('Gender') }}</label>
-                        <select
-                            name="gender"
+                        <label class="block font-medium text-slate-300 mb-1">{{ __('Email Address') }} <span class="text-rose-400">*</span></label>
+                        <input
+                            type="email"
+                            name="email"
+                            required
+                            value="{{ Auth::user()->email }}"
+                            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500"
+                        >
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">{{ __('Birthday') }}</label>
+                            <input
+                                type="date"
+                                name="birthday"
+                                value="{{ Auth::user()->birthday?->format('Y-m-d') }}"
+                                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs font-mono focus:outline-none focus:border-emerald-500"
+                            >
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">{{ __('Gender') }}</label>
+                            <select
+                                name="gender"
+                                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500"
+                            >
+                                <option value="">{{ __('Prefer not to say') }}</option>
+                                <option value="Male" {{ Auth::user()->gender === 'Male' ? 'selected' : '' }}>{{ __('Male') }}</option>
+                                <option value="Female" {{ Auth::user()->gender === 'Female' ? 'selected' : '' }}>{{ __('Female') }}</option>
+                                <option value="Non-binary" {{ Auth::user()->gender === 'Non-binary' ? 'selected' : '' }}>{{ __('Non-binary') }}</option>
+                                <option value="Other" {{ Auth::user()->gender === 'Other' ? 'selected' : '' }}>{{ __('Other') }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="font-medium text-slate-300">{{ __('Location') }}</label>
+                            <button
+                                type="button"
+                                onclick="detectProfileGps()"
+                                class="text-[10px] text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-1 cursor-pointer transition-colors"
+                                title="{{ __('Auto-detect location via browser GPS') }}"
+                            >
+                                <span>📍</span>
+                                <span id="profile-detect-gps-text">{{ __('Detect GPS') }}</span>
+                            </button>
+                        </div>
+                        <input
+                            type="text"
+                            name="location"
+                            id="profile-input-location"
+                            placeholder="e.g. Rome, Italy"
+                            value="{{ Auth::user()->location }}"
+                            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500"
+                        >
+                    </div>
+
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">{{ __('Bio / Status') }}</label>
+                        <textarea
+                            name="bio"
+                            rows="2"
+                            placeholder="A brief note about yourself..."
                             class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500"
-                        >
-                            <option value="">{{ __('Prefer not to say') }}</option>
-                            <option value="Male" {{ Auth::user()->gender === 'Male' ? 'selected' : '' }}>{{ __('Male') }}</option>
-                            <option value="Female" {{ Auth::user()->gender === 'Female' ? 'selected' : '' }}>{{ __('Female') }}</option>
-                            <option value="Non-binary" {{ Auth::user()->gender === 'Non-binary' ? 'selected' : '' }}>{{ __('Non-binary') }}</option>
-                            <option value="Other" {{ Auth::user()->gender === 'Other' ? 'selected' : '' }}>{{ __('Other') }}</option>
-                        </select>
+                        >{{ Auth::user()->bio }}</textarea>
                     </div>
-                </div>
 
-                <div>
-                    <div class="flex items-center justify-between mb-1">
-                        <label class="font-medium text-slate-300">{{ __('Location') }}</label>
-                        <button
-                            type="button"
-                            onclick="detectProfileGps()"
-                            class="text-[10px] text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-1 cursor-pointer transition-colors"
-                            title="{{ __('Auto-detect location via browser GPS') }}"
-                        >
-                            <span>📍</span>
-                            <span id="profile-detect-gps-text">{{ __('Detect GPS') }}</span>
-                        </button>
-                    </div>
-                    <input
-                        type="text"
-                        name="location"
-                        id="profile-input-location"
-                        placeholder="e.g. Rome, Italy"
-                        value="{{ Auth::user()->location }}"
-                        class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500"
-                    >
-                </div>
-
-                <div>
-                    <label class="block font-medium text-slate-300 mb-1">{{ __('Bio / Status') }}</label>
-                    <textarea
-                        name="bio"
-                        rows="2"
-                        placeholder="A brief note about yourself..."
-                        class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500"
-                    >{{ Auth::user()->bio }}</textarea>
-                </div>
-
-                <!-- Privacy & Visibility Settings -->
-                <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <div class="text-[11px] font-semibold text-white uppercase font-mono tracking-wider flex items-center gap-1.5">
-                            <span>🔒</span>
-                            <span>{{ __('Privacy & Visibility') }}</span>
+                    <!-- Privacy & Visibility Settings -->
+                    <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div class="text-[11px] font-semibold text-white uppercase font-mono tracking-wider flex items-center gap-1.5">
+                                <span>🔒</span>
+                                <span>{{ __('Privacy & Visibility') }}</span>
+                            </div>
+                            <span class="text-[10px] font-mono text-slate-500">{{ __('Member Restrictions') }}</span>
                         </div>
-                        <span class="text-[10px] font-mono text-slate-500">{{ __('Member Restrictions') }}</span>
+                        <p class="text-[11px] text-slate-400 leading-snug">
+                            {{ __('Choose which details are concealed when other members click your name in chat. Administrators retain full visibility.') }}
+                        </p>
+                        <div class="grid grid-cols-2 gap-2 pt-1 font-mono text-xs">
+                            <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
+                                <input
+                                    type="checkbox"
+                                    name="hide_age"
+                                    value="1"
+                                    {{ Auth::user()->hide_age ? 'checked' : '' }}
+                                    class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                                >
+                                <span class="text-slate-300 text-[11px]">{{ __('Hide Age') }}</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
+                                <input
+                                    type="checkbox"
+                                    name="hide_birthday"
+                                    value="1"
+                                    {{ Auth::user()->hide_birthday ? 'checked' : '' }}
+                                    class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                                >
+                                <span class="text-slate-300 text-[11px]">{{ __('Hide Birthday') }}</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
+                                <input
+                                    type="checkbox"
+                                    name="hide_location"
+                                    value="1"
+                                    {{ Auth::user()->hide_location ? 'checked' : '' }}
+                                    class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                                >
+                                <span class="text-slate-300 text-[11px]">{{ __('Hide Location') }}</span>
+                            </label>
+                            <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
+                                <input
+                                    type="checkbox"
+                                    name="hide_bio"
+                                    value="1"
+                                    {{ Auth::user()->hide_bio ? 'checked' : '' }}
+                                    class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                                >
+                                <span class="text-slate-300 text-[11px]">{{ __('Hide Bio') }}</span>
+                            </label>
+                        </div>
                     </div>
-                    <p class="text-[11px] text-slate-400 leading-snug">
-                        {{ __('Choose which details are concealed when other members click your name in chat. Administrators retain full visibility.') }}
-                    </p>
-                    <div class="grid grid-cols-2 gap-2 pt-1 font-mono text-xs">
-                        <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
-                            <input
-                                type="checkbox"
-                                name="hide_age"
-                                value="1"
-                                {{ Auth::user()->hide_age ? 'checked' : '' }}
-                                class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
-                            >
-                            <span class="text-slate-300 text-[11px]">{{ __('Hide Age') }}</span>
-                        </label>
-                        <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
-                            <input
-                                type="checkbox"
-                                name="hide_birthday"
-                                value="1"
-                                {{ Auth::user()->hide_birthday ? 'checked' : '' }}
-                                class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
-                            >
-                            <span class="text-slate-300 text-[11px]">{{ __('Hide Birthday') }}</span>
-                        </label>
-                        <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
-                            <input
-                                type="checkbox"
-                                name="hide_location"
-                                value="1"
-                                {{ Auth::user()->hide_location ? 'checked' : '' }}
-                                class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
-                            >
-                            <span class="text-slate-300 text-[11px]">{{ __('Hide Location') }}</span>
-                        </label>
-                        <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
-                            <input
-                                type="checkbox"
-                                name="hide_bio"
-                                value="1"
-                                {{ Auth::user()->hide_bio ? 'checked' : '' }}
-                                class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
-                            >
-                            <span class="text-slate-300 text-[11px]">{{ __('Hide Bio') }}</span>
-                        </label>
-                    </div>
-                </div>
 
-                <div>
-                    <label class="block font-medium text-slate-300 mb-1">{{ __('New Password') }} <span class="text-slate-500 text-[10px]">({{ __('leave blank to keep current') }})</span></label>
-                    <input
-                        type="password"
-                        name="password"
-                        placeholder="••••••••"
-                        class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500"
-                    >
-                </div>
-
-                <div class="pt-1">
-                    <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-colors select-none">
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">{{ __('New Password') }} <span class="text-slate-500 text-[10px]">({{ __('leave blank to keep current') }})</span></label>
                         <input
-                            type="checkbox"
-                            name="email_notifications"
-                            value="1"
-                            {{ Auth::user()->email_notifications ? 'checked' : '' }}
-                            class="mt-0.5 rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                            type="password"
+                            name="password"
+                            placeholder="••••••••"
+                            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500"
                         >
-                        <div class="text-xs">
-                            <span class="font-medium text-white block">{{ __('Email Notifications') }}</span>
-                            <span class="text-slate-400 text-[11px] block mt-0.5 leading-snug">{{ __('Receive email notifications when new messages are posted in this channel.') }}</span>
-                        </div>
-                    </label>
+                    </div>
+
+                    <div class="pt-1">
+                        <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-colors select-none">
+                            <input
+                                type="checkbox"
+                                name="email_notifications"
+                                value="1"
+                                {{ Auth::user()->email_notifications ? 'checked' : '' }}
+                                class="mt-0.5 rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                            >
+                            <div class="text-xs">
+                                <span class="font-medium text-white block">{{ __('Email Notifications') }}</span>
+                                <span class="text-slate-400 text-[11px] block mt-0.5 leading-snug">{{ __('Receive email notifications when new messages are posted in this channel.') }}</span>
+                            </div>
+                        </label>
+                    </div>
                 </div>
 
-                <div class="pt-3 flex items-center justify-end gap-2 font-mono">
+                <div class="p-3.5 sm:p-4 border-t border-slate-800 bg-slate-950/70 flex items-center justify-end gap-2 font-mono shrink-0">
                     <button
                         type="button"
                         onclick="closeProfileModal()"
-                        class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+                        class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer text-xs"
                     >
                         {{ __('Cancel') }}
                     </button>
                     <button
                         type="submit"
                         id="save-profile-btn"
-                        class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium shadow-lg transition-all cursor-pointer"
+                        class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium shadow-lg transition-all cursor-pointer text-xs"
                     >
                         {{ __('Save Profile') }}
                     </button>
