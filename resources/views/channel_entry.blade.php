@@ -33,7 +33,7 @@
             </div>
             <div>
                 <h1 class="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
-                    {{ __('Sunday City') }}
+                    {{ __('Vesper') }}
                     <span class="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-slate-400 tracking-wider">Private Channel</span>
                 </h1>
             </div>
@@ -378,13 +378,13 @@
 
             <!-- Security Footer -->
             <p class="text-center text-[11px] text-slate-600 font-mono mt-6">
-                Sunday City Network • {{ __('Discreet, encrypted private messaging platform') }}
+                Vesper Network • Ghostwire Protocol • {{ __('Discreet, encrypted private messaging platform') }}
             </p>
         </div>
     </main>
 
     <footer class="w-full py-4 text-center text-xs text-slate-600 font-mono">
-        &copy; {{ date('Y') }} Sunday City. All rights reserved.
+        &copy; {{ date('Y') }} Vesper. All rights reserved.
     </footer>
 
 </body>

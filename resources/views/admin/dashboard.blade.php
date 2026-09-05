@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ __('Admin Dashboard') }} — {{ __('Sunday City') }}</title>
+    <title>{{ __('Admin Dashboard') }} — {{ __('Vesper') }}</title>
 
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -61,7 +61,8 @@
                 </div>
                 <div>
                     <div class="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
-                        {{ __('Sunday City') }}
+                        {{ __('Vesper') }}
+                        <span class="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">Ghostwire Protocol</span>
                     </div>
                     <div class="text-[11px] text-slate-400 font-mono">
                         {{ __('Admin Dashboard') }} • <button type="button" onclick="openProfileModal()" class="hover:text-emerald-400 underline decoration-slate-700 hover:decoration-emerald-400 cursor-pointer transition-colors" title="{{ __('Edit Profile Details') }}"><span id="header-subtitle-name">{{ $adminUser->name }}</span></button>

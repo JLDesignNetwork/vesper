@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the **Sunday City** platform will be documented in this file.
+All notable changes to the **Vesper** platform will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## [Unreleased]
+
+---
+
+## [1.4.0] - 2026-09-05
+
+### Changed
+- **Platform Rebrand to Vesper (Ghostwire Protocol)**:
+  - Rebranded platform name from "Sunday City" to **Vesper powered by Ghostwire Protocol**.
+  - Updated environment defaults (`APP_NAME="Vesper"`, `MAIL_FROM_ADDRESS="notifications@vesper.local"`).
+  - Updated Composer package identity (`vesper/platform`) and NPM package identity (`vesper`).
+  - Updated client portal, secret access gate, and cipher badge to `VESPER // GHOSTWIRE CIPHER`.
+  - Updated chat channel title bar, streams, and welcome banner to `SECURE GHOSTWIRE STREAM INITIALIZED`.
+  - Updated Admin Control Center header with verified `Ghostwire Protocol` badge.
+  - Updated email notification templates and localization dictionaries (`en`, `fr`, `it`, `ru`).
+  - Updated automated test suites in `RoomSecurityTest` and `RussianLocalizationTest` to assert Vesper brand identity.
+
+### Fixed
+- **Gender Column Browser Auto-Translate Collision**: Prevented Safari/Chrome translation collision where Italian `male` (translated to English `Bad`) replaced Male gender values by wrapping gender in `__()` and attaching `translate="no"` / `class="notranslate"` to all gender display elements across cards, dossiers, and admin tables.
+- **Mailpit SMTP Integration**: Configured `MAIL_MAILER=smtp` and `MAIL_PORT=1025` for ServBay local Mailpit inbox with verified live delivery.
 
 ---
 

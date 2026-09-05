@@ -10,7 +10,7 @@ test('portal page loads with discreet authentication portal', function () {
     $response = $this->get('/');
 
     $response->assertStatus(200);
-    $response->assertSee('Sunday City');
+    $response->assertSee('Vesper');
 });
 
 test('admin can create a private room from the dashboard', function () {
@@ -128,5 +128,5 @@ test('authenticated admin user can directly access room and view interface witho
 
     $response = $this->actingAs($admin)->get(route('rooms.show', ['room' => 'ADMIN-DIRECT']));
     $response->assertStatus(200);
-    $response->assertSee('Sunday City');
+    $response->assertSee('Vesper');
 });

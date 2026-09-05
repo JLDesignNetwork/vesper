@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ __('Sunday City') }} — {{ $needsSetup ? __('Admin Setup') : __('Sign In') }}</title>
+    <title>{{ __('Vesper') }} — {{ $needsSetup ? __('Admin Setup') : __('Sign In') }}</title>
 
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -33,7 +33,7 @@
             </div>
             <div>
                 <h1 class="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
-                    {{ __('Sunday City') }}
+                    {{ __('Vesper') }}
                     <span class="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-slate-400 tracking-wider">Private</span>
                 </h1>
             </div>
@@ -105,7 +105,7 @@
                                 type="email"
                                 value="{{ old('email') }}"
                                 required
-                                placeholder="admin@sundaycity.com"
+                                placeholder="admin@vesper.local"
                                 class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60 transition-colors"
                             >
                         </div>
@@ -164,13 +164,13 @@
 
             <!-- Discrete Security Footer Note -->
             <p class="text-center text-[11px] text-slate-600 font-mono mt-6">
-                Sunday City Network • {{ __('Discreet, encrypted private messaging platform') }}
+                Vesper Network • Ghostwire Protocol • {{ __('Discreet, encrypted private messaging platform') }}
             </p>
         </div>
     </main>
 
     <footer class="w-full py-4 text-center text-xs text-slate-600 font-mono">
-        &copy; {{ date('Y') }} Sunday City. All rights reserved.
+        &copy; {{ date('Y') }} Vesper. All rights reserved.
     </footer>
 
 </body>

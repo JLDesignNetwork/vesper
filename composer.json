@@ -1,11 +1,13 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "vesper/platform",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Vesper - Encrypted private communications platform powered by Ghostwire Protocol.",
     "keywords": [
-        "laravel",
-        "framework"
+        "vesper",
+        "ghostwire-protocol",
+        "secure-messaging",
+        "laravel"
     ],
     "license": "MIT",
     "require": {

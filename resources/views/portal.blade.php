@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>SUNDAY CITY // {{ __('Secret Access Platform') }}</title>
+    <title>VESPER // {{ __('Secret Access Platform') }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -24,16 +24,16 @@
         <header class="border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-md px-4 sm:px-6 py-4 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="relative flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 font-mono font-bold text-sm shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-                    SC
+                    V
                     <span class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping opacity-75"></span>
                     <span class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                 </div>
                 <div>
                     <div class="font-mono text-xs text-emerald-400 font-semibold tracking-wider flex items-center gap-2">
-                        <span>{{ __('SUNDAY CITY CIPHER') }}</span>
-                        <span class="px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-[10px] text-emerald-300">{{ __('ENCRYPTED') }}</span>
+                        <span>{{ __('VESPER // GHOSTWIRE CIPHER') }}</span>
+                        <span class="px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-[10px] text-emerald-300">{{ __('GHOSTWIRE PROTOCOL') }}</span>
                     </div>
-                    <div class="text-[11px] text-slate-400">{{ __('Classified Communication & Media Terminal') }}</div>
+                    <div class="text-[11px] text-slate-400">{{ __('Vesper powered by Ghostwire Protocol • Classified Communication Terminal') }}</div>
                 </div>
             </div>
 
@@ -224,7 +224,7 @@
                                     <input
                                         type="text"
                                         name="title"
-                                        placeholder="e.g. Project Sunday City Safehouse"
+                                        placeholder="e.g. Project Vesper Safehouse"
                                         maxlength="80"
                                         class="w-full bg-slate-900/90 border border-slate-700/80 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 transition-colors"
                                     >
@@ -363,7 +363,7 @@
                 </div>
 
                 <div class="text-center mt-6 text-xs text-slate-500 font-mono">
-                    {{ __('Sunday City Network Infrastructure • Zero Cloud Logs Mode') }}
+                    {{ __('Vesper Network Infrastructure • Ghostwire Protocol • Zero Cloud Logs Mode') }}
                 </div>
             </div>
         </main>

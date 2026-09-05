@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $room->title ?: $room->code }} // {{ __('Sunday City Private Communications') }}</title>
+    <title>{{ $room->title ?: $room->code }} // {{ __('Vesper Private Communications') }}</title>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -237,9 +237,9 @@
                     <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-400 mb-1">
                         🔒
                     </div>
-                    <p class="text-white font-semibold tracking-wider uppercase">{{ __('SECURE CIPHER STREAM INITIALIZED') }}</p>
+                    <p class="text-white font-semibold tracking-wider uppercase">{{ __('SECURE GHOSTWIRE STREAM INITIALIZED') }}</p>
                     <p class="text-[11px] text-slate-400 leading-relaxed">
-                        {{ __('End-to-end verified communication. Transmit text messages, encrypted photos, and streaming video.') }}
+                        {{ __('End-to-end verified communication via Ghostwire Protocol. Transmit text messages, encrypted photos, and streaming video.') }}
                     </p>
                     <div class="pt-2 flex items-center justify-center gap-3 text-[10px] text-slate-500">
                         <span>{{ __('Your Alias') }}: <strong class="text-emerald-400">{{ $alias }}</strong></span>
@@ -1671,8 +1671,8 @@
         function syncBrowserGps() {
             if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
                 alert(CURRENT_LOCALE === 'ru'
-                    ? 'Синхронизация GPS требует защищенного соединения HTTPS. Перейдите по адресу https://sundaycity.test.'
-                    : 'GPS sync requires a secure HTTPS connection. Please access this channel via https://sundaycity.test.');
+                    ? 'Синхронизация GPS требует защищенного соединения HTTPS.'
+                    : 'GPS sync requires a secure HTTPS connection.');
                 return;
             }
 

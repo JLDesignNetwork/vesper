@@ -1,22 +1,24 @@
-# Sunday City 🏙️📡
+# Vesper 🕊️⚡
 
-> **Discreet, ephemeral communication network with real-time tactical intelligence, zero-trace channels, and granular privacy controls.**
+> **Vesper powered by Ghostwire Protocol** — Discreet, ephemeral communication network with real-time tactical intelligence, zero-trace channels, and granular privacy controls.
 
 ---
 
 ## Overview
 
-**Sunday City** is a hardened, luxury dark-themed private communication platform designed for discreet operations. It combines ephemeral messaging channels, global IP and GPS telemetry tracking, role-based intelligence dossiers, and automated multi-tier privacy and localization engines.
+**Vesper** is a hardened, luxury dark-themed private communication platform powered by the **Ghostwire Protocol**. Designed for discreet operations, it combines ephemeral messaging channels, global IP and GPS telemetry tracking, role-based intelligence dossiers, and automated multi-tier privacy and localization engines.
+
+Under the hood, **Ghostwire Protocol** provides end-to-end verified communication pipelines, secure cipher streaming, granular telemetry masking, and zero-trace channel life-cycle management.
 
 ---
 
 ## Key Features
 
-### 1. Ephemeral Secure Channels
+### 1. Ephemeral Secure Channels (Ghostwire Stream)
 - **Passcode & Clearance Gate**: Dual-credential authentication (Channel Code + Secret PIN) with rate limiting against brute-force intrusion.
+- **Ghostwire Cipher Stream**: End-to-end verified communication stream with encrypted payloads, inline audio, video, photos, and media attachments.
 - **Burn-After-Reading & Self-Destruction**: Configurable TTL timers automatically incinerate channels, messages, attachments, and access logs upon expiration.
 - **Immediate Nuke & Lockdown**: One-click tactical killswitches to purge room state, expunge assets, or revoke active session clearance instantly.
-- **Encrypted Media Transmissions**: Support for encrypted payloads, inline audio, video, images, and raw data attachments.
 
 ### 2. Global Traffic Radar & Geolocation
 - **Interactive CARTO Dark Matter Radar**: Leaflet-powered tactical global traffic map rendering real-time operative locations and coordinates.
@@ -46,7 +48,8 @@
 - **Backend**: Laravel 12.x (PHP 8.4+)
 - **Frontend**: Blade templates, TailwindCSS, Vanilla JavaScript (ES6+), Leaflet.js
 - **Asset Pipeline**: Vite 8.x
-- **Testing**: Pest PHP (49 tests, 296 assertions)
+- **Testing**: Pest PHP (50 tests, 300 assertions)
+- **Mail Handling**: ServBay Mailpit (SMTP port 1025, Web UI port 18025)
 - **Local Environment**: ServBay Pro / macOS / PHP 8.4
 
 ---
@@ -63,8 +66,8 @@
 
 1. **Clone the repository**:
    ```bash
-   git clone <repository-url> sunday-city
-   cd sunday-city
+   git clone <repository-url> vesper
+   cd vesper
    ```
 
 2. **Install dependencies**:
@@ -80,9 +83,12 @@
    ```
    Ensure your `.env` contains:
    ```dotenv
-   APP_NAME="Sunday City"
+   APP_NAME="Vesper"
    APP_LOCALE=en
    APP_FALLBACK_LOCALE=en
+   MAIL_MAILER=smtp
+   MAIL_HOST=127.0.0.1
+   MAIL_PORT=1025
    CARTO_API_KEY=your_carto_key_here
    ```
 

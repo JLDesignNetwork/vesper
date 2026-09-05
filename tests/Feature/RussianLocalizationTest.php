@@ -9,7 +9,7 @@ test('portal switches to Russian language via query parameter or session', funct
     $response = $this->get('/?lang=ru');
 
     $response->assertStatus(200);
-    $response->assertSee('Sunday City');
+    $response->assertSee('Vesper');
     $response->assertSee('Имя пользователя');
 
     expect(session('locale'))->toBe('ru');

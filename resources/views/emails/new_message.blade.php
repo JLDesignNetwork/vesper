@@ -18,7 +18,7 @@ A new message was posted in **{{ $room->title ?: $room->code }}** by **{{ $messa
 {{ __('Open Channel') }}
 </x-mail::button>
 
-*{{ __('You are receiving this notification because email notifications are enabled in your Sunday City profile.') }}*
+*{{ __('You are receiving this notification because email notifications are enabled in your Vesper profile.') }}*
 
-{{ __('Sunday City Private Communications') }}
+{{ __('Vesper Private Communications') }}
 </x-mail::message>
