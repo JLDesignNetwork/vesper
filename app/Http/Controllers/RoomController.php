@@ -248,6 +248,8 @@ class RoomController extends Controller
 
         $hasClearance = $request->session()->get("room_clearance_{$room->id}", false);
 
+        $isAdmin = false;
+
         if (Auth::check()) {
             $currentUser = Auth::user();
             if ($currentUser->isAdmin()) {
@@ -255,10 +257,13 @@ class RoomController extends Controller
                 $request->session()->put("room_alias_{$room->id}", $currentUser->name);
                 $request->session()->put("room_is_admin_{$room->id}", true);
                 $hasClearance = true;
+                $isAdmin = true;
             } elseif ($hasClearance) {
                 $request->session()->put("room_alias_{$room->id}", $currentUser->name);
                 $request->session()->put("room_is_admin_{$room->id}", false);
             }
+        } else {
+            $isAdmin = (bool) $request->session()->get("room_is_admin_{$room->id}", false);
         }
 
         if (! $hasClearance) {

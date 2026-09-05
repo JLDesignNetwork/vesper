@@ -111,3 +111,22 @@ test('emergency nuke action purges the room, all messages, and storage directory
     expect(Message::where('room_id', $room->id)->count())->toBe(0);
     Storage::disk('public')->assertMissing("attachments/{$room->id}/classified.jpg");
 });
+
+test('authenticated admin user can directly access room and view interface without error', function () {
+    $admin = \App\Models\User::create([
+        'name' => 'Commander',
+        'email' => 'commander@sundaycity.local',
+        'password' => Hash::make('password'),
+        'role' => 'admin',
+    ]);
+
+    $room = Room::create([
+        'code' => 'ADMIN-DIRECT',
+        'passcode_hash' => Hash::make('password'),
+        'status' => 'active',
+    ]);
+
+    $response = $this->actingAs($admin)->get(route('rooms.show', ['room' => 'ADMIN-DIRECT']));
+    $response->assertStatus(200);
+    $response->assertSee('Sunday City');
+});
