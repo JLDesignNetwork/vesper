@@ -1,58 +1,118 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Sunday City 🏙️📡
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> **Discreet, ephemeral communication network with real-time tactical intelligence, zero-trace channels, and granular privacy controls.**
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Overview
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+**Sunday City** is a hardened, luxury dark-themed private communication platform designed for discreet operations. It combines ephemeral messaging channels, global IP and GPS telemetry tracking, role-based intelligence dossiers, and automated multi-tier privacy and localization engines.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## Key Features
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 1. Ephemeral Secure Channels
+- **Passcode & Clearance Gate**: Dual-credential authentication (Channel Code + Secret PIN) with rate limiting against brute-force intrusion.
+- **Burn-After-Reading & Self-Destruction**: Configurable TTL timers automatically incinerate channels, messages, attachments, and access logs upon expiration.
+- **Immediate Nuke & Lockdown**: One-click tactical killswitches to purge room state, expunge assets, or revoke active session clearance instantly.
+- **Encrypted Media Transmissions**: Support for encrypted payloads, inline audio, video, images, and raw data attachments.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 2. Global Traffic Radar & Geolocation
+- **Interactive CARTO Dark Matter Radar**: Leaflet-powered tactical global traffic map rendering real-time operative locations and coordinates.
+- **High-Precision GPS Synchronization**: In-chat GPS sync using browser geolocation with automated reverse geocoding to city, country, and ISO country code.
+- **Cross-Platform Telemetry Parity**: GPS synchronization reflects across user profiles, session access logs, chat room headers, and the Admin Global Traffic Map simultaneously.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### 3. Location-Based Localization & Language Overrides
+- **Multi-Language Support**: Complete translations for English (`en`), Russian (`ru`), French (`fr`), and Italian (`it`).
+- **Automated Location Detection**: The interface automatically detects and applies the common language of the operative's registered location (e.g., Italy &rarr; Italian, France &rarr; French, Russia &rarr; Russian, International/Other &rarr; English).
+- **User Preference Override**: Operatives can select an explicit language preference in their profile that permanently overrides location-based detection across all devices.
 
-## Agentic Development
+### 4. Comprehensive Member Privacy Controls
+- **Selective Concealment**: Members can independently hide their Age, Birthday, Location, and Bio from regular chat members.
+- **Smart Birth Year Masking**: If a user hides their age while keeping their birthday visible, the system automatically conceals the birth year on the backend, only exposing the Month and Day (e.g. `June 20`) to prevent age deduction.
+- **Administrative Intelligence Oversight**: Platform administrators maintain full unmasked visibility (including real-time IP address inspection and privacy override badges) across all registered accounts.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+### 5. Operative Profiles & Intelligence Dossiers
+- **Custom Avatar System**: High-resolution image uploads (JPG, PNG, WEBP, GIF up to 5MB) with dynamic initials fallback badges.
+- **Viewport-Safe Modals**: Ergonomic, `max-h-[90vh]` scrollable modals with pinned headers and action footers for seamless laptop and mobile usability.
+- **Admin Dossier Modal**: Instant operative dossiers featuring quick-copy IP addresses, communication status, email alerts, and privacy audit summaries.
+
+---
+
+## Tech Stack
+
+- **Backend**: Laravel 12.x (PHP 8.4+)
+- **Frontend**: Blade templates, TailwindCSS, Vanilla JavaScript (ES6+), Leaflet.js
+- **Asset Pipeline**: Vite 8.x
+- **Testing**: Pest PHP (48 tests, 274 assertions)
+- **Local Environment**: ServBay Pro / macOS / PHP 8.4
+
+---
+
+## Installation & Setup
+
+### Prerequisites
+- PHP >= 8.4
+- Composer
+- Node.js & `pnpm` (or `npm`)
+- SQLite or MySQL
+
+### Quickstart
+
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url> sunday-city
+   cd sunday-city
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   composer install
+   pnpm install
+   ```
+
+3. **Configure Environment**:
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+   Ensure your `.env` contains:
+   ```dotenv
+   APP_NAME="Sunday City"
+   APP_LOCALE=en
+   APP_FALLBACK_LOCALE=en
+   CARTO_API_KEY=your_carto_key_here
+   ```
+
+4. **Run Migrations**:
+   ```bash
+   php artisan migrate
+   ```
+
+5. **Build Assets**:
+   ```bash
+   pnpm run build
+   ```
+
+6. **Serve Locally**:
+   ```bash
+   php artisan serve
+   ```
+   Or access via ServBay / local virtual host.
+
+---
+
+## Running Automated Tests
+
+Run the full Pest test suite covering privacy restrictions, GPS synchronization, localization resolution, and channel security:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+vendor/bin/pest
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Proprietary / Private Communication Platform. All rights reserved.
