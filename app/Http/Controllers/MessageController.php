@@ -93,22 +93,19 @@ class MessageController extends Controller
         }
 
         $viewer = Auth::user();
-        $canViewPrivate = (bool) ($viewer && $viewer->isAdmin());
 
-        $messages = $query->get()->map(function (Message $message) use ($sessionId, $viewer, $canViewPrivate): array {
+        $messages = $query->get()->map(function (Message $message) use ($sessionId, $viewer): array {
             $flag = $message->country_code
                 ? $this->geoLocationService->countryCodeToFlag($message->country_code)
                 : '🌐';
 
             $author = $message->user ?: User::where('name', $message->sender_name)->first();
-            $isAuthorSelf = ($viewer && $author && $viewer->id === $author->id);
-            $showPrivate = $canViewPrivate || $isAuthorSelf;
 
-            $senderAge = ($showPrivate || ! $author?->hide_age) ? $author?->age() : null;
+            $senderAge = $author ? $author->ageForViewer($viewer) : null;
             $senderGender = $author?->gender;
-            $senderLocation = ($showPrivate || ! $author?->hide_location) ? $author?->location : null;
-            $senderBio = ($showPrivate || ! $author?->hide_bio) ? $author?->bio : null;
-            $senderBirthday = ($showPrivate || ! $author?->hide_birthday) ? $author?->birthday?->format('Y-m-d') : null;
+            $senderLocation = $author ? $author->locationForViewer($viewer) : null;
+            $senderBio = $author ? $author->bioForViewer($viewer) : null;
+            $senderBirthday = $author ? $author->birthdayForViewer($viewer) : null;
             $senderRole = $author?->role ?? ($message->is_admin ? 'admin' : 'guest');
             $senderAvatarUrl = $author?->avatarUrl();
 

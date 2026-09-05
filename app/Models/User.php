@@ -124,6 +124,70 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the birthday formatted according to privacy visibility rules.
+     * If viewer is admin or self, returns full 'Y-m-d'.
+     * If birthday is hidden, returns null.
+     * If age is hidden, returns only Month & Day ('F j', e.g. "June 20").
+     * Otherwise, returns full 'Y-m-d'.
+     */
+    public function birthdayForViewer(?User $viewer): ?string
+    {
+        if (! $this->birthday) {
+            return null;
+        }
+
+        $canViewPrivate = ($viewer && $viewer->isAdmin()) || ($viewer && $viewer->id === $this->id);
+
+        if ($canViewPrivate) {
+            return $this->birthday->format('Y-m-d');
+        }
+
+        if ($this->hide_birthday) {
+            return null;
+        }
+
+        if ($this->hide_age) {
+            return $this->birthday->format('F j');
+        }
+
+        return $this->birthday->format('Y-m-d');
+    }
+
+    /**
+     * Get the age for a viewer respecting privacy settings.
+     */
+    public function ageForViewer(?User $viewer): ?int
+    {
+        $canViewPrivate = ($viewer && $viewer->isAdmin()) || ($viewer && $viewer->id === $this->id);
+
+        if ($canViewPrivate || ! $this->hide_age) {
+            return $this->age();
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the location for a viewer respecting privacy settings.
+     */
+    public function locationForViewer(?User $viewer): ?string
+    {
+        $canViewPrivate = ($viewer && $viewer->isAdmin()) || ($viewer && $viewer->id === $this->id);
+
+        return ($canViewPrivate || ! $this->hide_location) ? $this->location : null;
+    }
+
+    /**
+     * Get the bio for a viewer respecting privacy settings.
+     */
+    public function bioForViewer(?User $viewer): ?string
+    {
+        $canViewPrivate = ($viewer && $viewer->isAdmin()) || ($viewer && $viewer->id === $this->id);
+
+        return ($canViewPrivate || ! $this->hide_bio) ? $this->bio : null;
+    }
+
+    /**
      * Get the absolute public URL to the user's custom avatar, if uploaded.
      */
     public function avatarUrl(): ?string

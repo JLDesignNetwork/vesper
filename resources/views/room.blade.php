@@ -681,7 +681,7 @@
                             <span class="text-[10px] font-mono text-slate-500">{{ __('Member Restrictions') }}</span>
                         </div>
                         <p class="text-[11px] text-slate-400 leading-snug">
-                            {{ __('Choose which details are concealed when other members click your name in chat. Administrators retain full visibility.') }}
+                            {{ __('Choose which details are concealed when other members click your name in chat. Hiding age conceals your birth year (Month & Day remain visible unless Birthday is also hidden). Administrators retain full visibility.') }}
                         </p>
                         <div class="grid grid-cols-2 gap-2 pt-1 font-mono text-xs">
                             <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
@@ -1837,7 +1837,7 @@
 
             document.getElementById('card-name').textContent = member.name || 'Anonymous';
 
-            const ageText = member.age ? `${member.age} yrs` : (member.birthday ? member.birthday : '—');
+            const ageText = member.age ? `${member.age} yrs` : '—';
             document.getElementById('card-age').textContent = ageText;
             document.getElementById('card-birthday').textContent = member.birthday || '—';
             document.getElementById('card-gender').textContent = member.gender || '—';
@@ -1910,7 +1910,14 @@
                             // Birthday
                             const bdayEl = document.getElementById('card-birthday');
                             if (live.birthday) {
-                                let extra = (isPrivileged && live.privacy?.birthday_hidden) ? ' <span class="text-[9px] text-amber-300 font-mono">(Private)</span>' : '';
+                                let extra = '';
+                                if (isPrivileged) {
+                                    if (live.privacy?.birthday_hidden) {
+                                        extra = ' <span class="text-[9px] text-amber-300 font-mono">(Private)</span>';
+                                    } else if (live.privacy?.age_hidden) {
+                                        extra = ' <span class="text-[9px] text-sky-300 font-mono">(Year hidden for members)</span>';
+                                    }
+                                }
                                 bdayEl.innerHTML = `${live.birthday}${extra}`;
                             } else if (live.privacy?.birthday_hidden) {
                                 bdayEl.innerHTML = '<span class="text-slate-500 italic text-[11px]">[Classified]</span>';

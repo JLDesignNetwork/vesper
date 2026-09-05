@@ -1117,7 +1117,7 @@
                             <span class="text-[10px] font-mono text-slate-500">{{ __('Member Restrictions') }}</span>
                         </div>
                         <p class="text-[11px] text-slate-400 leading-snug">
-                            {{ __('Choose which details are concealed when regular members inspect your profile in chat.') }}
+                            {{ __('Choose which details are concealed when regular members inspect your profile in chat. Hiding age conceals your birth year (Month & Day remain visible unless Birthday is also hidden).') }}
                         </p>
                         <div class="grid grid-cols-2 gap-2 pt-1 font-mono text-xs">
                             <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
@@ -1295,6 +1295,7 @@
                 let badges = '';
                 if (user.hide_age) badges += ' <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">🔒 Age Hidden</span>';
                 if (user.hide_birthday) badges += ' <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">🔒 Bday Hidden</span>';
+                if (user.hide_age && !user.hide_birthday) badges += ' <span class="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20 font-mono">Month/Day Only</span>';
                 ageEl.innerHTML = `<span>${ageText}</span>${badges}`;
             }
 
@@ -1328,7 +1329,7 @@
             const privacyEl = document.getElementById('dossier-privacy-summary');
             if (privacyEl) {
                 const hiddenItems = [];
-                if (user.hide_age) hiddenItems.push('Age');
+                if (user.hide_age) hiddenItems.push(user.hide_birthday ? 'Age' : 'Age (Year concealed)');
                 if (user.hide_birthday) hiddenItems.push('Birthday');
                 if (user.hide_location) hiddenItems.push('Location');
                 if (user.hide_bio) hiddenItems.push('Bio');

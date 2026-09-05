@@ -241,3 +241,105 @@ test('messages stream redacts hidden fields for regular members but reveals them
     expect($adminMsg['sender_location'])->toBe('Berlin, Germany');
     expect($adminMsg['sender_bio'])->toBe('Cryptography lead.');
 });
+
+test('hiding age while allowing birthday conceals the birth year and shows only month and day to members', function () {
+    $user = User::create([
+        'name' => 'AgentChronos',
+        'email' => 'chronos@example.com',
+        'password' => Hash::make('password123'),
+        'role' => 'member',
+        'birthday' => '1995-06-20',
+        'gender' => 'Non-binary',
+        'location' => 'Geneva, Switzerland',
+        'bio' => 'Temporal analyst.',
+        'hide_age' => true,
+        'hide_birthday' => false,
+    ]);
+
+    $peer = User::create([
+        'name' => 'AgentWatcher',
+        'email' => 'watcher@example.com',
+        'password' => Hash::make('password123'),
+        'role' => 'member',
+    ]);
+
+    $admin = User::create([
+        'name' => 'ChronosAdmin',
+        'email' => 'chronos-admin@example.com',
+        'password' => Hash::make('password123'),
+        'role' => 'admin',
+    ]);
+
+    $room = Room::create([
+        'code' => 'CHRON-99',
+        'title' => 'Temporal Channel',
+        'pin' => '123456',
+        'passcode_hash' => Hash::make('123456'),
+        'burn_after_reading' => false,
+        'ttl_minutes' => 60,
+        'created_by_ip' => '127.0.0.1',
+        'status' => 'active',
+    ]);
+
+    Message::create([
+        'room_id' => $room->id,
+        'user_id' => $user->id,
+        'sender_name' => $user->name,
+        'sender_session_id' => 'session-chronos',
+        'content' => 'Chronos online.',
+    ]);
+
+    // 1. Regular peer member queries memberProfile
+    $this->actingAs($peer);
+    $cardResponse = $this->withSession([
+        "room_clearance_{$room->id}" => true,
+    ])->getJson(route('rooms.member-profile', ['room' => $room->code, 'name' => 'AgentChronos']));
+
+    $cardResponse->assertStatus(200);
+    $cardData = $cardResponse->json();
+    expect($cardData['age'])->toBeNull();
+    // Must show month and day only, NOT the year 1995
+    expect($cardData['birthday'])->toBe('June 20');
+    expect($cardData['privacy']['age_hidden'])->toBeTrue();
+    expect($cardData['privacy']['birthday_hidden'])->toBeFalse();
+
+    // 2. Regular peer member fetches messages
+    $msgResponse = $this->withSession([
+        "room_clearance_{$room->id}" => true,
+    ])->getJson(route('messages.index', ['room' => $room->code]));
+
+    $msgResponse->assertStatus(200);
+    $peerMsg = $msgResponse->json('messages.0');
+    expect($peerMsg['sender_age'])->toBeNull();
+    expect($peerMsg['sender_birthday'])->toBe('June 20');
+
+    // 3. User themselves viewing their own profile sees full year
+    $this->actingAs($user);
+    $selfCardResponse = $this->withSession([
+        "room_clearance_{$room->id}" => true,
+    ])->getJson(route('rooms.member-profile', ['room' => $room->code, 'name' => 'AgentChronos']));
+
+    $selfCardData = $selfCardResponse->json();
+    expect($selfCardData['age'])->not->toBeNull();
+    expect($selfCardData['birthday'])->toBe('1995-06-20');
+
+    // 4. Admin viewing profile sees full year
+    $this->actingAs($admin);
+    $adminCardResponse = $this->withSession([
+        "room_clearance_{$room->id}" => true,
+    ])->getJson(route('rooms.member-profile', ['room' => $room->code, 'name' => 'AgentChronos']));
+
+    $adminCardData = $adminCardResponse->json();
+    expect($adminCardData['age'])->not->toBeNull();
+    expect($adminCardData['birthday'])->toBe('1995-06-20');
+
+    // 5. Admin fetching messages sees full year
+    $adminMsgResponse = $this->withSession([
+        "room_clearance_{$room->id}" => true,
+    ])->getJson(route('messages.index', ['room' => $room->code]));
+
+    $adminMsg = $adminMsgResponse->json('messages.0');
+    expect($adminMsg['sender_age'])->not->toBeNull();
+    expect($adminMsg['sender_birthday'])->toBe('1995-06-20');
+});
+
