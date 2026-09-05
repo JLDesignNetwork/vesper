@@ -850,7 +850,9 @@
             justNow: "{{ __('Just now') }}",
             syncSuccess: "{{ __('✓ GPS SYNCED') }}",
             acquiring: "{{ __('ACQUIRING...') }}",
-            closeLightbox: "{{ __('Close Lightbox (Esc)') }}"
+            closeLightbox: "{{ __('Close Lightbox (Esc)') }}",
+            locationHidden: "{{ __('Location Hidden') }}",
+            hidden: "{{ __('Hidden') }}"
         };
 
         let lastMessageId = 0;
@@ -1553,17 +1555,45 @@
                     // Add card
                     const card = document.createElement('div');
                     card.className = 'p-3 rounded-xl bg-slate-900/80 border border-slate-800/80 font-mono text-xs space-y-1.5';
+
+                    let locationHtml = '';
+                    if (op.location_hidden) {
+                        if (op.city || op.country) {
+                            const locStr = [op.city, op.country].filter(Boolean).join(', ');
+                            locationHtml = `
+                                <span>${op.flag || '📍'}</span>
+                                <span class="text-slate-300">${escapeHtml(locStr)}</span>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">🔒 ${I18N.hidden || 'Hidden'}</span>
+                            `;
+                        } else {
+                            locationHtml = `
+                                <span>🔒</span>
+                                <span class="text-slate-500 italic">${I18N.locationHidden || 'Location Hidden'}</span>
+                            `;
+                        }
+                    } else if (op.city || op.country) {
+                        const locStr = [op.city, op.country].filter(Boolean).join(', ');
+                        locationHtml = `
+                            <span>${op.flag || '🌐'}</span>
+                            <span>${escapeHtml(locStr)}</span>
+                        `;
+                    } else {
+                        locationHtml = `
+                            <span>${op.flag || '🌐'}</span>
+                            <span class="text-slate-500">${escapeHtml('Unknown')}</span>
+                        `;
+                    }
+
                     card.innerHTML = `
                         <div class="flex items-center justify-between">
                             <span class="font-bold text-emerald-400">${escapeHtml(op.alias)}</span>
                             <span class="text-[10px] text-slate-400">${escapeHtml(op.last_seen)}</span>
                         </div>
-                        <div class="text-[11px] text-slate-300 flex items-center gap-1.5">
-                            <span>${op.flag || '🌐'}</span>
-                            <span>${escapeHtml(op.city || 'Unknown')}, ${escapeHtml(op.country || '')}</span>
+                        <div class="text-[11px] text-slate-300 flex items-center gap-1.5 flex-wrap">
+                            ${locationHtml}
                         </div>
                         <div class="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-800">
-                            <span>IP: ${escapeHtml(op.ip_address)}</span>
+                            <span>IP: ${escapeHtml(op.ip_address || '—')}</span>
                             <span>${escapeHtml(op.isp || 'Local')}</span>
                         </div>
                     `;
@@ -1609,11 +1639,19 @@
                 data.recent_entries.forEach(entry => {
                     const row = document.createElement('div');
                     row.className = 'p-2 rounded-lg bg-slate-900/40 border border-slate-800/50 flex items-center justify-between text-slate-400';
+
+                    let entryLoc = '';
+                    if (entry.location_hidden && !entry.city) {
+                        entryLoc = `<span class="text-slate-500 italic text-[10px]">${I18N.locationHidden || 'Location Hidden'}</span>`;
+                    } else if (entry.city || entry.country) {
+                        entryLoc = `<span class="text-slate-500 truncate">${escapeHtml([entry.city, entry.country].filter(Boolean).join(', '))}</span>`;
+                    }
+
                     row.innerHTML = `
                         <div class="flex items-center gap-1.5 truncate">
                             <span>${entry.flag || '🌐'}</span>
                             <span class="text-slate-300 font-semibold truncate">${escapeHtml(entry.alias)}</span>
-                            <span class="text-slate-500 truncate">${escapeHtml(entry.city || '')}</span>
+                            ${entryLoc}
                         </div>
                         <span class="text-[10px] text-slate-500 shrink-0 ml-2">${escapeHtml(entry.human_time)}</span>
                     `;

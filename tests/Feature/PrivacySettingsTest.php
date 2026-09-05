@@ -343,3 +343,137 @@ test('hiding age while allowing birthday conceals the birth year and shows only 
     expect($adminMsg['sender_birthday'])->toBe('1995-06-20');
 });
 
+test('user hiding their location does not show up on the map inside any chat channel while admin section retains full visibility', function () {
+    $hiddenUser = User::create([
+        'name' => 'AgentMirage',
+        'email' => 'mirage@example.com',
+        'password' => Hash::make('password123'),
+        'role' => 'member',
+        'city' => 'Zurich',
+        'country' => 'Switzerland',
+        'country_code' => 'CH',
+        'latitude' => 47.3769,
+        'longitude' => 8.5417,
+        'location' => 'Zurich, Switzerland',
+        'hide_location' => true,
+        'location_synced_at' => now(),
+    ]);
+
+    $visibleUser = User::create([
+        'name' => 'AgentBeacon',
+        'email' => 'beacon@example.com',
+        'password' => Hash::make('password123'),
+        'role' => 'member',
+        'city' => 'Geneva',
+        'country' => 'Switzerland',
+        'country_code' => 'CH',
+        'latitude' => 46.2044,
+        'longitude' => 6.1432,
+        'location' => 'Geneva, Switzerland',
+        'hide_location' => false,
+        'location_synced_at' => now(),
+    ]);
+
+    $observerPeer = User::create([
+        'name' => 'AgentObserver2',
+        'email' => 'observer2@example.com',
+        'password' => Hash::make('password123'),
+        'role' => 'member',
+    ]);
+
+    $admin = User::create([
+        'name' => 'CommandAdmin',
+        'email' => 'command@example.com',
+        'password' => Hash::make('password123'),
+        'role' => 'admin',
+    ]);
+
+    $room = Room::create([
+        'code' => 'RADAR-PRIV',
+        'title' => 'Tactical Channel',
+        'pin' => '123456',
+        'passcode_hash' => Hash::make('123456'),
+        'burn_after_reading' => false,
+        'ttl_minutes' => 60,
+        'created_by_ip' => '127.0.0.1',
+        'status' => 'active',
+    ]);
+
+    // Create access logs for both users in the room
+    AccessLog::create([
+        'room_id' => $room->id,
+        'user_id' => $hiddenUser->id,
+        'session_id' => 'session-mirage',
+        'alias' => $hiddenUser->name,
+        'ip_address' => '198.51.100.77',
+        'city' => 'Zurich',
+        'region' => 'Zurich',
+        'country' => 'Switzerland',
+        'country_code' => 'CH',
+        'latitude' => 47.3769,
+        'longitude' => 8.5417,
+        'last_seen_at' => now(),
+    ]);
+
+    AccessLog::create([
+        'room_id' => $room->id,
+        'user_id' => $visibleUser->id,
+        'session_id' => 'session-beacon',
+        'alias' => $visibleUser->name,
+        'ip_address' => '198.51.100.88',
+        'city' => 'Geneva',
+        'region' => 'Geneva',
+        'country' => 'Switzerland',
+        'country_code' => 'CH',
+        'latitude' => 46.2044,
+        'longitude' => 6.1432,
+        'last_seen_at' => now(),
+    ]);
+
+    // 1. Peer member calls radar in chat channel
+    $this->actingAs($observerPeer);
+    $radarResponse = $this->withSession([
+        "room_clearance_{$room->id}" => true,
+    ])->getJson(route('intel.radar', ['room' => $room->code]));
+
+    $radarResponse->assertStatus(200);
+    $operatives = collect($radarResponse->json('operatives'));
+
+    $mirageOp = $operatives->firstWhere('alias', 'AgentMirage');
+    $beaconOp = $operatives->firstWhere('alias', 'AgentBeacon');
+
+    // AgentMirage has hide_location = true -> Coordinates MUST BE NULL so no map pin appears inside chat channel
+    expect($mirageOp['latitude'])->toBeNull();
+    expect($mirageOp['longitude'])->toBeNull();
+    expect($mirageOp['city'])->toBeNull();
+    expect($mirageOp['country'])->toBeNull();
+    expect($mirageOp['flag'])->toBe('🔒');
+    expect($mirageOp['location_hidden'])->toBeTrue();
+    expect($mirageOp['ip_address'])->toBe('***.***.***.***');
+
+    // AgentBeacon has hide_location = false -> Coordinates and location visible on chat channel map
+    expect($beaconOp['latitude'])->toBe(46.2044);
+    expect($beaconOp['longitude'])->toBe(6.1432);
+    expect($beaconOp['city'])->toBe('Geneva');
+    expect($beaconOp['flag'])->toBe('🇨🇭');
+    expect($beaconOp['location_hidden'])->toBeFalse();
+
+    // 2. Audit entries in chat channel radar also suppress city and show lock for hidden location
+    $recentEntries = collect($radarResponse->json('recent_entries'));
+    $mirageEntry = $recentEntries->firstWhere('alias', 'AgentMirage');
+    expect($mirageEntry['city'])->toBeNull();
+    expect($mirageEntry['country'])->toBeNull();
+    expect($mirageEntry['flag'])->toBe('🔒');
+    expect($mirageEntry['location_hidden'])->toBeTrue();
+
+    // 3. Admin section dashboard STILL shows AgentMirage on the Global Traffic Map and in user list
+    $this->actingAs($admin);
+    $dashResponse = $this->get(route('admin.dashboard'));
+    $dashResponse->assertStatus(200);
+    $dashResponse->assertSee('AgentMirage');
+    $dashResponse->assertSee('47.3769'); // Latitude present in admin map markers
+    $dashResponse->assertSee('8.5417');  // Longitude present in admin map markers
+    $dashResponse->assertSee('Zurich');  // City present in admin dossier and table
+});
+
+

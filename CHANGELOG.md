@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1] - 2026-09-05
+
+### Security & Privacy
+- **In-Channel Map Privacy Hardening**: When an operative enables `hide_location = true`, their coordinates (`latitude`, `longitude`) are completely suppressed (`null`) from the in-channel tactical radar API (`/c/{room}/radar`), ensuring their pin never renders on Leaflet maps inside any chat channel.
+- **Operatives List & Audit Log Masking**: Peer room participants see `🔒 Location Hidden` and masked IP addresses (`***.***.***.***`) instead of raw city, country, or IP in the Connected Nodes list and Recent Entries audit log.
+- **Message Stream Geolocation Masking**: Real-time message polling (`MessageController::index`) suppresses city, country, and flags for messages authored by operatives with `hide_location = true` when queried by channel peers.
+- **Admin Section Telemetry Integrity**: Full visibility inside the Admin section (`/admin`) is completely preserved. The Admin Global Traffic Map, Registered Users table, and User Dossier continue to render real-time GPS telemetry, coordinates, and unmasked locations with the `🔒 Hidden` privacy status indicator.
+- **Automated Test Coverage**: Added comprehensive feature test verifying coordinates suppression on channel radar maps, masking for peers, and full visibility in the Admin section.
+
+---
+
 ## [1.3.0] - 2026-09-05
 
 ### Added

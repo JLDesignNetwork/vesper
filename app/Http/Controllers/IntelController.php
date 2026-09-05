@@ -35,44 +35,112 @@ class IntelController extends Controller
         }
 
         $activeThreshold = now()->subMinutes(10);
-        $logs = AccessLog::where('room_id', $room->id)
+        $viewer = Auth::user();
+
+        $logs = AccessLog::with('user')
+            ->where('room_id', $room->id)
             ->where('last_seen_at', '>=', $activeThreshold)
             ->orderBy('last_seen_at', 'desc')
             ->get();
 
-        $operatives = $logs->map(function (AccessLog $log): array {
+        $unlinkedAliases = $logs->whereNull('user_id')->pluck('alias')->filter()->unique();
+        $usersByAlias = $unlinkedAliases->isNotEmpty()
+            ? \App\Models\User::whereIn('name', $unlinkedAliases)->get()->keyBy('name')
+            : collect();
+
+        $operatives = $logs->map(function (AccessLog $log) use ($viewer, $usersByAlias): array {
+            $user = $log->user ?: ($log->alias ? ($usersByAlias[$log->alias] ?? null) : null);
+            $isLocationHidden = (bool) ($user?->hide_location);
+            $canViewPrivate = ($viewer && $viewer->isAdmin()) || ($viewer && $user && $viewer->id === $user->id);
+
+            // If location is hidden, coordinates are NEVER published to in-channel maps
+            if ($isLocationHidden) {
+                $lat = null;
+                $lon = null;
+                if ($canViewPrivate) {
+                    $city = $log->city;
+                    $region = $log->region;
+                    $country = $log->country;
+                    $countryCode = $log->country_code;
+                    $flag = $log->country_code ? $this->geoLocationService->countryCodeToFlag($log->country_code) : '🌐';
+                } else {
+                    $city = null;
+                    $region = null;
+                    $country = null;
+                    $countryCode = null;
+                    $flag = '🔒';
+                }
+            } else {
+                $lat = (float) $log->latitude;
+                $lon = (float) $log->longitude;
+                $city = $log->city;
+                $region = $log->region;
+                $country = $log->country;
+                $countryCode = $log->country_code;
+                $flag = $log->country_code ? $this->geoLocationService->countryCodeToFlag($log->country_code) : '🌐';
+            }
+
+            $ipAddress = ($canViewPrivate || ! $isLocationHidden)
+                ? $log->ip_address
+                : ($user ? '***.***.***.***' : $log->ip_address);
+
             return [
                 'id' => $log->id,
                 'alias' => $log->alias ?: 'Operative',
-                'ip_address' => $log->ip_address,
-                'city' => $log->city,
-                'region' => $log->region,
-                'country' => $log->country,
-                'country_code' => $log->country_code,
-                'flag' => $log->country_code ? $this->geoLocationService->countryCodeToFlag($log->country_code) : '🌐',
-                'latitude' => (float) $log->latitude,
-                'longitude' => (float) $log->longitude,
+                'ip_address' => $ipAddress,
+                'city' => $city,
+                'region' => $region,
+                'country' => $country,
+                'country_code' => $countryCode,
+                'flag' => $flag,
+                'latitude' => $lat,
+                'longitude' => $lon,
+                'location_hidden' => $isLocationHidden,
                 'isp' => $log->isp,
                 'user_agent' => $log->user_agent,
                 'last_seen' => $log->last_seen_at?->diffForHumans() ?? 'Active',
             ];
         });
 
-        $recentEntries = AccessLog::where('room_id', $room->id)
+        $recentLogs = AccessLog::with('user')
+            ->where('room_id', $room->id)
             ->orderBy('created_at', 'desc')
             ->limit(20)
-            ->get()
-            ->map(function (AccessLog $log): array {
-                return [
-                    'alias' => $log->alias ?: 'Operative',
-                    'ip_address' => $log->ip_address,
-                    'city' => $log->city,
-                    'country' => $log->country,
-                    'flag' => $log->country_code ? $this->geoLocationService->countryCodeToFlag($log->country_code) : '🌐',
-                    'timestamp' => $log->created_at?->toIso8601String() ?? '',
-                    'human_time' => $log->created_at?->diffForHumans() ?? '',
-                ];
-            });
+            ->get();
+
+        $recentUnlinked = $recentLogs->whereNull('user_id')->pluck('alias')->filter()->unique();
+        $recentUsersByAlias = $recentUnlinked->isNotEmpty()
+            ? \App\Models\User::whereIn('name', $recentUnlinked)->get()->keyBy('name')
+            : collect();
+
+        $recentEntries = $recentLogs->map(function (AccessLog $log) use ($viewer, $recentUsersByAlias): array {
+            $user = $log->user ?: ($log->alias ? ($recentUsersByAlias[$log->alias] ?? null) : null);
+            $isLocationHidden = (bool) ($user?->hide_location);
+            $canViewPrivate = ($viewer && $viewer->isAdmin()) || ($viewer && $user && $viewer->id === $user->id);
+
+            if ($isLocationHidden && ! $canViewPrivate) {
+                $city = null;
+                $country = null;
+                $flag = '🔒';
+                $ipAddress = '***.***.***.***';
+            } else {
+                $city = $log->city;
+                $country = $log->country;
+                $flag = $log->country_code ? $this->geoLocationService->countryCodeToFlag($log->country_code) : '🌐';
+                $ipAddress = $log->ip_address;
+            }
+
+            return [
+                'alias' => $log->alias ?: 'Operative',
+                'ip_address' => $ipAddress,
+                'city' => $city,
+                'country' => $country,
+                'flag' => $flag,
+                'location_hidden' => $isLocationHidden,
+                'timestamp' => $log->created_at?->toIso8601String() ?? '',
+                'human_time' => $log->created_at?->diffForHumans() ?? '',
+            ];
+        });
 
         return response()->json([
             'operatives' => $operatives,

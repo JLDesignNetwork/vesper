@@ -109,6 +109,14 @@ class MessageController extends Controller
             $senderRole = $author?->role ?? ($message->is_admin ? 'admin' : 'guest');
             $senderAvatarUrl = $author?->avatarUrl();
 
+            $isLocationHidden = (bool) ($author?->hide_location);
+            $canViewPrivate = ($viewer && $viewer->isAdmin()) || ($viewer && $author && $viewer->id === $author->id);
+
+            $msgCity = ($isLocationHidden && ! $canViewPrivate) ? null : $message->city;
+            $msgCountry = ($isLocationHidden && ! $canViewPrivate) ? null : $message->country;
+            $msgFlag = ($isLocationHidden && ! $canViewPrivate) ? '🔒' : $flag;
+            $msgIp = ($canViewPrivate || ! $isLocationHidden) ? $message->ip_address : '***.***.***.***';
+
             return [
                 'id' => $message->id,
                 'sender_name' => $message->sender_name,
@@ -127,10 +135,11 @@ class MessageController extends Controller
                 'attachment_type' => $message->attachment_type,
                 'attachment_mime' => $message->attachment_mime,
                 'formatted_size' => $message->formatted_size,
-                'ip_address' => $message->ip_address,
-                'country' => $message->country,
-                'city' => $message->city,
-                'flag' => $flag,
+                'ip_address' => $msgIp,
+                'country' => $msgCountry,
+                'city' => $msgCity,
+                'flag' => $msgFlag,
+                'location_hidden' => $isLocationHidden,
                 'created_at_human' => $message->created_at?->diffForHumans() ?? 'Just now',
                 'created_at_time' => $message->created_at?->format('H:i:s') ?? '',
             ];

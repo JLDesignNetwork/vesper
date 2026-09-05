@@ -30,8 +30,9 @@
 
 ### 4. Comprehensive Member Privacy Controls
 - **Selective Concealment**: Members can independently hide their Age, Birthday, Location, and Bio from regular chat members.
+- **In-Channel Map Concealment**: When a user hides their location, their coordinates are suppressed (`null`) on all in-channel tactical radar maps (`/c/{room}/radar`), ensuring their pin never appears inside any chat channel. Operatives lists and recent entries display `🔒 Location Hidden` with masked IP addresses for peers.
 - **Smart Birth Year Masking**: If a user hides their age while keeping their birthday visible, the system automatically conceals the birth year on the backend, only exposing the Month and Day (e.g. `June 20`) to prevent age deduction.
-- **Administrative Intelligence Oversight**: Platform administrators maintain full unmasked visibility (including real-time IP address inspection and privacy override badges) across all registered accounts.
+- **Administrative Intelligence Oversight**: Platform administrators maintain full unmasked visibility (including real-time IP address inspection, Global Traffic Map coordinates, and privacy override badges) across all registered accounts inside the Admin Control Center (`/admin`).
 
 ### 5. Operative Profiles & Intelligence Dossiers
 - **Custom Avatar System**: High-resolution image uploads (JPG, PNG, WEBP, GIF up to 5MB) with dynamic initials fallback badges.
@@ -45,7 +46,7 @@
 - **Backend**: Laravel 12.x (PHP 8.4+)
 - **Frontend**: Blade templates, TailwindCSS, Vanilla JavaScript (ES6+), Leaflet.js
 - **Asset Pipeline**: Vite 8.x
-- **Testing**: Pest PHP (48 tests, 274 assertions)
+- **Testing**: Pest PHP (49 tests, 296 assertions)
 - **Local Environment**: ServBay Pro / macOS / PHP 8.4
 
 ---
