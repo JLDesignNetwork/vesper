@@ -50,13 +50,33 @@
                         {{ __('Sunday City') }}
                     </div>
                     <div class="text-[11px] text-slate-400 font-mono">
-                        {{ __('Admin Dashboard') }} • {{ $adminUser->name }}
+                        {{ __('Admin Dashboard') }} • <button type="button" onclick="openProfileModal()" class="hover:text-emerald-400 underline decoration-slate-700 hover:decoration-emerald-400 cursor-pointer transition-colors" title="{{ __('Edit Profile Details') }}"><span id="header-subtitle-name">{{ $adminUser->name }}</span></button>
                     </div>
                 </div>
             </div>
 
             <!-- Actions -->
             <div class="flex items-center gap-3 font-mono text-xs">
+                <!-- Profile Settings Trigger -->
+                <button
+                    type="button"
+                    onclick="openProfileModal()"
+                    class="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-200 text-xs flex items-center gap-2 transition-colors cursor-pointer"
+                    title="{{ __('Edit Profile Details') }}"
+                >
+                    <div class="w-5 h-5 rounded-full overflow-hidden bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300 font-bold text-[10px] shrink-0">
+                        @if($adminUser->avatar_path)
+                            <img id="header-avatar-img" src="{{ $adminUser->avatarUrl() }}" class="w-full h-full object-cover" alt="">
+                            <span id="header-avatar-initial" class="hidden">{{ strtoupper(substr($adminUser->name, 0, 1)) }}</span>
+                        @else
+                            <img id="header-avatar-img" src="" class="w-full h-full object-cover hidden" alt="">
+                            <span id="header-avatar-initial">{{ strtoupper(substr($adminUser->name, 0, 1)) }}</span>
+                        @endif
+                    </div>
+                    <span id="header-user-name" class="font-sans font-medium text-xs max-w-[110px] truncate">{{ $adminUser->name }}</span>
+                    <span class="text-[10px] text-emerald-400 font-mono hidden sm:inline">{{ __('Profile') }}</span>
+                </button>
+
                 <!-- Create Channel Button -->
                 <button
                     type="button"
@@ -448,7 +468,16 @@
                                             {{ __('Inspect') }}
                                         </button>
 
-                                        @if($regUser->id !== Auth::id())
+                                        @if($regUser->id === Auth::id())
+                                            <button
+                                                type="button"
+                                                onclick="openProfileModal()"
+                                                class="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition-colors text-[11px] cursor-pointer"
+                                                title="{{ __('Edit My Profile') }}"
+                                            >
+                                                {{ __('Edit') }}
+                                            </button>
+                                        @else
                                             <form method="POST" action="{{ route('admin.users.destroy', ['id' => $regUser->id]) }}" class="inline" onsubmit="return confirm('{{ __('Permanently delete this user account?') }}')">
                                                 @csrf
                                                 @method('DELETE')
@@ -701,13 +730,21 @@
                 <p id="dossier-bio" class="text-xs text-slate-300 leading-relaxed italic whitespace-pre-wrap"></p>
             </div>
 
-            <div class="pt-2 flex items-center justify-end font-mono text-xs">
+            <div class="pt-2 flex items-center justify-end gap-2 font-mono text-xs">
                 <button
                     type="button"
                     onclick="closeUserDossier()"
                     class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
                 >
                     {{ __('Close Dossier') }}
+                </button>
+                <button
+                    type="button"
+                    id="dossier-edit-my-profile-btn"
+                    onclick="closeUserDossier(); openProfileModal();"
+                    class="hidden px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors cursor-pointer"
+                >
+                    {{ __('Edit My Profile') }}
                 </button>
             </div>
         </div>
@@ -803,6 +840,186 @@
         </div>
     </div>
 
+    <!-- Member / User Profile Modal -->
+    <div id="profile-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 font-sans">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300 font-bold font-mono text-sm">
+                        {{ strtoupper(substr($adminUser->name, 0, 1)) }}
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-white tracking-tight">{{ __('Profile Settings') }}</h3>
+                    </div>
+                </div>
+                <button type="button" onclick="closeProfileModal()" class="text-slate-400 hover:text-white cursor-pointer">✕</button>
+            </div>
+
+            <form id="profile-form" onsubmit="saveProfile(event)" class="space-y-3.5 text-xs font-sans">
+                @csrf
+
+                <div id="profile-alert" class="hidden p-2.5 rounded-xl text-xs font-mono"></div>
+
+                <!-- Custom Avatar Uploader -->
+                <div class="flex items-center gap-3.5 p-3 bg-slate-950/60 rounded-xl border border-slate-800">
+                    <div class="relative group shrink-0">
+                        <div id="profile-avatar-preview-wrap" class="w-14 h-14 rounded-2xl overflow-hidden bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center text-emerald-300 font-bold font-mono text-lg">
+                            @if($adminUser->avatar_path)
+                                <img id="profile-avatar-preview-img" src="{{ $adminUser->avatarUrl() }}" class="w-full h-full object-cover" alt="">
+                                <span id="profile-avatar-preview-initial" class="hidden">{{ strtoupper(substr($adminUser->name, 0, 1)) }}</span>
+                            @else
+                                <img id="profile-avatar-preview-img" src="" class="w-full h-full object-cover hidden" alt="">
+                                <span id="profile-avatar-preview-initial">{{ strtoupper(substr($adminUser->name, 0, 1)) }}</span>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="flex-1 space-y-1">
+                        <div class="text-[11px] font-semibold text-white">{{ __('Profile Picture') }}</div>
+                        <div class="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onclick="document.getElementById('avatar-file-input').click()"
+                                class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-medium cursor-pointer transition-colors"
+                            >
+                                {{ __('Upload Photo') }}
+                            </button>
+                            <button
+                                type="button"
+                                id="remove-avatar-btn"
+                                onclick="markAvatarForRemoval()"
+                                class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-medium cursor-pointer transition-colors {{ $adminUser->avatar_path ? '' : 'hidden' }}"
+                            >
+                                {{ __('Remove') }}
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-slate-500 font-mono">{{ __('JPG, PNG, WEBP, GIF (Max 5MB)') }}</p>
+                    </div>
+                    <input type="file" id="avatar-file-input" name="avatar" accept="image/*" class="hidden" onchange="previewAvatar(this)">
+                    <input type="hidden" id="remove-avatar-flag" name="remove_avatar" value="0">
+                </div>
+
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">{{ __('Display Name / Username') }} <span class="text-rose-400">*</span></label>
+                    <input
+                        type="text"
+                        name="name"
+                        id="profile-input-name"
+                        required
+                        value="{{ $adminUser->name }}"
+                        class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500"
+                    >
+                </div>
+
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">{{ __('Email Address') }} <span class="text-rose-400">*</span></label>
+                    <input
+                        type="email"
+                        name="email"
+                        id="profile-input-email"
+                        required
+                        value="{{ $adminUser->email }}"
+                        class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500"
+                    >
+                </div>
+
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">{{ __('Birthday') }}</label>
+                        <input
+                            type="date"
+                            name="birthday"
+                            id="profile-input-birthday"
+                            value="{{ $adminUser->birthday?->format('Y-m-d') }}"
+                            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs font-mono focus:outline-none focus:border-emerald-500"
+                        >
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">{{ __('Gender') }}</label>
+                        <select
+                            name="gender"
+                            id="profile-input-gender"
+                            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500"
+                        >
+                            <option value="">{{ __('Prefer not to say') }}</option>
+                            <option value="Male" {{ $adminUser->gender === 'Male' ? 'selected' : '' }}>{{ __('Male') }}</option>
+                            <option value="Female" {{ $adminUser->gender === 'Female' ? 'selected' : '' }}>{{ __('Female') }}</option>
+                            <option value="Non-binary" {{ $adminUser->gender === 'Non-binary' ? 'selected' : '' }}>{{ __('Non-binary') }}</option>
+                            <option value="Other" {{ $adminUser->gender === 'Other' ? 'selected' : '' }}>{{ __('Other') }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">{{ __('Location') }}</label>
+                    <input
+                        type="text"
+                        name="location"
+                        id="profile-input-location"
+                        placeholder="e.g. Rome, Italy"
+                        value="{{ $adminUser->location }}"
+                        class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500"
+                    >
+                </div>
+
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">{{ __('Bio / Status') }}</label>
+                    <textarea
+                        name="bio"
+                        id="profile-input-bio"
+                        rows="2"
+                        placeholder="A brief note about yourself..."
+                        class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500"
+                    >{{ $adminUser->bio }}</textarea>
+                </div>
+
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">{{ __('New Password') }} <span class="text-slate-500 text-[10px]">({{ __('leave blank to keep current') }})</span></label>
+                    <input
+                        type="password"
+                        name="password"
+                        id="profile-input-password"
+                        placeholder="••••••••"
+                        class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500"
+                    >
+                </div>
+
+                <div class="pt-1">
+                    <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500/40 cursor-pointer transition-colors select-none">
+                        <input
+                            type="checkbox"
+                            name="email_notifications"
+                            id="profile-input-email-notifications"
+                            value="1"
+                            {{ $adminUser->email_notifications ? 'checked' : '' }}
+                            class="mt-0.5 rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                        >
+                        <div class="text-xs">
+                            <span class="font-medium text-white block">{{ __('Email Notifications') }}</span>
+                            <span class="text-slate-400 text-[11px] block mt-0.5 leading-snug">{{ __('Receive email notifications for critical network transmissions and alerts.') }}</span>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="pt-3 flex items-center justify-end gap-2 font-mono">
+                    <button
+                        type="button"
+                        onclick="closeProfileModal()"
+                        class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
+                    >
+                        {{ __('Cancel') }}
+                    </button>
+                    <button
+                        type="submit"
+                        id="save-profile-btn"
+                        class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium shadow-lg transition-all cursor-pointer"
+                    >
+                        {{ __('Save Profile') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
@@ -882,11 +1099,150 @@
             document.getElementById('dossier-joined').textContent = user.created_at ? new Date(user.created_at).toLocaleString() : '—';
             document.getElementById('dossier-bio').textContent = user.bio || 'No intelligence notes or biography recorded.';
 
+            const editMyProfileBtn = document.getElementById('dossier-edit-my-profile-btn');
+            if (editMyProfileBtn) {
+                if (user.id === {{ Auth::id() }}) {
+                    editMyProfileBtn.classList.remove('hidden');
+                } else {
+                    editMyProfileBtn.classList.add('hidden');
+                }
+            }
+
             document.getElementById('user-dossier-modal').classList.remove('hidden');
         }
 
         function closeUserDossier() {
             document.getElementById('user-dossier-modal').classList.add('hidden');
+        }
+
+        // Profile Modal Handlers
+        function openProfileModal() {
+            const modal = document.getElementById('profile-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeProfileModal() {
+            const modal = document.getElementById('profile-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function previewAvatar(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                if (file.size > 5 * 1024 * 1024) {
+                    showToast('{{ __("Image exceeds the 5MB file size limit.") }}');
+                    input.value = '';
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById('profile-avatar-preview-img');
+                    const initial = document.getElementById('profile-avatar-preview-initial');
+                    const removeBtn = document.getElementById('remove-avatar-btn');
+                    if (img) {
+                        img.src = e.target.result;
+                        img.classList.remove('hidden');
+                    }
+                    if (initial) initial.classList.add('hidden');
+                    if (removeBtn) removeBtn.classList.remove('hidden');
+                    const removeFlag = document.getElementById('remove-avatar-flag');
+                    if (removeFlag) removeFlag.value = '0';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function markAvatarForRemoval() {
+            const fileInput = document.getElementById('avatar-file-input');
+            if (fileInput) fileInput.value = '';
+            const img = document.getElementById('profile-avatar-preview-img');
+            const initial = document.getElementById('profile-avatar-preview-initial');
+            const removeBtn = document.getElementById('remove-avatar-btn');
+            if (img) {
+                img.src = '';
+                img.classList.add('hidden');
+            }
+            if (initial) initial.classList.remove('hidden');
+            if (removeBtn) removeBtn.classList.add('hidden');
+            const removeFlag = document.getElementById('remove-avatar-flag');
+            if (removeFlag) removeFlag.value = '1';
+        }
+
+        async function saveProfile(e) {
+            e.preventDefault();
+            const form = e.target;
+            const submitBtn = document.getElementById('save-profile-btn');
+            const alertEl = document.getElementById('profile-alert');
+            const formData = new FormData(form);
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+            alertEl.classList.add('hidden');
+
+            try {
+                const res = await fetch('{{ route("profile.update") }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    alertEl.className = 'p-2.5 rounded-xl text-xs font-mono bg-emerald-950/60 border border-emerald-500/40 text-emerald-300';
+                    alertEl.textContent = '✓ ' + (data.message || 'Profile saved.');
+                    alertEl.classList.remove('hidden');
+
+                    // Update header avatar & name
+                    const headerImg = document.getElementById('header-avatar-img');
+                    const headerInitial = document.getElementById('header-avatar-initial');
+                    const headerName = document.getElementById('header-user-name');
+                    const headerSubName = document.getElementById('header-subtitle-name');
+                    if (headerName && data.user.name) headerName.textContent = data.user.name;
+                    if (headerSubName && data.user.name) headerSubName.textContent = data.user.name;
+
+                    if (data.user.avatar_url) {
+                        if (headerImg) {
+                            headerImg.src = data.user.avatar_url;
+                            headerImg.classList.remove('hidden');
+                        }
+                        if (headerInitial) headerInitial.classList.add('hidden');
+                    } else {
+                        if (headerImg) {
+                            headerImg.src = '';
+                            headerImg.classList.add('hidden');
+                        }
+                        if (headerInitial) {
+                            headerInitial.textContent = (data.user.name || 'G').charAt(0).toUpperCase();
+                            headerInitial.classList.remove('hidden');
+                        }
+                    }
+
+                    // Reset removal flag
+                    const removeFlag = document.getElementById('remove-avatar-flag');
+                    if (removeFlag) removeFlag.value = '0';
+
+                    showToast('{{ __("Profile updated successfully!") }}');
+                    setTimeout(() => {
+                        closeProfileModal();
+                        window.location.reload();
+                    }, 800);
+                } else {
+                    alertEl.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/60 border border-rose-500/40 text-rose-300';
+                    alertEl.textContent = data.message || 'Failed to update profile.';
+                    alertEl.classList.remove('hidden');
+                }
+            } catch (err) {
+                alertEl.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/60 border border-rose-500/40 text-rose-300';
+                alertEl.textContent = 'Network or validation error occurred.';
+                alertEl.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Save Profile';
+            }
         }
 
         function generateChannelCode() {
