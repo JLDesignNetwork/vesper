@@ -160,4 +160,62 @@ class GeoLocationService
 
         return $firstChar.$secondChar;
     }
+
+    /**
+     * Reverse geocode high-precision GPS coordinates into city, country, region, and flag.
+     *
+     * @return array{
+     *     city: string,
+     *     region: string,
+     *     country: string,
+     *     country_code: string,
+     *     flag: string
+     * }
+     */
+    public function reverseGeocode(float $latitude, float $longitude): array
+    {
+        $roundLat = round($latitude, 3);
+        $roundLon = round($longitude, 3);
+        $cacheKey = "reverse_geo_{$roundLat}_{$roundLon}";
+
+        return Cache::remember($cacheKey, now()->addDays(7), function () use ($latitude, $longitude): array {
+            try {
+                $response = Http::timeout(3)
+                    ->withHeaders(['User-Agent' => 'SundayCityApp/1.0'])
+                    ->get('https://nominatim.openstreetmap.org/reverse', [
+                        'format' => 'json',
+                        'lat' => $latitude,
+                        'lon' => $longitude,
+                        'zoom' => 10,
+                        'addressdetails' => 1,
+                    ]);
+
+                if ($response->successful() && $response->json('address')) {
+                    $addr = $response->json('address');
+                    $city = (string) ($addr['city'] ?? $addr['town'] ?? $addr['village'] ?? $addr['municipality'] ?? $addr['suburb'] ?? $addr['county'] ?? 'Geolocated Point');
+                    $region = (string) ($addr['state'] ?? $addr['province'] ?? $addr['region'] ?? '');
+                    $country = (string) ($addr['country'] ?? 'GPS Location');
+                    $countryCode = strtoupper((string) ($addr['country_code'] ?? ''));
+
+                    return [
+                        'city' => $city,
+                        'region' => $region,
+                        'country' => $country,
+                        'country_code' => $countryCode,
+                        'flag' => $countryCode ? $this->countryCodeToFlag($countryCode) : '📍',
+                    ];
+                }
+            } catch (Throwable) {
+                // Fallback gracefully on network timeout or failure
+            }
+
+            return [
+                'city' => 'Geolocated Coordinate',
+                'region' => '',
+                'country' => 'GPS Verified',
+                'country_code' => '',
+                'flag' => '📍',
+            ];
+        });
+    }
 }

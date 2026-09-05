@@ -621,10 +621,22 @@
                 </div>
 
                 <div>
-                    <label class="block font-medium text-slate-300 mb-1">{{ __('Location') }}</label>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="font-medium text-slate-300">{{ __('Location') }}</label>
+                        <button
+                            type="button"
+                            onclick="detectProfileGps()"
+                            class="text-[10px] text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-1 cursor-pointer transition-colors"
+                            title="{{ __('Auto-detect location via browser GPS') }}"
+                        >
+                            <span>📍</span>
+                            <span id="profile-detect-gps-text">{{ __('Detect GPS') }}</span>
+                        </button>
+                    </div>
                     <input
                         type="text"
                         name="location"
+                        id="profile-input-location"
                         placeholder="e.g. Rome, Italy"
                         value="{{ Auth::user()->location }}"
                         class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500"
@@ -1643,6 +1655,57 @@
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Save Profile';
             }
+        }
+
+        function detectProfileGps() {
+            if (!navigator.geolocation) {
+                alert('Geolocation is not supported by your browser.');
+                return;
+            }
+
+            const btnText = document.getElementById('profile-detect-gps-text');
+            if (btnText) btnText.textContent = 'Detecting...';
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+
+                    try {
+                        const res = await fetch('{{ route("profile.gps") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': CSRF_TOKEN,
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({ latitude: lat, longitude: lon })
+                        });
+
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            const locInput = document.getElementById('profile-input-location');
+                            if (locInput) locInput.value = data.location || `${data.city}, ${data.country}`;
+                            if (typeof loadRadarData === 'function') loadRadarData();
+                        } else {
+                            alert(data.message || 'Failed to detect GPS location.');
+                        }
+                    } catch (err) {
+                        alert('Error sending GPS telemetry to server.');
+                    } finally {
+                        if (btnText) btnText.textContent = 'Detect GPS';
+                    }
+                },
+                (err) => {
+                    let msg = 'Failed to detect GPS.';
+                    if (err.code === 1) msg = 'Location permission denied in browser.';
+                    else if (err.code === 2) msg = 'Position unavailable.';
+                    else if (err.code === 3) msg = 'GPS acquisition timed out.';
+                    alert(msg);
+                    if (btnText) btnText.textContent = 'Detect GPS';
+                },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
         }
 
         // Avatar Upload Handlers

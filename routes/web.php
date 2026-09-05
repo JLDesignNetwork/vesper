@@ -17,6 +17,7 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Member Profile Settings
 Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+Route::post('/profile/gps', [ProfileController::class, 'updateGps'])->name('profile.gps')->middleware('auth');
 
 // Multilingual Locale Switcher (EN, RU, FR, IT)
 Route::get('/locale/{locale}', function (string $locale) {
@@ -30,6 +31,7 @@ Route::get('/locale/{locale}', function (string $locale) {
 // Protected Admin Command Area (Restricted to Admins)
 Route::middleware(['auth', EnsureAdmin::class])->prefix('admin')->group(function () {
     Route::get('/', [AdminController::class, 'index'])->name('admin.dashboard');
+    Route::post('/gps', [AdminController::class, 'updateGps'])->name('admin.gps');
     Route::post('/channels', [AdminController::class, 'storeChannel'])->name('admin.channels.store');
     Route::put('/channels/{id}', [AdminController::class, 'updateChannel'])->name('admin.channels.update');
     Route::post('/channels/{id}/toggle', [AdminController::class, 'toggleChannel'])->name('admin.channels.toggle');

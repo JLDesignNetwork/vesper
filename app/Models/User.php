@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role', 'birthday', 'gender', 'location', 'bio', 'email_notifications', 'avatar_path'])]
+#[Fillable(['name', 'email', 'password', 'role', 'birthday', 'gender', 'location', 'latitude', 'longitude', 'city', 'country', 'country_code', 'location_synced_at', 'bio', 'email_notifications', 'avatar_path'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -29,6 +29,9 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'birthday' => 'date',
+            'latitude' => 'float',
+            'longitude' => 'float',
+            'location_synced_at' => 'datetime',
             'email_notifications' => 'boolean',
         ];
     }
@@ -39,6 +42,22 @@ class User extends Authenticatable
     public function rooms(): HasMany
     {
         return $this->hasMany(Room::class, 'created_by_user_id');
+    }
+
+    /**
+     * Get all access logs associated with this user.
+     */
+    public function accessLogs(): HasMany
+    {
+        return $this->hasMany(AccessLog::class);
+    }
+
+    /**
+     * Determine if this user has synchronized valid GPS coordinates.
+     */
+    public function hasGps(): bool
+    {
+        return ! is_null($this->latitude) && ! is_null($this->longitude);
     }
 
     /**

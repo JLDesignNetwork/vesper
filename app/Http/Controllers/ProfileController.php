@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AccessLog;
+use App\Services\GeoLocationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
-
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
@@ -100,5 +101,60 @@ class ProfileController extends Controller
         }
 
         return back()->with('status', __('Profile details updated successfully.'));
+    }
+
+    /**
+     * Synchronize authenticated user's high-precision GPS coordinates.
+     */
+    public function updateGps(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        if (! $user) {
+            abort(401, 'Unauthorized.');
+        }
+
+        $validated = $request->validate([
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+        ]);
+
+        $lat = (float) $validated['latitude'];
+        $lon = (float) $validated['longitude'];
+
+        $geo = app(GeoLocationService::class)->reverseGeocode($lat, $lon);
+
+        $user->latitude = $lat;
+        $user->longitude = $lon;
+        $user->city = $geo['city'];
+        $user->country = $geo['country'];
+        $user->country_code = $geo['country_code'];
+        $user->location_synced_at = now();
+
+        if (empty($user->location) || $user->location === 'Classified' || $user->location === '—') {
+            $user->location = trim(($geo['city'] ?? '').', '.($geo['country'] ?? ''), ', ');
+        }
+        $user->save();
+
+        AccessLog::where('user_id', $user->id)->update([
+            'latitude' => $lat,
+            'longitude' => $lon,
+            'city' => $geo['city'],
+            'region' => $geo['region'],
+            'country' => $geo['country'],
+            'country_code' => $geo['country_code'],
+            'last_seen_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'latitude' => $lat,
+            'longitude' => $lon,
+            'city' => $geo['city'],
+            'country' => $geo['country'],
+            'country_code' => $geo['country_code'],
+            'flag' => $geo['flag'],
+            'location' => $user->location,
+            'message' => __('Profile GPS synchronized successfully.'),
+        ]);
     }
 }

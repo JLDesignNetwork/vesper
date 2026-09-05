@@ -79,18 +79,26 @@ class RoomController extends Controller
         $request->session()->put("room_alias_{$room->id}", $alias);
 
         $geo = $this->geoLocationService->locate($clientIp);
+        $user = Auth::user();
+        $userId = $user?->id;
+        $lat = ($user && $user->hasGps()) ? $user->latitude : $geo['latitude'];
+        $lon = ($user && $user->hasGps()) ? $user->longitude : $geo['longitude'];
+        $city = ($user && $user->city) ? $user->city : $geo['city'];
+        $country = ($user && $user->country) ? $user->country : $geo['country'];
+        $countryCode = ($user && $user->country_code) ? $user->country_code : $geo['country_code'];
 
         AccessLog::create([
             'room_id' => $room->id,
+            'user_id' => $userId,
             'session_id' => $sessionId,
             'alias' => $alias,
             'ip_address' => $clientIp,
-            'city' => $geo['city'],
+            'city' => $city,
             'region' => $geo['region'],
-            'country' => $geo['country'],
-            'country_code' => $geo['country_code'],
-            'latitude' => $geo['latitude'],
-            'longitude' => $geo['longitude'],
+            'country' => $country,
+            'country_code' => $countryCode,
+            'latitude' => $lat,
+            'longitude' => $lon,
             'isp' => $geo['isp'],
             'user_agent' => $request->userAgent(),
             'last_seen_at' => now(),
@@ -201,6 +209,13 @@ class RoomController extends Controller
         $request->session()->put("room_is_admin_{$room->id}", $isAdmin);
 
         $geo = $this->geoLocationService->locate($clientIp);
+        $user = Auth::user();
+        $userId = $user?->id;
+        $lat = ($user && $user->hasGps()) ? $user->latitude : $geo['latitude'];
+        $lon = ($user && $user->hasGps()) ? $user->longitude : $geo['longitude'];
+        $city = ($user && $user->city) ? $user->city : $geo['city'];
+        $country = ($user && $user->country) ? $user->country : $geo['country'];
+        $countryCode = ($user && $user->country_code) ? $user->country_code : $geo['country_code'];
 
         AccessLog::updateOrCreate(
             [
@@ -208,14 +223,15 @@ class RoomController extends Controller
                 'session_id' => $sessionId,
             ],
             [
+                'user_id' => $userId,
                 'alias' => $alias,
                 'ip_address' => $clientIp,
-                'city' => $geo['city'],
+                'city' => $city,
                 'region' => $geo['region'],
-                'country' => $geo['country'],
-                'country_code' => $geo['country_code'],
-                'latitude' => $geo['latitude'],
-                'longitude' => $geo['longitude'],
+                'country' => $country,
+                'country_code' => $countryCode,
+                'latitude' => $lat,
+                'longitude' => $lon,
                 'isp' => $geo['isp'],
                 'user_agent' => $request->userAgent(),
                 'last_seen_at' => now(),
@@ -279,6 +295,13 @@ class RoomController extends Controller
         $clientIp = $this->geoLocationService->getClientIp($request);
 
         $geo = $this->geoLocationService->locate($clientIp);
+        $user = Auth::user();
+        $userId = $user?->id;
+        $lat = ($user && $user->hasGps()) ? $user->latitude : $geo['latitude'];
+        $lon = ($user && $user->hasGps()) ? $user->longitude : $geo['longitude'];
+        $city = ($user && $user->city) ? $user->city : $geo['city'];
+        $country = ($user && $user->country) ? $user->country : $geo['country'];
+        $countryCode = ($user && $user->country_code) ? $user->country_code : $geo['country_code'];
 
         AccessLog::updateOrCreate(
             [
@@ -286,14 +309,15 @@ class RoomController extends Controller
                 'session_id' => $sessionId,
             ],
             [
+                'user_id' => $userId,
                 'alias' => $alias,
                 'ip_address' => $clientIp,
-                'city' => $geo['city'],
+                'city' => $city,
                 'region' => $geo['region'],
-                'country' => $geo['country'],
-                'country_code' => $geo['country_code'],
-                'latitude' => $geo['latitude'],
-                'longitude' => $geo['longitude'],
+                'country' => $country,
+                'country_code' => $countryCode,
+                'latitude' => $lat,
+                'longitude' => $lon,
                 'isp' => $geo['isp'],
                 'user_agent' => $request->userAgent(),
                 'last_seen_at' => now(),

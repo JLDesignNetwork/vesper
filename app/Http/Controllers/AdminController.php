@@ -8,6 +8,7 @@ use App\Models\Room;
 use App\Models\User;
 use App\Services\GeoLocationService;
 use App\Services\MediaStorageService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -45,7 +46,7 @@ class AdminController extends Controller
         $rooms = Room::withCount('messages')->latest()->get();
 
         // Fetch recent visitor intelligence logs
-        $recentVisitors = AccessLog::with('room:id,code,title')
+        $recentVisitors = AccessLog::with(['room:id,code,title', 'user:id,name,role,avatar_path'])
             ->latest('last_seen_at')
             ->limit(50)
             ->get()
@@ -56,13 +57,17 @@ class AdminController extends Controller
 
                 return [
                     'id' => $log->id,
-                    'alias' => $log->alias ?: 'Guest',
+                    'user_id' => $log->user_id,
+                    'is_user' => (bool) $log->user_id,
+                    'alias' => $log->user?->name ?: ($log->alias ?: 'Guest'),
+                    'role' => $log->user?->role,
+                    'avatar_url' => $log->user?->avatarUrl(),
                     'ip_address' => $log->ip_address,
                     'country' => $log->country ?: 'Unknown',
                     'city' => $log->city ?: 'Unknown',
                     'flag' => $flag,
-                    'latitude' => $log->latitude,
-                    'longitude' => $log->longitude,
+                    'latitude' => (float) $log->latitude,
+                    'longitude' => (float) $log->longitude,
                     'user_agent' => $log->user_agent,
                     'room_code' => $log->room?->code ?? 'N/A',
                     'room_title' => $log->room?->title ?? $log->room?->code ?? 'N/A',
@@ -70,10 +75,40 @@ class AdminController extends Controller
                 ];
             });
 
-        // Filter valid coordinates for global map
-        $mapMarkers = $recentVisitors
+        // Registered user GPS markers
+        $userMarkers = $registeredUsers
+            ->filter(fn (User $u): bool => $u->hasGps())
+            ->map(function (User $u): array {
+                $flag = $u->country_code
+                    ? $this->geoLocationService->countryCodeToFlag($u->country_code)
+                    : '📍';
+
+                return [
+                    'id' => 'user_'.$u->id,
+                    'user_id' => $u->id,
+                    'is_user' => true,
+                    'alias' => $u->name,
+                    'role' => $u->role,
+                    'avatar_url' => $u->avatarUrl(),
+                    'country' => $u->country ?: ($u->location ?: 'GPS Verified'),
+                    'city' => $u->city ?: 'Geolocated Node',
+                    'flag' => $flag,
+                    'latitude' => (float) $u->latitude,
+                    'longitude' => (float) $u->longitude,
+                    'ip_address' => 'Verified GPS Node',
+                    'room_code' => $u->isAdmin() ? 'Command HQ' : 'Operative',
+                    'room_title' => $u->isAdmin() ? 'Admin Command' : 'Registered Member',
+                    'last_seen_human' => $u->location_synced_at?->diffForHumans() ?? 'Synced',
+                ];
+            });
+
+        // Visitor access log markers (excluding already represented registered users)
+        $visitorMarkers = $recentVisitors
             ->filter(fn (array $v): bool => ! empty($v['latitude']) && ! empty($v['longitude']))
-            ->values();
+            ->filter(fn (array $v): bool => empty($v['user_id']) || ! $userMarkers->contains('user_id', $v['user_id']));
+
+        // Combined map markers
+        $mapMarkers = $userMarkers->concat($visitorMarkers)->values();
 
         return view('admin.dashboard', [
             'adminUser' => Auth::user(),
@@ -251,5 +286,59 @@ class AdminController extends Controller
         }
 
         return round($bytes, 1).' '.$units[$i];
+    }
+
+    /**
+     * Synchronize administrator browser GPS coordinates.
+     */
+    public function updateGps(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+        ]);
+
+        $lat = (float) $validated['latitude'];
+        $lon = (float) $validated['longitude'];
+
+        $geo = $this->geoLocationService->reverseGeocode($lat, $lon);
+
+        /** @var User $adminUser */
+        $adminUser = Auth::user();
+        $adminUser->latitude = $lat;
+        $adminUser->longitude = $lon;
+        $adminUser->city = $geo['city'];
+        $adminUser->country = $geo['country'];
+        $adminUser->country_code = $geo['country_code'];
+        $adminUser->location_synced_at = now();
+
+        if (empty($adminUser->location) || $adminUser->location === 'Classified' || $adminUser->location === '—') {
+            $adminUser->location = trim(($geo['city'] ?? '').', '.($geo['country'] ?? ''), ', ');
+        }
+
+        $adminUser->save();
+
+        // Synchronize any existing access logs for this user
+        AccessLog::where('user_id', $adminUser->id)->update([
+            'latitude' => $lat,
+            'longitude' => $lon,
+            'city' => $geo['city'],
+            'region' => $geo['region'],
+            'country' => $geo['country'],
+            'country_code' => $geo['country_code'],
+            'last_seen_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'latitude' => $lat,
+            'longitude' => $lon,
+            'city' => $geo['city'],
+            'country' => $geo['country'],
+            'country_code' => $geo['country_code'],
+            'flag' => $geo['flag'],
+            'location' => $adminUser->location,
+            'message' => __('GPS coordinates synchronized successfully.'),
+        ]);
     }
 }

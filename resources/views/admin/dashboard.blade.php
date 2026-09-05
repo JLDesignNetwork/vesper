@@ -441,7 +441,22 @@
                                     {{ $regUser->gender ? ucfirst($regUser->gender) : '—' }}
                                 </td>
                                 <td class="py-3.5 px-4 font-mono text-slate-300">
-                                    {{ $regUser->location ?: '—' }}
+                                    @if($regUser->hasGps())
+                                        <div class="flex items-center gap-1.5" title="{{ __('Verified GPS: :lat, :lon', ['lat' => $regUser->latitude, 'lon' => $regUser->longitude]) }}">
+                                            <span class="inline-flex items-center gap-1 text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 text-[10px]">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                                <span>GPS</span>
+                                            </span>
+                                            <span class="text-white font-medium">{{ $regUser->city ?: $regUser->location }}</span>
+                                            @if($regUser->country)
+                                                <span class="text-slate-400 text-[11px]">({{ $regUser->country }})</span>
+                                            @endif
+                                        </div>
+                                    @elseif($regUser->location)
+                                        <span>{{ $regUser->location }}</span>
+                                    @else
+                                        <span class="text-slate-500">—</span>
+                                    @endif
                                 </td>
                                 <td class="py-3.5 px-4 font-mono">
                                     @if($regUser->email_notifications)
@@ -506,9 +521,29 @@
 
         <!-- Global Traffic Map Section -->
         <div class="rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md overflow-hidden">
-            <div class="p-5 border-b border-slate-800/80">
-                <h3 class="text-base font-semibold text-white tracking-tight">{{ __('Global Traffic Map') }}</h3>
-                <p class="text-xs text-slate-400 mt-0.5">Real-time geospatial distribution of visitors and connection nodes.</p>
+            <div class="p-5 border-b border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-base font-semibold text-white tracking-tight flex items-center gap-2">
+                        <span>{{ __('Global Traffic Map') }}</span>
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">{{ __('Real-time geospatial distribution of operative nodes and channel traffic.') }}</p>
+                </div>
+                <div class="flex items-center gap-2 font-mono text-xs">
+                    <button
+                        type="button"
+                        id="admin-gps-sync-btn"
+                        onclick="syncAdminGps()"
+                        class="px-3 py-1.5 rounded-xl bg-cyan-950/50 hover:bg-cyan-900/50 border border-cyan-500/40 text-cyan-300 transition-all flex items-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.15)]"
+                        title="{{ __('Synchronize high-precision GPS coordinates from your browser') }}"
+                    >
+                        <svg class="w-4 h-4 text-cyan-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span id="admin-gps-btn-text">{{ __('SYNC GPS') }}</span>
+                    </button>
+                </div>
             </div>
             <div id="admin-map" class="h-96 w-full"></div>
         </div>
@@ -950,7 +985,19 @@
                 </div>
 
                 <div>
-                    <label class="block font-medium text-slate-300 mb-1">{{ __('Location') }}</label>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="font-medium text-slate-300">{{ __('Location') }}</label>
+                        <button
+                            type="button"
+                            id="profile-detect-gps-btn"
+                            onclick="detectProfileGps()"
+                            class="text-[10px] text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-1 cursor-pointer transition-colors"
+                            title="{{ __('Auto-detect location via browser GPS') }}"
+                        >
+                            <span>📍</span>
+                            <span id="profile-detect-gps-text">{{ __('Detect GPS') }}</span>
+                        </button>
+                    </div>
                     <input
                         type="text"
                         name="location"
@@ -1245,6 +1292,58 @@
             }
         }
 
+        function detectProfileGps() {
+            if (!navigator.geolocation) {
+                showToast('{{ __("Geolocation is not supported by your browser.") }}');
+                return;
+            }
+
+            const btnText = document.getElementById('profile-detect-gps-text');
+            if (btnText) btnText.textContent = '{{ __("Detecting...") }}';
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+                    try {
+                        const res = await fetch('{{ route("profile.gps") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({ latitude: lat, longitude: lon })
+                        });
+
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            const locInput = document.getElementById('profile-input-location');
+                            if (locInput) locInput.value = data.location || `${data.city}, ${data.country}`;
+                            showToast(`✓ GPS Detected: ${data.city || ''}, ${data.country || ''}`);
+                        } else {
+                            showToast(data.message || 'Failed to detect GPS location.');
+                        }
+                    } catch (err) {
+                        showToast('Error sending GPS data.');
+                    } finally {
+                        if (btnText) btnText.textContent = '{{ __("Detect GPS") }}';
+                    }
+                },
+                (err) => {
+                    let msg = 'Failed to detect GPS.';
+                    if (err.code === 1) msg = 'Location permission denied in browser.';
+                    else if (err.code === 2) msg = 'Position unavailable.';
+                    else if (err.code === 3) msg = 'GPS acquisition timed out.';
+                    showToast(msg);
+                    if (btnText) btnText.textContent = '{{ __("Detect GPS") }}';
+                },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        }
+
         function generateChannelCode() {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
             let prefix = '';
@@ -1264,12 +1363,16 @@
             document.getElementById('input-passcode').value = pin;
         }
 
+        // Global Map Instance Reference
+        let adminMapInstance = null;
+        let adminUserMarker = null;
+
         // Initialize Global Leaflet Map
         document.addEventListener('DOMContentLoaded', () => {
             const mapEl = document.getElementById('admin-map');
             if (!mapEl) return;
 
-            const map = L.map('admin-map', {
+            adminMapInstance = L.map('admin-map', {
                 zoomControl: true,
                 attributionControl: false
             }).setView([25, 0], 2);
@@ -1280,34 +1383,137 @@
             L.tileLayer(tileUrl, {
                 maxZoom: 19,
                 subdomains: 'abcd',
-            }).addTo(map);
+            }).addTo(adminMapInstance);
 
             const markers = @json($mapMarkers);
 
             markers.forEach(m => {
                 if (m.latitude && m.longitude) {
+                    const isUser = !!m.is_user;
+                    const isAdmin = m.role === 'admin';
+                    const color = isAdmin ? '#a855f7' : (isUser ? '#06b6d4' : '#10b981');
+
                     const circle = L.circleMarker([m.latitude, m.longitude], {
-                        color: '#10b981',
-                        fillColor: '#10b981',
-                        fillOpacity: 0.6,
-                        radius: 6,
-                        weight: 2
-                    }).addTo(map);
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: isUser ? 0.85 : 0.6,
+                        radius: isUser ? 8 : 6,
+                        weight: isUser ? 3 : 2
+                    }).addTo(adminMapInstance);
+
+                    const avatarHtml = m.avatar_url 
+                        ? `<img src="${m.avatar_url}" class="w-5 h-5 rounded-full object-cover border border-slate-600 inline-block mr-1.5" alt="">`
+                        : `<span class="w-5 h-5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-bold text-[9px] inline-flex items-center justify-center mr-1.5">${(m.alias || 'U').substring(0, 1).toUpperCase()}</span>`;
+
+                    const roleBadge = isUser
+                        ? `<span class="text-[9px] font-mono px-1.5 py-0.5 rounded ${isAdmin ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'}">${isAdmin ? 'COMMAND' : 'MEMBER'}</span>`
+                        : `<span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">VISITOR</span>`;
 
                     circle.bindPopup(`
-                        <div class="text-xs font-mono p-1">
-                            <div class="font-bold text-white flex items-center gap-1">
-                                <span>${m.flag || '🌐'}</span>
+                        <div class="text-xs font-mono p-1 space-y-1">
+                            <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-1 mb-1">
+                                <div class="flex items-center font-bold text-white">
+                                    ${avatarHtml}
+                                    <span class="truncate max-w-[120px]">${m.alias}</span>
+                                </div>
+                                ${roleBadge}
+                            </div>
+                            <div class="text-slate-300 font-medium flex items-center gap-1">
+                                <span>${m.flag || '📍'}</span>
                                 <span>${m.city || ''}, ${m.country || ''}</span>
                             </div>
-                            <div class="text-slate-400 mt-1">IP: ${m.ip_address || ''}</div>
-                            <div class="text-emerald-400 mt-0.5">Channel: ${m.room_code || 'N/A'}</div>
-                            <div class="text-slate-500 text-[10px] mt-0.5">${m.last_seen_human || ''}</div>
+                            <div class="text-[10px] text-slate-400">GPS: ${Number(m.latitude).toFixed(4)}, ${Number(m.longitude).toFixed(4)}</div>
+                            ${m.room_code ? `<div class="text-emerald-400 text-[11px]">Channel: ${m.room_code}</div>` : ''}
+                            <div class="text-slate-500 text-[10px]">${m.last_seen_human || 'Active'}</div>
                         </div>
                     `);
                 }
             });
         });
+
+        // Admin GPS Synchronization
+        function syncAdminGps() {
+            if (!navigator.geolocation) {
+                showToast('{{ __("Geolocation is not supported by your browser.") }}');
+                return;
+            }
+
+            const btn = document.getElementById('admin-gps-sync-btn');
+            const btnText = document.getElementById('admin-gps-btn-text');
+            if (btn) btn.disabled = true;
+            if (btnText) btnText.textContent = '{{ __("LOCATING...") }}';
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+                    try {
+                        const res = await fetch('{{ route("admin.gps") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken,
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({ latitude: lat, longitude: lon })
+                        });
+
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            showToast(`✓ GPS Synced: ${data.city || 'Verified Location'}, ${data.country || ''}`);
+
+                            if (adminMapInstance) {
+                                adminMapInstance.flyTo([lat, lon], 12, { animate: true, duration: 1.5 });
+
+                                if (adminUserMarker) {
+                                    adminUserMarker.setLatLng([lat, lon]);
+                                } else {
+                                    adminUserMarker = L.circleMarker([lat, lon], {
+                                        color: '#a855f7',
+                                        fillColor: '#a855f7',
+                                        fillOpacity: 0.9,
+                                        radius: 10,
+                                        weight: 3
+                                    }).addTo(adminMapInstance);
+                                }
+
+                                adminUserMarker.bindPopup(`
+                                    <div class="text-xs font-mono p-1">
+                                        <div class="font-bold text-purple-300 flex items-center gap-1">
+                                            <span>${data.flag || '📍'}</span>
+                                            <span>${data.city || 'Command Center'}, ${data.country || 'HQ'}</span>
+                                        </div>
+                                        <div class="text-slate-400 mt-0.5">GPS: ${lat.toFixed(4)}, ${lon.toFixed(4)}</div>
+                                        <div class="text-purple-400 text-[10px] mt-0.5">Admin Live Position</div>
+                                    </div>
+                                `).openPopup();
+                            }
+
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            showToast(data.message || 'Failed to sync GPS coordinates.');
+                        }
+                    } catch (err) {
+                        showToast('Error sending GPS telemetry to server.');
+                    } finally {
+                        if (btn) btn.disabled = false;
+                        if (btnText) btnText.textContent = '{{ __("SYNC GPS") }}';
+                    }
+                },
+                (err) => {
+                    let msg = 'Failed to obtain GPS coordinates.';
+                    if (err.code === 1) msg = 'Location access was denied in browser permissions.';
+                    else if (err.code === 2) msg = 'Position unavailable.';
+                    else if (err.code === 3) msg = 'Location request timed out.';
+                    showToast(msg);
+                    if (btn) btn.disabled = false;
+                    if (btnText) btnText.textContent = '{{ __("SYNC GPS") }}';
+                },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        }
 
         function showToast(msg) {
             const toast = document.getElementById('admin-toast');

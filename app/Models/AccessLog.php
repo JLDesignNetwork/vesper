@@ -14,6 +14,7 @@ class AccessLog extends Model
      */
     protected $fillable = [
         'room_id',
+        'user_id',
         'session_id',
         'alias',
         'ip_address',
@@ -48,5 +49,13 @@ class AccessLog extends Model
     public function room(): BelongsTo
     {
         return $this->belongsTo(Room::class);
+    }
+
+    /**
+     * Get the registered user associated with this access log if authenticated.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

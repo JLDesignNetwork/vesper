@@ -7,6 +7,7 @@ use App\Models\Room;
 use App\Services\GeoLocationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class IntelController extends Controller
 {
@@ -101,20 +102,71 @@ class IntelController extends Controller
             'longitude' => ['required', 'numeric', 'between:-180,180'],
         ]);
 
-        $sessionId = $request->session()->getId();
+        $lat = (float) $validated['latitude'];
+        $lon = (float) $validated['longitude'];
 
-        AccessLog::where('room_id', $room->id)
-            ->where('session_id', $sessionId)
-            ->update([
-                'latitude' => $validated['latitude'],
-                'longitude' => $validated['longitude'],
+        // Reverse-geocode coordinates to obtain verified city and country
+        $geo = $this->geoLocationService->reverseGeocode($lat, $lon);
+
+        $sessionId = $request->session()->getId();
+        $user = Auth::user();
+        $userId = $user?->id;
+
+        if ($user) {
+            $user->latitude = $lat;
+            $user->longitude = $lon;
+            $user->city = $geo['city'];
+            $user->country = $geo['country'];
+            $user->country_code = $geo['country_code'];
+            $user->location_synced_at = now();
+            if (empty($user->location) || $user->location === 'Classified' || $user->location === '—') {
+                $user->location = trim(($geo['city'] ?? '').', '.($geo['country'] ?? ''), ', ');
+            }
+            $user->save();
+
+            // Synchronize all access logs for this user across all channels
+            AccessLog::where('user_id', $userId)->update([
+                'latitude' => $lat,
+                'longitude' => $lon,
+                'city' => $geo['city'],
+                'region' => $geo['region'],
+                'country' => $geo['country'],
+                'country_code' => $geo['country_code'],
                 'last_seen_at' => now(),
             ]);
+        }
+
+        $clientIp = $this->geoLocationService->getClientIp($request);
+        $alias = $request->session()->get("room_alias_{$room->id}", $user?->name ?: 'Operative');
+
+        AccessLog::updateOrCreate(
+            [
+                'room_id' => $room->id,
+                'session_id' => $sessionId,
+            ],
+            [
+                'user_id' => $userId,
+                'alias' => $alias,
+                'ip_address' => $clientIp,
+                'latitude' => $lat,
+                'longitude' => $lon,
+                'city' => $geo['city'],
+                'region' => $geo['region'],
+                'country' => $geo['country'],
+                'country_code' => $geo['country_code'],
+                'user_agent' => $request->userAgent(),
+                'last_seen_at' => now(),
+            ]
+        );
 
         return response()->json([
             'success' => true,
-            'latitude' => (float) $validated['latitude'],
-            'longitude' => (float) $validated['longitude'],
+            'latitude' => $lat,
+            'longitude' => $lon,
+            'city' => $geo['city'],
+            'country' => $geo['country'],
+            'country_code' => $geo['country_code'],
+            'flag' => $geo['flag'],
         ]);
     }
 }
