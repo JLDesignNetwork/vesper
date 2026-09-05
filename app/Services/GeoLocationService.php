@@ -181,7 +181,7 @@ class GeoLocationService
         return Cache::remember($cacheKey, now()->addDays(7), function () use ($latitude, $longitude): array {
             try {
                 $response = Http::timeout(3)
-                    ->withHeaders(['User-Agent' => 'SundayCityApp/1.0'])
+                    ->withHeaders(['User-Agent' => 'VesperApp/1.0'])
                     ->get('https://nominatim.openstreetmap.org/reverse', [
                         'format' => 'json',
                         'lat' => $latitude,

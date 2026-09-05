@@ -91,7 +91,7 @@ class TranslationService
             $response = Http::timeout(6)->get('https://api.mymemory.translated.net/get', [
                 'q' => $text,
                 'langpair' => $langPair,
-                'de' => 'contact@sundaycity.local',
+                'de' => 'contact@vesper.local',
             ]);
 
             if ($response->successful()) {
