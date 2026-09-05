@@ -1,5 +1,5 @@
 <header class="w-full border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+    <div class="max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
 
         <!-- 1. Brand Identity & Live Telemetry Lockup -->
         <div class="flex items-center gap-3.5 shrink-0">
@@ -16,9 +16,9 @@
                     </div>
                     <div class="text-[10px] text-slate-400 font-mono flex items-center gap-1.5 mt-0.5">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span class="text-emerald-400/90 font-medium tracking-wide">ONLINE</span>
+                        <span class="text-emerald-400/90 font-medium tracking-wide">{{ __('ONLINE') }}</span>
                         <span class="text-slate-600">|</span>
-                        <span class="text-slate-400">CMD CENTER</span>
+                        <span class="text-slate-400">{{ __('CMD CENTER') }}</span>
                     </div>
                 </div>
             </a>
@@ -129,9 +129,9 @@
                         <div class="font-semibold text-white text-xs truncate">{{ $adminUser->name }}</div>
                         <div class="text-[11px] text-slate-400 truncate">{{ $adminUser->email }}</div>
                         <div class="mt-1.5 flex items-center gap-1.5">
-                            <span class="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">ADMINISTRATOR</span>
+                            <span class="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">{{ __('ADMINISTRATOR') }}</span>
                             @if($adminUser->hasTwoFactor() || $adminUser->hasBiometrics())
-                                <span class="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">2FA SECURED</span>
+                                <span class="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">{{ __('2FA SECURED') }}</span>
                             @endif
                         </div>
                     </div>

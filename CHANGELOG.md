@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-09-05
+
+### Fixed
+- **Admin Table Layout Overflow & Sticky Actions Pinning**:
+  - Re-architected `operatives-section.blade.php` from 9 horizontal columns down to 6 compact, high-density, beautifully balanced columns (Profile & Contact, Network & Location, Demographics, Privacy & Security, Enrolled, Actions).
+  - Pinned the `Actions` column with Tailwind `sticky right-0 bg-slate-900/95 backdrop-blur-md shadow-[-10px_0_12px_-4px_rgba(0,0,0,0.5)] z-10 whitespace-nowrap` across both Operatives and Channels tables, ensuring action buttons (`Inspect`, `Purge`, `Edit`, `Archive`, `Enter`, `Invite`) remain permanently visible and never clipped or hidden by viewport edges.
+  - Expanded layout canvas boundary from `max-w-7xl` (1280px) to wide-canvas `max-w-[1536px]` (`2xl`) across `layouts/admin.blade.php` and `header.blade.php` to provide abundant breathing room on modern high-resolution displays.
+  - Added ultra-thin custom scrollbars (`scrollbar-thin scrollbar-thumb-slate-700`) to horizontal overflow containers.
+
+- **Multilingual Terminology Standardization & Complete Locale Parity**:
+  - Resolved Google Chrome auto-translate collisions caused by mixed language fallbacks by expanding `lang/it.json`, `lang/fr.json`, `lang/ru.json`, and `lang/en.json` from 180 keys to 442 keys each with 100% key parity.
+  - Unified military-grade terminology across all views (`Operatives` &rarr; `Operativi`, `Registered Operatives` &rarr; `Operativi Registrati`, `Channels` &rarr; `Canali`, `Global Intel` &rarr; `Intelligence Globale`, `Overview` &rarr; `Panoramica`, `Demographics` &rarr; `Dati Anagrafici`, `Network & Location` &rarr; `Rete e Posizione`, `Inspect` &rarr; `Ispeziona`, `Purge` &rarr; `Elimina`).
+  - Wrapped all previously hardcoded UI strings (`ADMIN`, `MEMBER`, `ONLINE`, `CMD CENTER`, `ADMINISTRATOR`, `2FA SECURED`, `OPERATIVE`, `TRAFFIC`, `Satellite radar feed active`, user dossier dynamic JS labels) in Laravel `{{ __('...') }}` translation helpers.
+  - Added automated test in `tests/Feature/AdminPlatformTest.php` asserting consistent Italian and French rendering across all admin subpages (79 passing tests, 470 assertions).
+
 ---
 
 ## [1.7.0] - 2026-09-05

@@ -7,7 +7,7 @@
         <div>
             <div class="flex items-center gap-2 font-mono text-xs text-indigo-400 mb-1">
                 <span class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
-                <span>GLOBAL GEOSPATIAL SATELLITE RADAR</span>
+                <span>{{ __('Global Geospatial Satellite Radar') }}</span>
             </div>
             <h1 class="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
                 <span>{{ __('Global Intelligence') }}</span>
@@ -55,7 +55,7 @@
                 <span class="text-slate-400 uppercase tracking-wider text-[11px]">{{ __('Telemetry Status:') }}</span>
                 <span class="text-emerald-400 font-semibold flex items-center gap-1.5">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    CARTO DARK MATTER SATELLITE FEED ACTIVE
+                    {{ __('Satellite radar feed active') }}
                 </span>
             </div>
             <div class="flex items-center gap-4 text-slate-400 text-[11px]">
@@ -87,7 +87,7 @@
                         <div class="flex items-center justify-between gap-1">
                             <span class="font-semibold text-white truncate">{{ $marker['alias'] }}</span>
                             <span class="text-[10px] font-mono px-1.5 py-0.5 rounded {{ $marker['is_user'] ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-slate-800 text-slate-400' }}">
-                                {{ $marker['is_user'] ? 'OPERATIVE' : 'TRAFFIC' }}
+                                {{ $marker['is_user'] ? __('OPERATIVE') : __('TRAFFIC') }}
                             </span>
                         </div>
                         <div class="text-slate-400 text-[11px] truncate mt-0.5">

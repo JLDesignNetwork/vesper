@@ -7,7 +7,7 @@
         <div>
             <div class="flex items-center gap-2 font-mono text-xs text-cyan-400 mb-1">
                 <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                <span>FREQUENCY DIRECTORY & SECURITY PROTOCOLS</span>
+                <span>{{ __('Frequency Directory & Security Protocols') }}</span>
             </div>
             <h1 class="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
                 <span>{{ __('Encrypted Channels') }}</span>

@@ -194,3 +194,39 @@ test('non-admin member is blocked from dedicated admin subpages', function () {
     $this->get(route('admin.logs.index'))->assertRedirect(route('channels.index'));
 });
 
+test('admin subpages render consistent localized vocabulary in Italian and French without mixed terms', function () {
+    $admin = User::create([
+        'name' => 'ItalianCommander',
+        'email' => 'italian.cmd@vesper.test',
+        'password' => Hash::make('password123'),
+        'role' => 'admin',
+        'preferred_locale' => 'it',
+    ]);
+
+    $this->actingAs($admin);
+
+    // Operatives Page in Italian
+    $resOperatives = $this->withSession(['locale' => 'it'])->get(route('admin.operatives.index'));
+    $resOperatives->assertStatus(200);
+    $resOperatives->assertSee('Operativi Registrati');
+    $resOperatives->assertSee('Ruolino Operativo e Intelligence Identità');
+    $resOperatives->assertSee('Dati Anagrafici');
+    $resOperatives->assertSee('Rete e Posizione');
+    $resOperatives->assertSee('Ispeziona');
+
+    // Channels Page in Italian
+    $resChannels = $this->withSession(['locale' => 'it'])->get(route('admin.channels.index'));
+    $resChannels->assertStatus(200);
+    $resChannels->assertSee('Canali');
+    $resChannels->assertSee('Elenco Canali');
+    $resChannels->assertSee('Attiva Frequenza');
+
+    // Dashboard in French
+    $admin->update(['preferred_locale' => 'fr']);
+    $resDashboard = $this->withSession(['locale' => 'fr'])->get(route('admin.dashboard'));
+    $resDashboard->assertStatus(200);
+    $resDashboard->assertSee('Aperçu');
+    $resDashboard->assertSee('Canaux');
+    $resDashboard->assertSee('Opérateurs');
+});
+

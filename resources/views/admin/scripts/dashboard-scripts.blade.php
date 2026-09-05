@@ -86,9 +86,9 @@
             const ageEl = document.getElementById('dossier-age');
             if (ageEl) {
                 let badges = '';
-                if (user.hide_age) badges += ' <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">🔒 Age Hidden</span>';
-                if (user.hide_birthday) badges += ' <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">🔒 Bday Hidden</span>';
-                if (user.hide_age && !user.hide_birthday) badges += ' <span class="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20 font-mono">Month/Day Only</span>';
+                if (user.hide_age) badges += ' <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">🔒 {{ __('Age Hidden') }}</span>';
+                if (user.hide_birthday) badges += ' <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">🔒 {{ __('Bday Hidden') }}</span>';
+                if (user.hide_age && !user.hide_birthday) badges += ' <span class="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20 font-mono">{{ __('Month/Day Only') }}</span>';
                 ageEl.innerHTML = `<span>${ageText}</span>${badges}`;
             }
 
@@ -103,28 +103,28 @@
             // Location
             const locEl = document.getElementById('dossier-location');
             if (locEl) {
-                let locBadge = user.hide_location ? ' <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">🔒 Hidden</span>' : '';
+                let locBadge = user.hide_location ? ' <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">🔒 {{ __('Hidden') }}</span>' : '';
                 locEl.innerHTML = `<span>${user.location || '—'}</span>${locBadge}`;
             }
 
-            document.getElementById('dossier-alerts').textContent = user.email_notifications ? 'Enabled' : 'Disabled';
+            document.getElementById('dossier-alerts').textContent = user.email_notifications ? "{{ __('Enabled') }}" : "{{ __('Disabled') }}";
 
             // Language
             const langEl = document.getElementById('dossier-language');
             if (langEl) {
                 const langNames = {
-                    'en': 'English (EN)',
-                    'ru': 'Russian (RU)',
-                    'fr': 'French (FR)',
-                    'it': 'Italian (IT)'
+                    'en': "{{ __('English (EN)') }}",
+                    'ru': "{{ __('Russian (RU)') }}",
+                    'fr': "{{ __('French (FR)') }}",
+                    'it': "{{ __('Italian (IT)') }}"
                 };
                 if (user.preferred_locale) {
                     const name = langNames[user.preferred_locale] || user.preferred_locale.toUpperCase();
-                    langEl.innerHTML = `<span class="text-sky-300 font-medium">${name}</span> <span class="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20 font-mono">User Override</span>`;
+                    langEl.innerHTML = `<span class="text-sky-300 font-medium">${name}</span> <span class="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20 font-mono">{{ __('User Override') }}</span>`;
                 } else {
                     const eff = user.effective_locale || user.location_locale || 'en';
                     const name = langNames[eff] || eff.toUpperCase();
-                    langEl.innerHTML = `<span class="text-slate-300 font-medium">${name}</span> <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 font-mono">Auto (Location)</span>`;
+                    langEl.innerHTML = `<span class="text-slate-300 font-medium">${name}</span> <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 font-mono">{{ __('Auto (Location)') }}</span>`;
                 }
             }
 
@@ -134,7 +134,7 @@
             const bioEl = document.getElementById('dossier-bio');
             const bioBadgeEl = document.getElementById('dossier-bio-badge');
             if (bioEl) {
-                bioEl.textContent = user.bio || 'No intelligence notes or biography recorded.';
+                bioEl.textContent = user.bio || "{{ __('No intelligence notes or biography recorded.') }}";
             }
             if (bioBadgeEl) {
                 if (user.hide_bio) {
@@ -148,15 +148,15 @@
             const privacyEl = document.getElementById('dossier-privacy-summary');
             if (privacyEl) {
                 const hiddenItems = [];
-                if (user.hide_age) hiddenItems.push(user.hide_birthday ? 'Age' : 'Age (Year concealed)');
-                if (user.hide_birthday) hiddenItems.push('Birthday');
-                if (user.hide_location) hiddenItems.push('Location');
-                if (user.hide_bio) hiddenItems.push('Bio');
+                if (user.hide_age) hiddenItems.push(user.hide_birthday ? "{{ __('Age') }}" : "{{ __('Age (Year concealed)') }}");
+                if (user.hide_birthday) hiddenItems.push("{{ __('Birthday') }}");
+                if (user.hide_location) hiddenItems.push("{{ __('Location') }}");
+                if (user.hide_bio) hiddenItems.push("{{ __('Bio') }}");
 
                 if (hiddenItems.length > 0) {
-                    privacyEl.innerHTML = `<span class="text-amber-400 font-mono">🔒 Concealed from members: <strong>${hiddenItems.join(', ')}</strong> (Admin overrides and sees all)</span>`;
+                    privacyEl.innerHTML = `<span class="text-amber-400 font-mono">🔒 {{ __('Concealed from members') }}: <strong>${hiddenItems.join(', ')}</strong> ({{ __('Admin overrides and sees all') }})</span>`;
                 } else {
-                    privacyEl.innerHTML = `<span class="text-emerald-400 font-mono">✓ All profile fields visible to members</span>`;
+                    privacyEl.innerHTML = `<span class="text-emerald-400 font-mono">✓ {{ __('All profile fields visible to members') }}</span>`;
                 }
             }
 

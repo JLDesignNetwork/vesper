@@ -8,7 +8,7 @@
         <div>
             <div class="flex items-center gap-2 font-mono text-xs text-emerald-400 mb-1">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>EXECUTIVE COMMAND HQ & TELEMETRY</span>
+                <span>{{ __('Executive Command HQ & Telemetry') }}</span>
             </div>
             <h1 class="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
                 <span>{{ __('Operations Overview') }}</span>
@@ -28,28 +28,28 @@
                 class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-500/40 text-cyan-300 transition-all flex items-center gap-2"
             >
                 <span>📡</span>
-                <span>{{ __('Channels Page') }}</span>
+                <span>{{ __('Channels') }}</span>
             </a>
             <a
                 href="{{ route('admin.operatives.index') }}"
                 class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-teal-500/40 text-teal-300 transition-all flex items-center gap-2"
             >
                 <span>👥</span>
-                <span>{{ __('Operatives Page') }}</span>
+                <span>{{ __('Operatives') }}</span>
             </a>
             <a
                 href="{{ route('admin.intel.index') }}"
                 class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/40 text-indigo-300 transition-all flex items-center gap-2"
             >
                 <span>🌐</span>
-                <span>{{ __('Radar Page') }}</span>
+                <span>{{ __('Global Intel') }}</span>
             </a>
             <a
                 href="{{ route('admin.logs.index') }}"
                 class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-amber-500/40 text-amber-300 transition-all flex items-center gap-2"
             >
                 <span>📜</span>
-                <span>{{ __('Logs Page') }}</span>
+                <span>{{ __('Logs') }}</span>
             </a>
         </div>
     </div>
@@ -119,7 +119,7 @@
                         {{ $mapMarkers->count() }} {{ __('Nodes') }}
                     </span>
                 </div>
-                <h3 class="text-sm font-semibold text-white mt-3 group-hover:text-indigo-300 transition-colors">{{ __('Global Radar Map') }}</h3>
+                <h3 class="text-sm font-semibold text-white mt-3 group-hover:text-indigo-300 transition-colors">{{ __('Global Intelligence') }}</h3>
                 <p class="text-xs text-slate-400 mt-1 leading-relaxed">{{ __('Full-screen geospatial Leaflet radar with dark carto tiles, GPS geolocation, and coordinate telemetry.') }}</p>
             </div>
             <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono text-indigo-400">

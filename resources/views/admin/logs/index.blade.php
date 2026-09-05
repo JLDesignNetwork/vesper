@@ -7,7 +7,7 @@
         <div>
             <div class="flex items-center gap-2 font-mono text-xs text-amber-400 mb-1">
                 <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                <span>TELEMETRY TRANSMISSION & NETWORK AUDIT</span>
+                <span>{{ __('Telemetry Transmission & Network Audit') }}</span>
             </div>
             <h1 class="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
                 <span>{{ __('Transmission Logs') }}</span>

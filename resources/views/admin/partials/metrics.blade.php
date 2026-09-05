@@ -17,7 +17,7 @@
     <!-- Registered Operatives -->
     <div class="p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md group hover:border-slate-700 transition-colors">
         <div class="flex items-center justify-between text-slate-400 text-xs font-mono mb-2">
-            <span>{{ __('Registered Users') }}</span>
+            <span>{{ __('Registered Operatives') }}</span>
             <span class="text-teal-400 text-[10px]">AUTH</span>
         </div>
         <div class="text-2xl font-bold text-white tracking-tight">

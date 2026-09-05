@@ -23,18 +23,18 @@
     </div>
 
     <!-- Table of Channels -->
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
         <table class="w-full text-left border-collapse text-xs">
             <thead>
-                <tr class="border-b border-slate-800 text-slate-400 font-mono text-[11px] uppercase bg-slate-950/40">
-                    <th class="py-3 px-4">{{ __('Channel') }}</th>
-                    <th class="py-3 px-4">{{ __('PIN') }}</th>
-                    <th class="py-3 px-4">{{ __('Translations') }}</th>
-                    <th class="py-3 px-4">{{ __('Status') }}</th>
-                    <th class="py-3 px-4">{{ __('Notifications') }}</th>
-                    <th class="py-3 px-4">{{ __('Messages') }}</th>
-                    <th class="py-3 px-4">{{ __('Direct Invite Link') }}</th>
-                    <th class="py-3 px-4 text-right">{{ __('Actions') }}</th>
+                <tr class="border-b border-slate-800 text-slate-400 font-mono text-[11px] uppercase bg-slate-950/60">
+                    <th class="py-3 px-4 min-w-[160px]">{{ __('Channel') }}</th>
+                    <th class="py-3 px-4 min-w-[120px]">{{ __('PIN') }}</th>
+                    <th class="py-3 px-4 min-w-[130px]">{{ __('Translations') }}</th>
+                    <th class="py-3 px-4 min-w-[110px]">{{ __('Status') }}</th>
+                    <th class="py-3 px-4 min-w-[110px]">{{ __('Notifications') }}</th>
+                    <th class="py-3 px-4 min-w-[90px]">{{ __('Messages') }}</th>
+                    <th class="py-3 px-4 min-w-[150px]">{{ __('Direct Invite Link') }}</th>
+                    <th class="py-3 px-4 text-right min-w-[220px] sticky right-0 bg-slate-950/90 backdrop-blur-md z-10 shadow-[-10px_0_12px_-4px_rgba(0,0,0,0.5)]">{{ __('Actions') }}</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-800/60 font-sans">
@@ -135,27 +135,19 @@
                                 /c/{{ $room->code }}
                             </div>
                         </td>
-                        <td class="py-3.5 px-4 text-right">
+                        <td class="py-3.5 px-4 text-right sticky right-0 bg-slate-900/95 group-hover:bg-slate-900 backdrop-blur-md z-10 shadow-[-10px_0_12px_-4px_rgba(0,0,0,0.5)] whitespace-nowrap">
                             <div class="flex items-center justify-end gap-1.5 font-mono">
                                 <button
                                     type="button"
-                                    onclick="openEditModal({
-                                        id: '{{ $room->id }}',
-                                        code: '{{ $room->code }}',
-                                        title: '{{ addslashes($room->title ?? '') }}',
-                                        pin: '{{ addslashes($room->pin ?? '') }}',
-                                        status: '{{ $room->status }}',
-                                        notify_admin: {{ $room->notify_admin ? 'true' : 'false' }},
-                                        languages: {{ json_encode($room->effectiveAllowedLanguages()) }}
-                                    })"
-                                    class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors text-[11px] cursor-pointer"
+                                    onclick="openEditModal('{{ $room->id }}', '{{ $room->code }}', '{{ addslashes($room->title ?? '') }}', '{{ $room->pin }}', {{ json_encode($room->allowed_languages ?? ['en','ru','fr','it']) }}, '{{ $room->status }}', {{ $room->notify_admin ? 'true' : 'false' }})"
+                                    class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors text-[11px] cursor-pointer"
                                 >
                                     {{ __('Edit') }}
                                 </button>
 
                                 <button
                                     type="button"
-                                    onclick="openInviteModal({{ $room->id }}, '{{ $room->code }}', '{{ addslashes($room->title ?: $room->code) }}')"
+                                    onclick="openInviteModal('{{ $room->id }}', '{{ $room->code }}', '{{ addslashes($room->title ?: $room->code) }}')"
                                     class="px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-colors text-[11px] cursor-pointer"
                                 >
                                     {{ __('Invite') }}
@@ -165,7 +157,7 @@
                                     href="{{ route('rooms.show', ['room' => $room->code]) }}"
                                     class="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition-colors text-[11px]"
                                 >
-                                    Enter
+                                    {{ __('Enter') }}
                                 </a>
 
                                 <form method="POST" action="{{ route('admin.channels.toggle', ['id' => $room->id]) }}" class="inline">
@@ -174,7 +166,7 @@
                                         type="submit"
                                         class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors text-[11px] cursor-pointer"
                                     >
-                                        {{ $room->status === 'active' ? 'Archive' : 'Activate' }}
+                                        {{ $room->status === 'active' ? __('Archive') : __('Activate') }}
                                     </button>
                                 </form>
 
@@ -183,7 +175,7 @@
                                     @method('DELETE')
                                     <button
                                         type="submit"
-                                        class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 transition-colors text-[11px] cursor-pointer"
+                                        class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:rose-500/20 text-rose-300 border border-rose-500/30 transition-colors text-[11px] cursor-pointer"
                                     >
                                         {{ __('Purge') }}
                                     </button>
