@@ -21,14 +21,14 @@ test('first visitor can set up the primary admin account', function () {
 
     $postResponse = $this->post(route('login.post'), [
         'name' => 'CommanderJeff',
-        'email' => 'jeff@sundaycity.local',
+        'email' => 'jeff@vesper.test',
         'password' => 'secret-admin-pass',
     ]);
 
     $postResponse->assertRedirect(route('admin.dashboard'));
     $this->assertAuthenticated();
 
-    $user = User::where('email', 'jeff@sundaycity.local')->first();
+    $user = User::where('email', 'jeff@vesper.test')->first();
     expect($user)->not->toBeNull();
     expect($user->name)->toBe('CommanderJeff');
 });
@@ -36,7 +36,7 @@ test('first visitor can set up the primary admin account', function () {
 test('admin can log in with either username or email', function () {
     $user = User::create([
         'name' => 'AgentAdmin',
-        'email' => 'agent@sundaycity.local',
+        'email' => 'agent@vesper.test',
         'password' => Hash::make('password123'),
         'role' => 'admin',
     ]);
@@ -55,7 +55,7 @@ test('admin can log in with either username or email', function () {
 
     // Test login with email
     $responseEmail = $this->post(route('login.post'), [
-        'login' => 'agent@sundaycity.local',
+        'login' => 'agent@vesper.test',
         'password' => 'password123',
     ]);
     $responseEmail->assertRedirect(route('admin.dashboard'));
@@ -65,7 +65,7 @@ test('admin can log in with either username or email', function () {
 test('admin can create private channels from the dashboard', function () {
     $admin = User::create([
         'name' => 'Chief',
-        'email' => 'chief@sundaycity.local',
+        'email' => 'chief@vesper.test',
         'password' => Hash::make('pass'),
         'role' => 'admin',
     ]);
@@ -90,7 +90,7 @@ test('admin can create private channels from the dashboard', function () {
 test('admin can toggle and purge channels from the dashboard', function () {
     $admin = User::create([
         'name' => 'Director',
-        'email' => 'director@sundaycity.local',
+        'email' => 'director@vesper.test',
         'password' => Hash::make('pass'),
         'role' => 'admin',
     ]);

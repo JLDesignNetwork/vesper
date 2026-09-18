@@ -86,7 +86,7 @@ test('a user can sync their high precision browser GPS coordinates', function ()
 test('gps sync persists coordinates to authenticated user model and access logs', function () {
     $user = User::create([
         'name' => 'AgentGPS',
-        'email' => 'agentgps@sundaycity.local',
+        'email' => 'agentgps@vesper.test',
         'password' => Hash::make('password'),
         'role' => 'member',
     ]);
@@ -127,7 +127,7 @@ test('gps sync persists coordinates to authenticated user model and access logs'
 test('admin can synchronize gps via admin.gps endpoint', function () {
     $admin = User::create([
         'name' => 'AdminCommander',
-        'email' => 'admin_gps@sundaycity.local',
+        'email' => 'admin_gps@vesper.test',
         'password' => Hash::make('password'),
         'role' => 'admin',
     ]);
@@ -156,7 +156,7 @@ test('admin can synchronize gps via admin.gps endpoint', function () {
 test('user with saved gps retains coordinates on subsequent room visits instead of ip fallback', function () {
     $user = User::create([
         'name' => 'PersistentGPS',
-        'email' => 'persistent@sundaycity.local',
+        'email' => 'persistent@vesper.test',
         'password' => Hash::make('password'),
         'role' => 'member',
         'latitude' => 48.8566,
@@ -192,7 +192,7 @@ test('user with saved gps retains coordinates on subsequent room visits instead 
 test('user can synchronize gps via profile.gps endpoint', function () {
     $user = User::create([
         'name' => 'ProfileGPSUser',
-        'email' => 'profilegps@sundaycity.local',
+        'email' => 'profilegps@vesper.test',
         'password' => Hash::make('password'),
         'role' => 'member',
     ]);

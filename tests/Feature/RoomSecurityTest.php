@@ -16,7 +16,7 @@ test('portal page loads with discreet authentication portal', function () {
 test('admin can create a private room from the dashboard', function () {
     $admin = User::create([
         'name' => 'Commander',
-        'email' => 'commander@sundaycity.local',
+        'email' => 'commander@vesper.test',
         'password' => Hash::make('pass'),
         'role' => 'admin',
     ]);
@@ -115,7 +115,7 @@ test('emergency nuke action purges the room, all messages, and storage directory
 test('authenticated admin user can directly access room and view interface without error', function () {
     $admin = User::create([
         'name' => 'Commander',
-        'email' => 'commander@sundaycity.local',
+        'email' => 'commander@vesper.test',
         'password' => Hash::make('password'),
         'role' => 'admin',
     ]);
