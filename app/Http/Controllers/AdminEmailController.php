@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\TemplatePreviewMail;
 use App\Models\EmailTemplate;
 use App\Services\EmailTemplateService;
+use App\Services\LanguageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AdminEmailController extends Controller
@@ -29,8 +33,11 @@ class AdminEmailController extends Controller
             $activeKey = 'registration_welcome';
         }
 
+        $supportedLanguages = LanguageService::supported();
+        $supportedCodes = array_keys($supportedLanguages);
+
         $activeLocale = $request->query('locale', 'en');
-        if (! in_array($activeLocale, ['en', 'it', 'fr', 'ru'], true)) {
+        if (! in_array($activeLocale, $supportedCodes, true)) {
             $activeLocale = 'en';
         }
 
@@ -50,6 +57,7 @@ class AdminEmailController extends Controller
             'activeTemplate' => $activeTemplate,
             'customizedMatrix' => $customizedMatrix,
             'adminUser' => Auth::user(),
+            'supportedLanguages' => $supportedLanguages,
         ]);
     }
 
@@ -66,7 +74,7 @@ class AdminEmailController extends Controller
         }
 
         $locale = $request->input('locale', $request->query('locale', 'en'));
-        if (! in_array($locale, ['en', 'it', 'fr', 'ru'], true)) {
+        if (! in_array($locale, LanguageService::codes(), true)) {
             $locale = 'en';
         }
 
@@ -81,7 +89,7 @@ class AdminEmailController extends Controller
             $buttonColor = (string) $request->input('button_color', $def['button_color']);
             $footerText = $request->filled('footer_text') ? $this->templateService->interpolate((string) $request->input('footer_text'), $variables) : null;
 
-            $bodyHtml = \Illuminate\Support\Str::markdown($bodyMarkdown);
+            $bodyHtml = Str::markdown($bodyMarkdown);
             $html = $this->templateService->renderFullEmailHtml(
                 subject: $subject,
                 preheader: $preheader,
@@ -89,7 +97,8 @@ class AdminEmailController extends Controller
                 buttonText: $buttonText,
                 buttonUrl: $variables['action_url'] ?? ($variables['reset_url'] ?? ($variables['verification_url'] ?? ($variables['channel_url'] ?? ($variables['login_url'] ?? ($variables['admin_url'] ?? '#'))))),
                 buttonColor: $buttonColor,
-                footerText: $footerText
+                footerText: $footerText,
+                locale: $locale
             );
 
             return response($html)->header('Content-Type', 'text/html');
@@ -112,7 +121,7 @@ class AdminEmailController extends Controller
         }
 
         $validated = $request->validate([
-            'locale' => ['required', 'string', 'in:en,it,fr,ru'],
+            'locale' => ['required', 'string', Rule::in(LanguageService::codes())],
             'subject' => ['required', 'string', 'max:255'],
             'preheader' => ['nullable', 'string', 'max:255'],
             'body_markdown' => ['required', 'string'],
@@ -151,7 +160,7 @@ class AdminEmailController extends Controller
     }
 
     /**
-     * Automatically translate the English template into IT, FR, and RU.
+     * Automatically translate the English template into all supported languages.
      */
     public function autoTranslate(Request $request, string $key): JsonResponse
     {
@@ -161,7 +170,12 @@ class AdminEmailController extends Controller
         }
 
         $fromLocale = $request->input('from_locale', 'en');
-        $targetLocales = $request->input('target_locales', ['it', 'fr', 'ru']);
+        $defaultTargets = array_values(array_diff(LanguageService::codes(), [$fromLocale]));
+        $targetLocales = $request->input('target_locales', $defaultTargets);
+        if (! is_array($targetLocales) || empty($targetLocales)) {
+            $targetLocales = $defaultTargets;
+        }
+        $targetLocales = array_values(array_intersect($targetLocales, LanguageService::codes()));
 
         $result = $this->templateService->autoTranslate($key, $fromLocale, $targetLocales, Auth::id());
 
@@ -186,6 +200,9 @@ class AdminEmailController extends Controller
         }
 
         $locale = $request->input('locale', 'en');
+        if (! in_array($locale, LanguageService::codes(), true)) {
+            $locale = 'en';
+        }
         $def = $definitions[$key];
         $user = Auth::user();
 
@@ -203,7 +220,7 @@ class AdminEmailController extends Controller
 
         try {
             Mail::to($user->email)->send(
-                new \App\Mail\TemplatePreviewMail(
+                new TemplatePreviewMail(
                     subjectLine: '[TEST] '.$rendered['subject'],
                     htmlBody: $rendered['rendered_html']
                 )
@@ -227,6 +244,9 @@ class AdminEmailController extends Controller
     public function reset(Request $request, string $key)
     {
         $locale = $request->input('locale', 'en');
+        if (! in_array($locale, LanguageService::codes(), true)) {
+            $locale = 'en';
+        }
 
         EmailTemplate::where('key', $key)->where('locale', $locale)->delete();
 

@@ -74,9 +74,9 @@ class AdminDashboardService
     }
 
     /**
-     * Operatives intelligence roster dataset.
+     * Members directory dataset.
      */
-    public function getOperativesData(): array
+    public function getMembersData(): array
     {
         $registeredUsers = User::with(['latestAccessLog', 'rooms:id,code,title'])->latest()->get();
 
@@ -87,6 +87,14 @@ class AdminDashboardService
             'memberCount' => $registeredUsers->where('role', 'member')->count(),
             'gpsVerifiedCount' => $registeredUsers->filter(fn (User $u): bool => $u->hasGps())->count(),
         ];
+    }
+
+    /**
+     * Backward-compatibility alias for getMembersData.
+     */
+    public function getOperativesData(): array
+    {
+        return $this->getMembersData();
     }
 
     /**
@@ -181,7 +189,7 @@ class AdminDashboardService
                     'latitude' => (float) $u->latitude,
                     'longitude' => (float) $u->longitude,
                     'ip_address' => $u->latestIp() ?? 'Verified GPS Node',
-                    'room_code' => $u->isAdmin() ? 'Command HQ' : 'Operative',
+                    'room_code' => $u->isAdmin() ? 'Command HQ' : 'Member',
                     'room_title' => $u->isAdmin() ? 'Admin Command' : 'Registered Member',
                     'last_seen_human' => $u->location_synced_at?->diffForHumans() ?? 'Synced',
                 ];

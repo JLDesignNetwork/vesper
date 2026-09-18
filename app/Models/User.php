@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Services\GeoLocationService;
+use App\Services\LanguageService;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -151,7 +153,7 @@ class User extends Authenticatable
      */
     public function homeRoute(): string
     {
-        return $this->isAdmin() ? route('admin.dashboard') : route('channels.index');
+        return $this->isAdmin() ? route('admin.dashboard') : route('profile.show');
     }
 
     /**
@@ -248,7 +250,7 @@ class User extends Authenticatable
      */
     public function resolveLocationLocale(): string
     {
-        return app(\App\Services\GeoLocationService::class)->resolveLanguageFromLocation(
+        return app(GeoLocationService::class)->resolveLanguageFromLocation(
             $this->country_code,
             $this->country,
             $this->location
@@ -257,14 +259,12 @@ class User extends Authenticatable
 
     /**
      * Get the effective platform language for this user.
-     * If user explicitly set preferred_locale ('en', 'ru', 'fr', 'it'), this overrides the location language.
+     * If user explicitly set preferred_locale, this overrides the location language.
      * Otherwise, defaults to the common language of the registered location.
      */
     public function effectiveLocale(): string
     {
-        $supported = ['en', 'ru', 'fr', 'it'];
-
-        if (! empty($this->preferred_locale) && in_array($this->preferred_locale, $supported, true)) {
+        if (! empty($this->preferred_locale) && LanguageService::isValid($this->preferred_locale)) {
             return $this->preferred_locale;
         }
 
@@ -364,7 +364,7 @@ class User extends Authenticatable
 
         for ($i = 0; $i < 8; $i++) {
             $code = strtoupper(bin2hex(random_bytes(4))); // 8 hex characters e.g. 7F4A2B9C
-            $rawCodes[] = substr($code, 0, 4) . '-' . substr($code, 4, 4);
+            $rawCodes[] = substr($code, 0, 4).'-'.substr($code, 4, 4);
             $hashedCodes[] = password_hash(str_replace('-', '', $code), PASSWORD_DEFAULT);
         }
 
@@ -402,5 +402,3 @@ class User extends Authenticatable
         return false;
     }
 }
-
-

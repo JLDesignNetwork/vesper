@@ -6,12 +6,13 @@ use App\Models\Room;
 use App\Models\User;
 use App\Services\EmailTemplateService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class ChannelInvitationNotification extends Mailable
+class ChannelInvitationNotification extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
@@ -29,12 +30,15 @@ class ChannelInvitationNotification extends Mailable
         $channelName = $this->room->title ?: $this->room->code;
 
         return app(EmailTemplateService::class)->render('channel_invitation', [
-            'operative_name' => $this->recipient->name,
+            'member_name' => $this->recipient->name,
             'channel_name' => $channelName,
+            'channel_title' => $channelName,
             'channel_code' => $this->room->code,
+            'pin_code' => $this->room->pin ?: __('Contact Administrator'),
             'invitation_url' => $this->invitationUrl,
             'invitation_code' => $this->invitationCode,
-            'inviter_name' => $this->inviterName ?: 'Command Control',
+            'inviter_name' => $this->inviterName ?: __('Administrator'),
+            'expires_in' => $this->room->expires_at ? $this->room->expires_at->diffForHumans() : __('Permanent'),
         ], $locale);
     }
 

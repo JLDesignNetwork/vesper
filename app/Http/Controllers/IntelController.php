@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AccessLog;
 use App\Models\Room;
+use App\Models\User;
 use App\Services\GeoLocationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -45,7 +46,7 @@ class IntelController extends Controller
 
         $unlinkedAliases = $logs->whereNull('user_id')->pluck('alias')->filter()->unique();
         $usersByAlias = $unlinkedAliases->isNotEmpty()
-            ? \App\Models\User::whereIn('name', $unlinkedAliases)->get()->keyBy('name')
+            ? User::whereIn('name', $unlinkedAliases)->get()->keyBy('name')
             : collect();
 
         $operatives = $logs->map(function (AccessLog $log) use ($viewer, $usersByAlias): array {
@@ -86,7 +87,7 @@ class IntelController extends Controller
 
             return [
                 'id' => $log->id,
-                'alias' => $log->alias ?: 'Operative',
+                'alias' => $log->alias ?: 'Member',
                 'ip_address' => $ipAddress,
                 'city' => $city,
                 'region' => $region,
@@ -110,7 +111,7 @@ class IntelController extends Controller
 
         $recentUnlinked = $recentLogs->whereNull('user_id')->pluck('alias')->filter()->unique();
         $recentUsersByAlias = $recentUnlinked->isNotEmpty()
-            ? \App\Models\User::whereIn('name', $recentUnlinked)->get()->keyBy('name')
+            ? User::whereIn('name', $recentUnlinked)->get()->keyBy('name')
             : collect();
 
         $recentEntries = $recentLogs->map(function (AccessLog $log) use ($viewer, $recentUsersByAlias): array {
@@ -131,7 +132,7 @@ class IntelController extends Controller
             }
 
             return [
-                'alias' => $log->alias ?: 'Operative',
+                'alias' => $log->alias ?: 'Member',
                 'ip_address' => $ipAddress,
                 'city' => $city,
                 'country' => $country,
@@ -143,6 +144,7 @@ class IntelController extends Controller
         });
 
         return response()->json([
+            'members' => $operatives,
             'operatives' => $operatives,
             'recent_entries' => $recentEntries,
             'total_active' => $operatives->count(),
@@ -205,7 +207,7 @@ class IntelController extends Controller
         }
 
         $clientIp = $this->geoLocationService->getClientIp($request);
-        $alias = $request->session()->get("room_alias_{$room->id}", $user?->name ?: 'Operative');
+        $alias = $request->session()->get("room_alias_{$room->id}", $user?->name ?: 'Member');
 
         AccessLog::updateOrCreate(
             [
@@ -238,4 +240,3 @@ class IntelController extends Controller
         ]);
     }
 }
-

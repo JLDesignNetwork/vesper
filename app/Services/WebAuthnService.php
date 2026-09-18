@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\WebAuthnCredential;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class WebAuthnService
@@ -137,6 +136,18 @@ class WebAuthnService
             $receivedChallenge = $clientData['challenge'] ?? '';
             if (! hash_equals($sessionChallenge, $receivedChallenge)) {
                 throw new \InvalidArgumentException(__('Security challenge validation failed.'));
+            }
+        }
+
+        // Verify User Presence (UP) bit flag in authenticatorData if provided
+        if (! empty($data['authenticatorData'])) {
+            $authDataRaw = base64_decode($data['authenticatorData']);
+            if (strlen($authDataRaw) >= 37) {
+                $flags = ord($authDataRaw[32]);
+                $userPresent = ($flags & 0x01) !== 0;
+                if (! $userPresent) {
+                    throw new \InvalidArgumentException(__('User presence verification failed.'));
+                }
             }
         }
 

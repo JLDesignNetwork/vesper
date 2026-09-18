@@ -1,0 +1,113 @@
+<?php
+
+return [
+    'default' => 'en',
+
+    'supported' => [
+        'en' => [
+            'code' => 'en',
+            'name' => 'English',
+            'native' => 'English',
+            'flag' => '🇬🇧',
+            'dir' => 'ltr',
+        ],
+        'it' => [
+            'code' => 'it',
+            'name' => 'Italian',
+            'native' => 'Italiano',
+            'flag' => '🇮🇹',
+            'dir' => 'ltr',
+        ],
+        'fr' => [
+            'code' => 'fr',
+            'name' => 'French',
+            'native' => 'Français',
+            'flag' => '🇫🇷',
+            'dir' => 'ltr',
+        ],
+        'ru' => [
+            'code' => 'ru',
+            'name' => 'Russian',
+            'native' => 'Русский',
+            'flag' => '🇷🇺',
+            'dir' => 'ltr',
+        ],
+        'es' => [
+            'code' => 'es',
+            'name' => 'Spanish',
+            'native' => 'Español',
+            'flag' => '🇪🇸',
+            'dir' => 'ltr',
+        ],
+        'de' => [
+            'code' => 'de',
+            'name' => 'German',
+            'native' => 'Deutsch',
+            'flag' => '🇩🇪',
+            'dir' => 'ltr',
+        ],
+        'pt' => [
+            'code' => 'pt',
+            'name' => 'Portuguese',
+            'native' => 'Português',
+            'flag' => '🇵🇹',
+            'dir' => 'ltr',
+        ],
+        'ja' => [
+            'code' => 'ja',
+            'name' => 'Japanese',
+            'native' => '日本語',
+            'flag' => '🇯🇵',
+            'dir' => 'ltr',
+        ],
+        'ko' => [
+            'code' => 'ko',
+            'name' => 'Korean',
+            'native' => '한국어',
+            'flag' => '🇰🇷',
+            'dir' => 'ltr',
+        ],
+        'zh' => [
+            'code' => 'zh',
+            'name' => 'Chinese',
+            'native' => '中文',
+            'flag' => '🇨🇳',
+            'dir' => 'ltr',
+        ],
+        'uz' => [
+            'code' => 'uz',
+            'name' => 'Uzbek',
+            'native' => 'Oʻzbekcha',
+            'flag' => '🇺🇿',
+            'dir' => 'ltr',
+        ],
+        'ar' => [
+            'code' => 'ar',
+            'name' => 'Arabic',
+            'native' => 'العربية',
+            'flag' => '🇸🇦',
+            'dir' => 'rtl',
+        ],
+        'tr' => [
+            'code' => 'tr',
+            'name' => 'Turkish',
+            'native' => 'Türkçe',
+            'flag' => '🇹🇷',
+            'dir' => 'ltr',
+        ],
+        'nl' => [
+            'code' => 'nl',
+            'name' => 'Dutch',
+            'native' => 'Nederlands',
+            'flag' => '🇳🇱',
+            'dir' => 'ltr',
+        ],
+        'pl' => [
+            'code' => 'pl',
+            'name' => 'Polish',
+            'native' => 'Polski',
+            'flag' => '🇵🇱',
+            'dir' => 'ltr',
+        ],
+    ],
+];

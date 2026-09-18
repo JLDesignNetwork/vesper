@@ -5,12 +5,13 @@ namespace App\Mail;
 use App\Models\User;
 use App\Services\EmailTemplateService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class TwoFactorStatusNotification extends Mailable
+class TwoFactorStatusNotification extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
@@ -25,6 +26,7 @@ class TwoFactorStatusNotification extends Mailable
         $locale = $this->user->preferred_locale ?: app()->getLocale();
 
         return app(EmailTemplateService::class)->render('two_factor_status', [
+            'member_name' => $this->user->name,
             'operative_name' => $this->user->name,
             'action_type' => $this->actionType,
             'ip_address' => $this->ipAddress ?: request()->ip() ?: 'Unknown IP',

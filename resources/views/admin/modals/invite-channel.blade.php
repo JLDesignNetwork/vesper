@@ -1,9 +1,9 @@
-<!-- Invite Operative / Generate Channel Invitation Modal -->
+<!-- Invite Member / Generate Channel Invitation Modal -->
 <div id="invite-channel-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
     <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 font-sans">
         <div class="flex items-center justify-between pb-3 border-b border-slate-800">
             <div>
-                <h3 class="text-base font-semibold text-white tracking-tight">{{ __('Channel Invitation Protocol') }}</h3>
+                <h3 class="text-base font-semibold text-white tracking-tight">{{ __('Invite Member to Channel') }}</h3>
                 <p class="text-xs text-slate-400 font-mono mt-0.5" id="invite-channel-subtitle"></p>
             </div>
             <button type="button" onclick="closeInviteModal()" class="text-slate-400 hover:text-white cursor-pointer">✕</button>
@@ -12,25 +12,48 @@
         <form id="invite-channel-form" method="POST" action="" class="space-y-4 text-xs">
             @csrf
 
-            <!-- Option A: Direct Assignment to Registered Operative -->
-            <div class="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2">
-                <label class="block font-semibold text-emerald-400 font-mono text-[11px] uppercase tracking-wider">{{ __('Direct Assignment') }}</label>
-                <p class="text-[11px] text-slate-400">{{ __('Instantly grant clearance to an existing registered operative.') }}</p>
-                <select name="user_id" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-emerald-500">
-                    <option value="">{{ __('-- Select Registered Operative --') }}</option>
-                    @foreach($registeredUsers ?? [] as $regUser)
-                        @if(!$regUser->isAdmin())
-                            <option value="{{ $regUser->id }}">{{ $regUser->name }} ({{ $regUser->email }})</option>
-                        @endif
-                    @endforeach
-                </select>
+            <!-- Channel PIN Info Banner -->
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs">
+                <span class="text-slate-400 flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                    <span>{{ __('Channel Access PIN:') }}</span>
+                </span>
+                <span id="invite-channel-pin" class="text-emerald-400 font-bold tracking-wider px-2 py-0.5 rounded bg-slate-900 border border-slate-800"></span>
             </div>
 
-            <div class="text-center text-[10px] font-mono text-slate-500 uppercase tracking-widest">{{ __('— OR Generate Invite Token / Code —') }}</div>
+            <!-- Option A: Direct Assignment to Registered Member or Email -->
+            <div class="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-3">
+                <label class="block font-semibold text-emerald-400 font-mono text-[11px] uppercase tracking-wider">{{ __('Direct Member Email Invitation') }}</label>
+                <p class="text-[11px] text-slate-400">{{ __('Grant access and transmit an email containing the Channel Code, Access PIN, and direct link.') }}</p>
+                
+                <div>
+                    <label class="block text-slate-400 text-[11px] mb-1 font-mono">{{ __('Select Registered Member') }}</label>
+                    <select name="user_id" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-emerald-500">
+                        <option value="">{{ __('-- Select Registered Member --') }}</option>
+                        @foreach($registeredUsers ?? [] as $regUser)
+                            @if(!$regUser->isAdmin())
+                                <option value="{{ $regUser->id }}">{{ $regUser->name }} ({{ $regUser->email }})</option>
+                            @endif
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-slate-400 text-[11px] mb-1 font-mono">{{ __('OR Enter Recipient Email Address') }}</label>
+                    <input type="email" name="email" placeholder="member@domain.com" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-emerald-500">
+                </div>
+
+                <label class="flex items-center gap-2 pt-1 text-slate-300 cursor-pointer">
+                    <input type="checkbox" name="send_email" value="1" checked class="rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-0">
+                    <span class="text-[11px]">{{ __('Send invitation email with PIN & channel link') }}</span>
+                </label>
+            </div>
+
+            <div class="text-center text-[10px] font-mono text-slate-500 uppercase tracking-widest">{{ __('— OR Generate Shareable Invitation Link —') }}</div>
 
             <!-- Option B: Clearance Code & Link -->
             <div class="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-3">
-                <label class="block font-semibold text-cyan-400 font-mono text-[11px] uppercase tracking-wider">{{ __('Shareable Clearance Token') }}</label>
+                <label class="block font-semibold text-cyan-400 font-mono text-[11px] uppercase tracking-wider">{{ __('Shareable Invitation Link') }}</label>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-slate-400 text-[11px] mb-1">{{ __('Max Redemptions') }}</label>

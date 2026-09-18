@@ -76,7 +76,7 @@
             </div>
         @endif
 
-        @if(session('error') || $errors->any())
+        @if(session('error') || (isset($errors) && $errors->any()))
             <div class="p-4 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs space-y-1 shadow-lg shadow-rose-950/20 backdrop-blur-md">
                 @if(session('error'))
                     <div class="flex items-center gap-2">

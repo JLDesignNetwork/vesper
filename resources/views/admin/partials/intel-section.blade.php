@@ -1,12 +1,12 @@
-<!-- Global Traffic & Geospatial Satellite Radar Map -->
+<!-- Global Network Activity & Location Map -->
 <div id="intel-section" class="rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md overflow-hidden">
     <div class="p-5 border-b border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
             <h3 class="text-base font-semibold text-white tracking-tight flex items-center gap-2">
-                <span>{{ __('Global Satellite Radar & Geospatial Intel') }}</span>
+                <span>{{ __('Global Network Activity Map') }}</span>
                 <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             </h3>
-            <p class="text-xs text-slate-400 mt-0.5">{{ __('Real-time geospatial distribution of operative nodes and channel traffic.') }}</p>
+            <p class="text-xs text-slate-400 mt-0.5">{{ __('Real-time geographical distribution of verified member locations and channel traffic.') }}</p>
         </div>
         <div class="flex items-center gap-2 font-mono text-xs">
             <button
@@ -20,7 +20,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span id="admin-gps-btn-text">{{ __('SYNC GPS') }}</span>
+                <span id="admin-gps-btn-text">{{ __('Sync GPS') }}</span>
             </button>
         </div>
     </div>

@@ -73,7 +73,7 @@
                     </p>
                     @if($creator)
                         <p class="text-xs text-slate-500">
-                            {{ __('Issued by Operative :name', ['name' => $creator->name]) }}
+                            {{ __('Issued by :name', ['name' => $creator->name]) }}
                         </p>
                     @endif
                 </div>
@@ -96,7 +96,7 @@
                             class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-sm shadow-lg shadow-emerald-950/40 hover:shadow-emerald-900/40 transition-all flex items-center justify-center gap-2 cursor-pointer"
                         >
                             <svg class="w-4 h-4 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                            <span>{{ __('Claim Clearance as :user', ['user' => auth()->user()->name]) }}</span>
+                            <span>{{ __('Accept Invitation as :user', ['user' => auth()->user()->name]) }}</span>
                         </button>
                     </form>
                 @else
@@ -105,10 +105,10 @@
                             href="{{ route('login') }}"
                             class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-sm shadow-lg shadow-emerald-950/40 hover:shadow-emerald-900/40 transition-all flex items-center justify-center gap-2 cursor-pointer"
                         >
-                            <span>{{ __('Sign In to Claim Clearance') }}</span>
+                            <span>{{ __('Sign In to Accept Invitation') }}</span>
                         </a>
                         <p class="text-[11px] text-slate-500">
-                            {{ __('You must sign in or create an operative account to join this private channel.') }}
+                            {{ __('You must sign in or create a member account to join this private channel.') }}
                         </p>
                     </div>
                 @endauth

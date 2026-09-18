@@ -52,18 +52,18 @@ class ChannelHubController extends Controller
 
         // Verify membership
         if (! $room->isMember($user)) {
-            return redirect()->route('channels.index')->withErrors([
-                'channel' => __('Access restricted. You are not an enrolled member of this channel.'),
+            return redirect()->route('profile.show')->withErrors([
+                'channel' => __('Access restricted. You are not a member of this channel.'),
             ]);
         }
 
         if ($room->status !== 'active') {
-            return redirect()->route('channels.index')->withErrors([
+            return redirect()->route('profile.show')->withErrors([
                 'channel' => __('This channel is currently archived or inactive.'),
             ]);
         }
 
-        // Check if operative qualifies for 2FA-guarded pinless entry
+        // Check if member qualifies for 2FA-guarded pinless entry
         if ($user->canUsePinlessEntry()) {
             $request->session()->put("room_clearance_{$room->id}", true);
             $request->session()->put("room_alias_{$room->id}", $user->name);
@@ -91,7 +91,7 @@ class ChannelHubController extends Controller
     /**
      * Accept a pending direct channel invitation.
      */
-    public function acceptInvite(int $roomId, Request $request): RedirectResponse
+    public function acceptInvite(string $roomId, Request $request): RedirectResponse
     {
         $user = $request->user();
 
@@ -102,7 +102,7 @@ class ChannelHubController extends Controller
             ->first();
 
         if (! $invitation) {
-            return redirect()->route('channels.index')->withErrors([
+            return redirect()->route('profile.show')->withErrors([
                 'channel' => __('Invitation not found or already processed.'),
             ]);
         }
@@ -116,13 +116,13 @@ class ChannelHubController extends Controller
                 'updated_at' => now(),
             ]);
 
-        return redirect()->route('channels.index')->with('status', __('Channel clearance accepted. You are now an active member.'));
+        return redirect()->route('profile.show')->with('status', __('Channel clearance accepted. You are now an active member.'));
     }
 
     /**
      * Decline a pending direct channel invitation.
      */
-    public function declineInvite(int $roomId, Request $request): RedirectResponse
+    public function declineInvite(string $roomId, Request $request): RedirectResponse
     {
         $user = $request->user();
 
@@ -135,7 +135,7 @@ class ChannelHubController extends Controller
                 'updated_at' => now(),
             ]);
 
-        return redirect()->route('channels.index')->with('status', __('Channel clearance declined.'));
+        return redirect()->route('profile.show')->with('status', __('Channel clearance declined.'));
     }
 
     /**
@@ -159,7 +159,7 @@ class ChannelHubController extends Controller
         $user = $request->user();
         $invitation->consume($user);
 
-        return redirect()->route('channels.index')->with(
+        return redirect()->route('profile.show')->with(
             'status',
             __('Invitation code verified! You have been granted clearance to :title.', ['title' => $invitation->room->title ?: $invitation->room->code])
         );

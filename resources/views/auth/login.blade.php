@@ -1,11 +1,17 @@
 <!DOCTYPE html>
-<html lang="{{ app()->getLocale() }}" class="h-full bg-slate-950 text-slate-100 antialiased">
+<html lang="{{ app()->getLocale() }}" dir="{{ \App\Services\LanguageService::getDirection(app()->getLocale()) }}" class="h-full bg-slate-950 text-slate-100 antialiased">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ __('Vesper') }} — {{ $needsSetup ? __('Admin Setup') : __('Sign In') }}</title>
+
+    <!-- PWA & Mobile Meta -->
+    <meta name="theme-color" content="#020617">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.json">
 
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -67,18 +73,39 @@
                 <div class="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
                 <div class="mb-6">
-                    <h2 class="text-xl font-semibold text-white tracking-tight">
-                        {{ $needsSetup ? __('Admin Setup') : __('Sign In') }}
-                    </h2>
-                    <p class="text-xs text-slate-400 mt-1">
-                        {{ $needsSetup ? __('Create your primary administrator account.') : __('Discreet, encrypted private messaging platform') }}
-                    </p>
+                    @if($needsSetup)
+                        <h2 class="text-xl font-semibold text-white tracking-tight">
+                            {{ __('Admin Setup') }}
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">
+                            {{ __('Create your primary administrator account and select your system language.') }}
+                        </p>
+                    @else
+                        <!-- Tabs: Sign In / Register -->
+                        <div class="flex items-center rounded-xl bg-slate-950/80 p-1 border border-slate-800 mb-4">
+                            <button
+                                type="button"
+                                id="tab-btn-login"
+                                onclick="switchAuthTab('login')"
+                                class="flex-1 py-1.5 px-3 rounded-lg text-xs font-medium transition-all {{ !($isRegister ?? false) ? 'bg-emerald-500/20 text-emerald-300 font-semibold shadow-sm' : 'text-slate-400 hover:text-white' }} cursor-pointer"
+                            >
+                                {{ __('Sign In') }}
+                            </button>
+                            <button
+                                type="button"
+                                id="tab-btn-register"
+                                onclick="switchAuthTab('register')"
+                                class="flex-1 py-1.5 px-3 rounded-lg text-xs font-medium transition-all {{ ($isRegister ?? false) ? 'bg-emerald-500/20 text-emerald-300 font-semibold shadow-sm' : 'text-slate-400 hover:text-white' }} cursor-pointer"
+                            >
+                                {{ __('Create Account') }}
+                            </button>
+                        </div>
+                    @endif
                 </div>
 
-                <form method="POST" action="{{ route('login.post') }}" class="space-y-4">
-                    @csrf
-
-                    @if($needsSetup)
+                @if($needsSetup)
+                    <form method="POST" action="{{ route('login.post') }}" class="space-y-4">
+                        @csrf
                         <div>
                             <label for="name" class="block text-xs font-medium text-slate-300 mb-1.5">
                                 {{ __('Username') }}
@@ -109,60 +136,185 @@
                                 class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60 transition-colors"
                             >
                         </div>
-                    @else
+
                         <div>
-                            <label for="login" class="block text-xs font-medium text-slate-300 mb-1.5">
-                                {{ __('Username or Email') }}
+                            <label for="setup-preferred-locale" class="block text-xs font-medium text-slate-300 mb-1.5">
+                                {{ __('Preferred Language') }} <span class="text-emerald-400">*</span>
+                            </label>
+                            <select
+                                id="setup-preferred-locale"
+                                name="preferred_locale"
+                                required
+                                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60 transition-colors"
+                            >
+                                @foreach(\App\Services\LanguageService::supported() as $code => $lang)
+                                    <option value="{{ $code }}" {{ old('preferred_locale', app()->getLocale()) === $code ? 'selected' : '' }}>
+                                        {{ $lang['flag'] }} {{ $lang['name'] }} ({{ strtoupper($code) }}) - {{ $lang['native'] }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="password" class="block text-xs font-medium text-slate-300 mb-1.5">
+                                {{ __('Password') }}
                             </label>
                             <input
-                                id="login"
-                                name="login"
-                                type="text"
-                                value="{{ old('login') }}"
+                                id="password"
+                                name="password"
+                                type="password"
                                 required
-                                autofocus
-                                placeholder="{{ __('Username or Email') }}"
+                                placeholder="••••••••••••"
                                 class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60 transition-colors"
                             >
                         </div>
-                    @endif
 
-                    <div>
-                        <label for="password" class="block text-xs font-medium text-slate-300 mb-1.5">
-                            {{ __('Password') }}
-                        </label>
-                        <input
-                            id="password"
-                            name="password"
-                            type="password"
-                            required
-                            placeholder="••••••••••••"
-                            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60 transition-colors"
-                        >
-                    </div>
-
-                    @if(! $needsSetup)
-                        <div class="flex items-center justify-between text-xs pt-1">
-                            <label class="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-300 select-none">
-                                <input type="checkbox" name="remember" value="1" class="rounded bg-slate-950 border-slate-800 text-emerald-500 focus:ring-0">
-                                <span>{{ __('Remember Me') }}</span>
-                            </label>
-                            <a href="{{ route('recovery.request') }}" class="font-mono text-slate-500 hover:text-emerald-400 transition-colors">
-                                {{ __('Emergency Recovery') }}
-                            </a>
+                        <div class="pt-2">
+                            <button
+                                type="submit"
+                                class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-sm shadow-lg shadow-emerald-950/50 hover:shadow-emerald-900/50 transition-all cursor-pointer flex items-center justify-center gap-2"
+                            >
+                                <span>{{ __('Create Admin Account') }}</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                            </button>
                         </div>
-                    @endif
+                    </form>
+                @else
+                    <!-- Sign In Panel -->
+                    <div id="auth-panel-login" class="{{ ($isRegister ?? false) ? 'hidden' : '' }}">
+                        <form method="POST" action="{{ route('login.post') }}" class="space-y-4">
+                            @csrf
+                            <div>
+                                <label for="login" class="block text-xs font-medium text-slate-300 mb-1.5">
+                                    {{ __('Username or Email') }}
+                                </label>
+                                <input
+                                    id="login"
+                                    name="login"
+                                    type="text"
+                                    value="{{ old('login') }}"
+                                    required
+                                    autofocus
+                                    placeholder="{{ __('Username or Email') }}"
+                                    class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60 transition-colors"
+                                >
+                            </div>
 
-                    <div class="pt-2">
-                        <button
-                            type="submit"
-                            class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-sm shadow-lg shadow-emerald-950/50 hover:shadow-emerald-900/50 transition-all cursor-pointer flex items-center justify-center gap-2"
-                        >
-                            <span>{{ $needsSetup ? __('Create Admin Account') : __('Sign In') }}</span>
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                        </button>
+                            <div>
+                                <label for="password" class="block text-xs font-medium text-slate-300 mb-1.5">
+                                    {{ __('Password') }}
+                                </label>
+                                <input
+                                    id="password"
+                                    name="password"
+                                    type="password"
+                                    required
+                                    placeholder="••••••••••••"
+                                    class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60 transition-colors"
+                                >
+                            </div>
+
+                            <div class="flex items-center justify-between text-xs pt-1">
+                                <label class="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-slate-300 select-none">
+                                    <input type="checkbox" name="remember" value="1" class="rounded bg-slate-950 border-slate-800 text-emerald-500 focus:ring-0">
+                                    <span>{{ __('Remember Me') }}</span>
+                                </label>
+                                <a href="{{ route('recovery.request') }}" class="font-mono text-slate-500 hover:text-emerald-400 transition-colors">
+                                    {{ __('Emergency Recovery') }}
+                                </a>
+                            </div>
+
+                            <div class="pt-2">
+                                <button
+                                    type="submit"
+                                    class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-sm shadow-lg shadow-emerald-950/50 hover:shadow-emerald-900/50 transition-all cursor-pointer flex items-center justify-center gap-2"
+                                >
+                                    <span>{{ __('Sign In') }}</span>
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                </form>
+
+                    <!-- Register Panel -->
+                    <div id="auth-panel-register" class="{{ !($isRegister ?? false) ? 'hidden' : '' }}">
+                        <form method="POST" action="{{ route('register.post') }}" class="space-y-4">
+                            @csrf
+                            <div>
+                                <label for="reg-name" class="block text-xs font-medium text-slate-300 mb-1.5">
+                                    {{ __('Member Display Name') }} <span class="text-emerald-400">*</span>
+                                </label>
+                                <input
+                                    id="reg-name"
+                                    name="name"
+                                    type="text"
+                                    value="{{ old('name') }}"
+                                    required
+                                    placeholder="Alex Sterling"
+                                    class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60 transition-colors"
+                                >
+                            </div>
+
+                            <div>
+                                <label for="reg-email" class="block text-xs font-medium text-slate-300 mb-1.5">
+                                    {{ __('Email Address') }} <span class="text-emerald-400">*</span>
+                                </label>
+                                <input
+                                    id="reg-email"
+                                    name="email"
+                                    type="email"
+                                    value="{{ old('email') }}"
+                                    required
+                                    placeholder="alex@example.com"
+                                    class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60 transition-colors"
+                                >
+                            </div>
+
+                            <div>
+                                <label for="reg-preferred-locale" class="block text-xs font-medium text-slate-300 mb-1.5">
+                                    {{ __('Preferred Language') }} <span class="text-emerald-400">*</span>
+                                </label>
+                                <select
+                                    id="reg-preferred-locale"
+                                    name="preferred_locale"
+                                    required
+                                    class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60 transition-colors"
+                                >
+                                    <option value="" disabled {{ old('preferred_locale') ? '' : 'selected' }}>{{ __('-- Select Preferred Language --') }}</option>
+                                    @foreach(\App\Services\LanguageService::supported() as $code => $lang)
+                                        <option value="{{ $code }}" {{ old('preferred_locale') === $code ? 'selected' : '' }}>
+                                            {{ $lang['flag'] }} {{ $lang['name'] }} ({{ strtoupper($code) }}) - {{ $lang['native'] }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div>
+                                <label for="reg-password" class="block text-xs font-medium text-slate-300 mb-1.5">
+                                    {{ __('Password') }} <span class="text-emerald-400">*</span>
+                                </label>
+                                <input
+                                    id="reg-password"
+                                    name="password"
+                                    type="password"
+                                    required
+                                    placeholder="••••••••••••"
+                                    class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60 transition-colors"
+                                >
+                            </div>
+
+                            <div class="pt-2">
+                                <button
+                                    type="submit"
+                                    class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-sm shadow-lg shadow-emerald-950/50 hover:shadow-emerald-900/50 transition-all cursor-pointer flex items-center justify-center gap-2"
+                                >
+                                    <span>{{ __('Create Member Account') }}</span>
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                @endif
 
                 @if(! $needsSetup)
                     <!-- Biometric Hardware Authentication (Touch ID / Face ID / Windows Hello) -->
@@ -237,6 +389,33 @@
     </footer>
 
     <script>
+        function switchAuthTab(tab) {
+            const loginPanel = document.getElementById('auth-panel-login');
+            const registerPanel = document.getElementById('auth-panel-register');
+            const btnLogin = document.getElementById('tab-btn-login');
+            const btnRegister = document.getElementById('tab-btn-register');
+
+            if (tab === 'register') {
+                if (loginPanel) loginPanel.classList.add('hidden');
+                if (registerPanel) registerPanel.classList.remove('hidden');
+                if (btnLogin) {
+                    btnLogin.className = 'flex-1 py-1.5 px-3 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white cursor-pointer';
+                }
+                if (btnRegister) {
+                    btnRegister.className = 'flex-1 py-1.5 px-3 rounded-lg text-xs font-medium transition-all bg-emerald-500/20 text-emerald-300 font-semibold shadow-sm cursor-pointer';
+                }
+            } else {
+                if (registerPanel) registerPanel.classList.add('hidden');
+                if (loginPanel) loginPanel.classList.remove('hidden');
+                if (btnLogin) {
+                    btnLogin.className = 'flex-1 py-1.5 px-3 rounded-lg text-xs font-medium transition-all bg-emerald-500/20 text-emerald-300 font-semibold shadow-sm cursor-pointer';
+                }
+                if (btnRegister) {
+                    btnRegister.className = 'flex-1 py-1.5 px-3 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white cursor-pointer';
+                }
+            }
+        }
+
         // Check platform authenticator support (Touch ID / Face ID / Windows Hello)
         document.addEventListener('DOMContentLoaded', async () => {
             const bioContainer = document.getElementById('biometric-login-container');

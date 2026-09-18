@@ -1,9 +1,12 @@
 <?php
 
+use App\Mail\NewMessageNotification;
 use App\Models\Message;
 use App\Models\Room;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 test('a user with clearance can transmit a text message', function () {
@@ -28,12 +31,13 @@ test('a user with clearance can transmit a text message', function () {
     $this->assertDatabaseHas('messages', [
         'room_id' => $room->id,
         'sender_name' => 'Ghost',
-        'content' => 'Rendezvous at target coordinates.',
     ]);
+    $storedMsg = Message::where('room_id', $room->id)->first();
+    expect($storedMsg->content)->toBe('Rendezvous at target coordinates.');
 });
 
 test('a user can upload an encrypted image attachment', function () {
-    Storage::fake('public');
+    Storage::fake('local');
 
     $room = Room::create([
         'code' => 'IMG-SAFE',
@@ -58,11 +62,11 @@ test('a user can upload an encrypted image attachment', function () {
     $message = Message::where('room_id', $room->id)->first();
     expect($message)->not->toBeNull();
     expect($message->attachment_path)->not->toBeNull();
-    Storage::disk('public')->assertExists($message->attachment_path);
+    Storage::disk('local')->assertExists($message->attachment_path);
 });
 
 test('a user can upload a video attachment', function () {
-    Storage::fake('public');
+    Storage::fake('local');
 
     $room = Room::create([
         'code' => 'VID-SAFE',
@@ -87,7 +91,7 @@ test('a user can upload a video attachment', function () {
     $message = Message::where('room_id', $room->id)->first();
     expect($message)->not->toBeNull();
     expect($message->attachment_type)->toBe('video');
-    Storage::disk('public')->assertExists($message->attachment_path);
+    Storage::disk('local')->assertExists($message->attachment_path);
 });
 
 test('empty messages without attachments are rejected', function () {
@@ -141,14 +145,14 @@ test('live polling returns new messages since after_id', function () {
 });
 
 test('message transmission succeeds and dispatches notifications without throwing errors', function () {
-    $admin = \App\Models\User::create([
+    $admin = User::create([
         'name' => 'NotifyAdmin',
         'email' => 'admin_notify@example.com',
         'password' => Hash::make('secret'),
         'role' => 'admin',
     ]);
 
-    $member = \App\Models\User::create([
+    $member = User::create([
         'name' => 'NotifyMember',
         'email' => 'member_notify@example.com',
         'password' => Hash::make('secret'),
@@ -173,14 +177,14 @@ test('message transmission succeeds and dispatches notifications without throwin
         'content' => 'Initial message',
     ]);
 
-    $sender = \App\Models\User::create([
+    $sender = User::create([
         'name' => 'SenderUser',
         'email' => 'sender@example.com',
         'password' => Hash::make('secret'),
         'role' => 'member',
     ]);
 
-    \Illuminate\Support\Facades\Mail::fake();
+    Mail::fake();
 
     $response = $this->actingAs($sender)
         ->withSession([
@@ -194,7 +198,5 @@ test('message transmission succeeds and dispatches notifications without throwin
     $response->assertJsonPath('success', true);
     $response->assertJsonPath('message.content', 'Transmission with notification broadcast.');
 
-    \Illuminate\Support\Facades\Mail::assertSent(\App\Mail\NewMessageNotification::class);
+    Mail::assertQueued(NewMessageNotification::class);
 });
-
-

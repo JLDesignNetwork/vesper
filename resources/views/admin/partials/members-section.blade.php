@@ -1,18 +1,18 @@
-<!-- Registered Operatives Section -->
-<div id="operatives-section" class="rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md overflow-hidden shadow-xl">
+<!-- Registered Members Section -->
+<div id="members-section" class="rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md overflow-hidden shadow-xl">
     <div class="p-5 border-b border-slate-800/80 flex items-center justify-between flex-wrap gap-3">
         <div>
             <h3 class="text-base font-semibold text-white tracking-tight flex items-center gap-2">
-                <span>{{ __('Registered Operatives') }}</span>
+                <span>{{ __('Registered Members') }}</span>
                 <span class="text-xs font-mono px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300">
                     {{ $registeredUsers->count() }}
                 </span>
             </h3>
-            <p class="text-xs text-slate-400 mt-0.5">{{ __('Encrypted roster of registered member profiles and security dossiers') }}</p>
+            <p class="text-xs text-slate-400 mt-0.5">{{ __('Directory of registered member accounts, permissions, and security profiles') }}</p>
         </div>
         <div class="flex items-center gap-2 font-mono text-xs text-slate-400">
             <span class="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
-            <span>{{ __('Level 5 Clearance') }}</span>
+            <span>{{ __('Administrator Access') }}</span>
         </div>
     </div>
 
@@ -21,11 +21,11 @@
         <table class="w-full text-left border-collapse text-xs">
             <thead>
                 <tr class="border-b border-slate-800 text-slate-400 font-mono text-[11px] uppercase bg-slate-950/60">
-                    <th class="py-3 px-4 min-w-[200px]">{{ __('Operative') }}</th>
+                    <th class="py-3 px-4 min-w-[200px]">{{ __('Member') }}</th>
                     <th class="py-3 px-4 min-w-[180px]">{{ __('Network & Location') }}</th>
                     <th class="py-3 px-4 min-w-[150px]">{{ __('Demographics') }}</th>
                     <th class="py-3 px-4 min-w-[150px]">{{ __('Privacy & Security') }}</th>
-                    <th class="py-3 px-4 min-w-[110px]">{{ __('Enrolled') }}</th>
+                    <th class="py-3 px-4 min-w-[110px]">{{ __('Joined') }}</th>
                     <th class="py-3 px-4 text-right min-w-[140px] sticky right-0 bg-slate-950/90 backdrop-blur-md z-10 shadow-[-10px_0_12px_-4px_rgba(0,0,0,0.5)]">
                         {{ __('Actions') }}
                     </th>
@@ -34,7 +34,7 @@
             <tbody class="divide-y divide-slate-800/60 font-sans">
                 @forelse($registeredUsers as $regUser)
                     <tr class="hover:bg-white/[0.02] transition-colors group">
-                        <!-- Col 1: Operative Profile & Contact -->
+                        <!-- Col 1: Member Profile & Contact -->
                         <td class="py-3.5 px-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-9 h-9 rounded-full overflow-hidden bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 flex items-center justify-center font-mono font-bold text-xs text-emerald-400 shrink-0 shadow-md">
@@ -199,7 +199,7 @@
                                     onclick='openUserDossier(@json($regUser))'
                                     class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors text-[11px] cursor-pointer"
                                 >
-                                    {{ __('Inspect') }}
+                                    {{ __('View Profile') }}
                                 </button>
 
                                 @if($regUser->id === Auth::id())
@@ -212,14 +212,14 @@
                                         {{ __('Edit') }}
                                     </button>
                                 @else
-                                    <form method="POST" action="{{ route('admin.users.destroy', ['id' => $regUser->id]) }}" class="inline" onsubmit="return confirm('{{ __('Permanently purge this operative account?') }}')">
+                                    <form method="POST" action="{{ route('admin.users.destroy', ['id' => $regUser->id]) }}" class="inline" onsubmit="return confirm('{{ __('Permanently delete this member account?') }}')">
                                         @csrf
                                         @method('DELETE')
                                         <button
                                             type="submit"
                                             class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 transition-colors text-[11px] cursor-pointer"
                                         >
-                                            {{ __('Purge') }}
+                                            {{ __('Delete') }}
                                         </button>
                                     </form>
                                 @endif
@@ -229,7 +229,7 @@
                 @empty
                     <tr>
                         <td colspan="6" class="py-8 text-center text-slate-500 font-mono">
-                            {{ __('No registered operatives found.') }}
+                            {{ __('No registered members found.') }}
                         </td>
                     </tr>
                 @endforelse

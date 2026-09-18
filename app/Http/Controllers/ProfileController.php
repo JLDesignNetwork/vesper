@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AccessLog;
 use App\Services\GeoLocationService;
+use App\Services\LanguageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,9 +13,39 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
+    /**
+     * Display the unified Member Profile & Channels Dashboard.
+     */
+    public function show(Request $request): View
+    {
+        $user = $request->user();
+
+        // Fetch strictly the active channels where this user is an enrolled member
+        $channels = $user->channels()
+            ->where('rooms.status', 'active')
+            ->withCount('messages')
+            ->orderByDesc('room_user.last_accessed_at')
+            ->get();
+
+        // Fetch any pending direct channel invitations
+        $pendingInvites = $user->pendingChannelInvitations()
+            ->with('creator:id,name')
+            ->get();
+
+        $canUsePinlessEntry = $user->canUsePinlessEntry();
+
+        return view('profile.show', [
+            'user' => $user,
+            'channels' => $channels,
+            'pendingInvites' => $pendingInvites,
+            'canUsePinlessEntry' => $canUsePinlessEntry,
+        ]);
+    }
+
     /**
      * Update the authenticated user's profile details.
      */
@@ -38,7 +69,7 @@ class ProfileController extends Controller
             'hide_birthday' => ['nullable', 'boolean'],
             'hide_location' => ['nullable', 'boolean'],
             'hide_bio' => ['nullable', 'boolean'],
-            'preferred_locale' => ['nullable', 'string', 'in:auto,en,ru,fr,it'],
+            'preferred_locale' => ['nullable', 'string', Rule::in(array_merge(['auto'], LanguageService::codes()))],
             'room_id' => ['nullable', 'string'],
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
             'remove_avatar' => ['nullable', 'boolean'],
@@ -63,7 +94,7 @@ class ProfileController extends Controller
             if (empty($pref) || $pref === 'auto') {
                 $user->preferred_locale = null;
                 $request->session()->put('locale', $user->resolveLocationLocale());
-            } elseif (in_array($pref, ['en', 'ru', 'fr', 'it'], true)) {
+            } elseif (LanguageService::isValid($pref)) {
                 $user->preferred_locale = $pref;
                 $request->session()->put('locale', $pref);
             }

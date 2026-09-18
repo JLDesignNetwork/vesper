@@ -152,15 +152,10 @@
                             </label>
                             @php
                                 $detectedAdminLang = $adminUser->resolveLocationLocale();
-                                $adminLangMap = [
-                                    'en' => 'English (EN)',
-                                    'ru' => 'Russian (RU)',
-                                    'fr' => 'French (FR)',
-                                    'it' => 'Italian (IT)',
-                                ];
+                                $supportedAdminLangs = \App\Services\LanguageService::supported();
                             @endphp
                             <span class="text-[10px] font-mono text-emerald-400/80">
-                                {{ __('Detected') }}: {{ $adminLangMap[$detectedAdminLang] ?? strtoupper($detectedAdminLang) }}
+                                {{ __('Detected') }}: {{ $supportedAdminLangs[$detectedAdminLang]['name'] ?? strtoupper($detectedAdminLang) }}
                             </span>
                         </div>
                         <select
@@ -168,20 +163,13 @@
                             class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500 font-sans cursor-pointer"
                         >
                             <option value="auto" {{ empty($adminUser->preferred_locale) ? 'selected' : '' }}>
-                                🌐 {{ __('Auto-detect from Registered Location') }} ({{ $adminLangMap[$detectedAdminLang] ?? strtoupper($detectedAdminLang) }})
+                                🌐 {{ __('Auto-detect from Registered Location') }} ({{ $supportedAdminLangs[$detectedAdminLang]['name'] ?? strtoupper($detectedAdminLang) }})
                             </option>
-                            <option value="en" {{ $adminUser->preferred_locale === 'en' ? 'selected' : '' }}>
-                                🇬🇧 English (EN)
-                            </option>
-                            <option value="ru" {{ $adminUser->preferred_locale === 'ru' ? 'selected' : '' }}>
-                                🇷🇺 Russian (RU) - Русский
-                            </option>
-                            <option value="fr" {{ $adminUser->preferred_locale === 'fr' ? 'selected' : '' }}>
-                                🇫🇷 French (FR) - Français
-                            </option>
-                            <option value="it" {{ $adminUser->preferred_locale === 'it' ? 'selected' : '' }}>
-                                🇮🇹 Italian (IT) - Italiano
-                            </option>
+                            @foreach($supportedAdminLangs as $code => $lang)
+                                <option value="{{ $code }}" {{ $adminUser->preferred_locale === $code ? 'selected' : '' }}>
+                                    {{ $lang['flag'] }} {{ $lang['name'] }} ({{ strtoupper($code) }}) - {{ $lang['native'] }}
+                                </option>
+                            @endforeach
                         </select>
                         <p class="text-[10px] text-slate-400 leading-snug">
                             {{ __('Selecting a preferred language overrides your registered location language across all devices.') }}

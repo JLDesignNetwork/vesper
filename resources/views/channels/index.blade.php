@@ -1,11 +1,17 @@
 <!DOCTYPE html>
-<html lang="{{ app()->getLocale() }}" class="h-full bg-slate-950 text-slate-100 antialiased">
+<html lang="{{ app()->getLocale() }}" dir="{{ \App\Services\LanguageService::getDirection(app()->getLocale()) }}" class="h-full bg-slate-950 text-slate-100 antialiased">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ __('Operative Channels Hub') }} — {{ __('Vesper') }}</title>
+    <title>{{ __('Member Channels Hub') }} — {{ __('Vesper') }}</title>
+
+    <!-- PWA & Mobile Meta -->
+    <meta name="theme-color" content="#020617">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.json">
 
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -48,10 +54,10 @@
                 <div>
                     <div class="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
                         {{ __('Vesper') }}
-                        <span class="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">Ghostwire Protocol</span>
+                        <span class="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">{{ __('Private Network') }}</span>
                     </div>
                     <div class="text-[11px] text-slate-400 font-mono flex items-center gap-1.5">
-                        <span>{{ __('Operative Channels Hub') }}</span>
+                        <span>{{ __('Member Channels Hub') }}</span>
                         <span>•</span>
                         <span class="text-slate-300">{{ $user->name }}</span>
                     </div>
@@ -65,11 +71,11 @@
                     type="button"
                     onclick="openProfileModal()"
                     class="px-2.5 py-1.5 rounded-xl border text-xs flex items-center gap-1.5 transition-all cursor-pointer {{ $canUsePinlessEntry ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-300 hover:bg-emerald-950/50' : 'bg-amber-950/30 border-amber-500/30 text-amber-300 hover:bg-amber-950/50' }}"
-                    title="{{ $canUsePinlessEntry ? __('Pinless Entry Clearance Active') : __('Activate 2FA for Pinless Entry') }}"
+                    title="{{ $canUsePinlessEntry ? __('Pinless Access Active') : __('Activate 2FA for Pinless Entry') }}"
                 >
                     @if($canUsePinlessEntry)
                         <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                        <span class="hidden sm:inline font-sans text-xs">{{ __('Pinless Clearance: Active') }}</span>
+                        <span class="hidden sm:inline font-sans text-xs">{{ __('Pinless Access: Active') }}</span>
                     @else
                         <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                         <span class="hidden sm:inline font-sans text-xs">{{ __('2FA Needed for Pinless') }}</span>
@@ -81,7 +87,7 @@
                     type="button"
                     onclick="openProfileModal()"
                     class="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-200 text-xs flex items-center gap-2 transition-colors cursor-pointer"
-                    title="{{ __('Operative Profile & Security') }}"
+                    title="{{ __('Member Profile & Security') }}"
                 >
                     <div class="w-5 h-5 rounded-full overflow-hidden bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300 font-bold text-[10px] shrink-0">
                         @if($user->avatar_path)
@@ -119,7 +125,7 @@
             </div>
         @endif
 
-        @if(session('error') || $errors->any())
+        @if(session('error') || (isset($errors) && $errors->any()))
             <div class="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs space-y-1 shadow-lg shadow-rose-950/30 backdrop-blur-sm">
                 @if(session('error'))
                     <div class="flex items-center gap-2">
@@ -145,7 +151,7 @@
                     </div>
                     <div>
                         <div class="text-sm font-semibold text-white tracking-tight">{{ __('Unlock 1-Click Pinless Channel Entry') }}</div>
-                        <div class="text-xs text-slate-400 mt-0.5">{{ __('Enable Two-Factor Authentication (Authenticator or Biometrics) to re-enter all your enrolled channels without entering PINs every time.') }}</div>
+                        <div class="text-xs text-slate-400 mt-0.5">{{ __('Enable Two-Factor Authentication (Authenticator or Biometrics) to re-enter your channels without entering PINs every time.') }}</div>
                     </div>
                 </div>
                 <button
@@ -201,19 +207,16 @@
             </div>
         @endif
 
-        <!-- Enrolled Channels Section -->
+        <!-- Channel List Section -->
         <div class="space-y-4">
             <div class="flex items-center justify-between flex-wrap gap-3">
                 <div>
                     <h2 class="text-lg font-semibold text-white tracking-tight flex items-center gap-2.5">
-                        <span>{{ __('Enrolled Channels') }}</span>
+                        <span>{{ __('Channel List') }}</span>
                         <span class="text-xs font-mono px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300">
                             {{ $channels->count() }}
                         </span>
                     </h2>
-                    <p class="text-xs text-slate-400 mt-0.5">
-                        {{ __('Zero-Discovery Protocol • Access strictly restricted to verified memberships') }}
-                    </p>
                 </div>
 
                 <!-- Action: Redeem Clearance Code Modal Trigger -->
@@ -304,9 +307,9 @@
                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                     </div>
                     <div class="max-w-md space-y-1.5">
-                        <h3 class="text-base font-semibold text-white tracking-tight">{{ __('No Assigned Channels') }}</h3>
+                        <h3 class="text-base font-semibold text-white tracking-tight">{{ __('No Channels Available') }}</h3>
                         <p class="text-xs text-slate-400">
-                            {{ __('Vesper operates under strict Zero-Discovery. You can only view channels you are explicitly assigned or invited to by an administrator.') }}
+                            {{ __('You currently have no channels in your list. Redeem an invite code to get started.') }}
                         </p>
                     </div>
                     <button
@@ -315,7 +318,7 @@
                         class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium text-xs shadow-lg shadow-emerald-950/40 transition-all flex items-center gap-2 cursor-pointer"
                     >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
-                        <span>{{ __('Redeem Clearance Code') }}</span>
+                        <span>{{ __('Redeem Invitation Code') }}</span>
                     </button>
                 </div>
             @endif
@@ -323,7 +326,7 @@
 
     </main>
 
-    <!-- Modal: Redeem Clearance Code -->
+    <!-- Modal: Redeem Invitation Code -->
     <div id="redeem-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden p-4 flex items-center justify-center">
         <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden font-sans">
             <div class="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-900/50">
@@ -332,7 +335,7 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
                     </div>
                     <div>
-                        <h3 class="text-sm font-semibold text-white tracking-tight">{{ __('Redeem Clearance Code') }}</h3>
+                        <h3 class="text-sm font-semibold text-white tracking-tight">{{ __('Redeem Invitation Code') }}</h3>
                         <p class="text-[11px] text-slate-400">{{ __('Enter your channel invitation code') }}</p>
                     </div>
                 </div>
@@ -353,7 +356,7 @@
                         required
                         class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm font-mono tracking-widest uppercase focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60 transition-colors"
                     >
-                    <p class="text-[11px] text-slate-500 mt-1.5 font-mono">{{ __('Format: INV-XXXXXXXX or as provided by command') }}</p>
+                    <p class="text-[11px] text-slate-500 mt-1.5 font-mono">{{ __('Format: INV-XXXXXXXX or as provided by administrator') }}</p>
                 </div>
 
                 <div class="flex items-center justify-end gap-2.5 pt-2">
@@ -375,7 +378,7 @@
         </div>
     </div>
 
-    <!-- Modal: Operative Profile & Security Settings -->
+    <!-- Modal: Member Profile & Security Settings -->
     <div id="profile-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden overflow-y-auto p-3 sm:p-4 flex items-center justify-center">
         <div class="w-full max-w-md my-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden font-sans">
             <div class="flex items-center justify-between p-4 sm:p-5 pb-3 sm:pb-4 border-b border-slate-800 shrink-0 bg-slate-900">
@@ -385,7 +388,7 @@
                     </div>
                     <div>
                         <h3 class="text-sm font-semibold text-white tracking-tight">{{ __('Profile & Security Settings') }}</h3>
-                        <p class="text-[10px] text-slate-400 font-mono">{{ __('Clearance: Operative Member') }}</p>
+                        <p class="text-[10px] text-slate-400 font-mono">{{ __('Role: Member') }}</p>
                     </div>
                 </div>
                 <button type="button" onclick="closeProfileModal()" class="text-slate-400 hover:text-white cursor-pointer">✕</button>
@@ -436,7 +439,7 @@
                     </div>
 
                     <div>
-                        <label class="block font-medium text-slate-300 mb-1">{{ __('Operative Display Name') }} <span class="text-rose-400">*</span></label>
+                        <label class="block font-medium text-slate-300 mb-1">{{ __('Member Display Name') }} <span class="text-rose-400">*</span></label>
                         <input
                             type="text"
                             name="name"
@@ -457,6 +460,36 @@
                             value="{{ $user->email }}"
                             class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/60"
                         >
+                    </div>
+
+                    <!-- Language Preference Setting -->
+                    <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800 space-y-1.5 font-sans">
+                        <div class="flex items-center justify-between">
+                            <label class="block font-medium text-slate-300 text-xs flex items-center gap-1.5">
+                                <span>🌐</span>
+                                <span>{{ __('Preferred Language') }}</span>
+                            </label>
+                            @php
+                                $detectedMemberLang = $user->resolveLocationLocale();
+                                $supportedLangs = \App\Services\LanguageService::supported();
+                            @endphp
+                            <span class="text-[10px] font-mono text-emerald-400/80">
+                                {{ __('Active') }}: {{ $supportedLangs[$user->effectiveLocale()]['name'] ?? strtoupper($user->effectiveLocale()) }}
+                            </span>
+                        </div>
+                        <select
+                            name="preferred_locale"
+                            class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500 font-sans cursor-pointer"
+                        >
+                            @foreach($supportedLangs as $code => $lang)
+                                <option value="{{ $code }}" {{ ($user->preferred_locale ?? $user->effectiveLocale()) === $code ? 'selected' : '' }}>
+                                    {{ $lang['flag'] }} {{ $lang['name'] }} ({{ strtoupper($code) }}) - {{ $lang['native'] }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="text-[10px] text-slate-400 leading-snug">
+                            {{ __('All messages across every room will automatically translate into your preferred language.') }}
+                        </p>
                     </div>
 
                     <!-- Security & Authentication Hardening -->

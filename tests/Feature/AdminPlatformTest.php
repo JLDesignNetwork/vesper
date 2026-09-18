@@ -2,6 +2,7 @@
 
 use App\Models\Room;
 use App\Models\User;
+use App\Services\TranslationService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 
@@ -77,7 +78,7 @@ test('admin can create private channels from the dashboard', function () {
         'burn_after_reading' => 1,
     ]);
 
-    $response->assertRedirect(route('admin.dashboard'));
+    $response->assertRedirect(route('admin.channels.index'));
 
     $room = Room::where('code', 'VIP-99')->first();
     expect($room)->not->toBeNull();
@@ -103,12 +104,12 @@ test('admin can toggle and purge channels from the dashboard', function () {
 
     // Toggle status to archived
     $toggleResponse = $this->actingAs($admin)->post(route('admin.channels.toggle', ['id' => $room->id]));
-    $toggleResponse->assertRedirect(route('admin.dashboard'));
+    $toggleResponse->assertRedirect(route('admin.channels.index'));
     expect($room->fresh()->status)->toBe('archived');
 
     // Purge channel
     $deleteResponse = $this->actingAs($admin)->delete(route('admin.channels.destroy', ['id' => $room->id]));
-    $deleteResponse->assertRedirect(route('admin.dashboard'));
+    $deleteResponse->assertRedirect(route('admin.channels.index'));
     expect(Room::where('code', 'DISPOSABLE-01')->first())->toBeNull();
 });
 
@@ -135,7 +136,7 @@ test('supports French and Italian localizations and translations', function () {
         ], 200),
     ]);
 
-    $service = app(\App\Services\TranslationService::class);
+    $service = app(TranslationService::class);
     $frResult = $service->translate('Hello world', 'fr');
     expect($frResult['success'])->toBeTrue();
     expect($frResult['translated_text'])->toBe('Bonjour le monde');
@@ -162,15 +163,15 @@ test('admin can access all dedicated admin subpages', function () {
     $resChannels->assertStatus(200);
     $resChannels->assertSee('Encrypted Channels');
 
-    // 3. Operatives Page
-    $resOperatives = $this->get(route('admin.operatives.index'));
-    $resOperatives->assertStatus(200);
-    $resOperatives->assertSee('Registered Operatives');
+    // 3. Members Directory Page
+    $resMembers = $this->get(route('admin.members.index'));
+    $resMembers->assertStatus(200);
+    $resMembers->assertSee('Registered Members');
 
     // 4. Global Intel Page
     $resIntel = $this->get(route('admin.intel.index'));
     $resIntel->assertStatus(200);
-    $resIntel->assertSee('Global Intelligence');
+    $resIntel->assertSee('Global Network Activity Map');
 
     // 5. Transmission Logs Page
     $resLogs = $this->get(route('admin.logs.index'));
@@ -188,10 +189,10 @@ test('non-admin member is blocked from dedicated admin subpages', function () {
 
     $this->actingAs($member);
 
-    $this->get(route('admin.channels.index'))->assertRedirect(route('channels.index'));
-    $this->get(route('admin.operatives.index'))->assertRedirect(route('channels.index'));
-    $this->get(route('admin.intel.index'))->assertRedirect(route('channels.index'));
-    $this->get(route('admin.logs.index'))->assertRedirect(route('channels.index'));
+    $this->get(route('admin.channels.index'))->assertRedirect(route('profile.show'));
+    $this->get(route('admin.members.index'))->assertRedirect(route('profile.show'));
+    $this->get(route('admin.intel.index'))->assertRedirect(route('profile.show'));
+    $this->get(route('admin.logs.index'))->assertRedirect(route('profile.show'));
 });
 
 test('admin subpages render consistent localized vocabulary in Italian and French without mixed terms', function () {
@@ -205,14 +206,14 @@ test('admin subpages render consistent localized vocabulary in Italian and Frenc
 
     $this->actingAs($admin);
 
-    // Operatives Page in Italian
-    $resOperatives = $this->withSession(['locale' => 'it'])->get(route('admin.operatives.index'));
-    $resOperatives->assertStatus(200);
-    $resOperatives->assertSee('Operativi Registrati');
-    $resOperatives->assertSee('Ruolino Operativo e Intelligence Identità');
-    $resOperatives->assertSee('Dati Anagrafici');
-    $resOperatives->assertSee('Rete e Posizione');
-    $resOperatives->assertSee('Ispeziona');
+    // Members Directory Page in Italian
+    $resMembers = $this->withSession(['locale' => 'it'])->get(route('admin.members.index'));
+    $resMembers->assertStatus(200);
+    $resMembers->assertSee('Membri Registrati');
+    $resMembers->assertSee('Elenco Membri e Gestione Accessi');
+    $resMembers->assertSee('Dati Anagrafici');
+    $resMembers->assertSee('Rete e Posizione');
+    $resMembers->assertSee('Visualizza Profilo');
 
     // Channels Page in Italian
     $resChannels = $this->withSession(['locale' => 'it'])->get(route('admin.channels.index'));
@@ -227,6 +228,5 @@ test('admin subpages render consistent localized vocabulary in Italian and Frenc
     $resDashboard->assertStatus(200);
     $resDashboard->assertSee('Aperçu');
     $resDashboard->assertSee('Canaux');
-    $resDashboard->assertSee('Opérateurs');
+    $resDashboard->assertSee('Membres');
 });
-

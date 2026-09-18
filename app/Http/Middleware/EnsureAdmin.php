@@ -21,10 +21,9 @@ class EnsureAdmin
         }
 
         if (! Auth::user()->isAdmin()) {
-            return redirect()->route('channels.index');
+            return redirect()->route('profile.show');
         }
 
         return $next($request);
     }
 }
-

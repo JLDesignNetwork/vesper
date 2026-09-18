@@ -475,5 +475,3 @@ test('user hiding their location does not show up on the map inside any chat cha
     $dashResponse->assertSee('8.5417');  // Longitude present in admin map markers
     $dashResponse->assertSee('Zurich');  // City present in admin dossier and table
 });
-
-

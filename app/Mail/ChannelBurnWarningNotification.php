@@ -6,12 +6,13 @@ use App\Models\Room;
 use App\Models\User;
 use App\Services\EmailTemplateService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class ChannelBurnWarningNotification extends Mailable
+class ChannelBurnWarningNotification extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
@@ -27,9 +28,12 @@ class ChannelBurnWarningNotification extends Mailable
         $channelName = $this->room->title ?: $this->room->code;
 
         return app(EmailTemplateService::class)->render('channel_burn_warning', [
+            'member_name' => $this->recipient->name,
             'operative_name' => $this->recipient->name,
+            'channel_title' => $channelName,
             'channel_name' => $channelName,
             'channel_code' => $this->room->code,
+            'time_remaining' => "{$this->hoursRemaining} Hours",
             'burn_countdown' => "{$this->hoursRemaining} Hours",
             'channel_url' => route('rooms.show', ['room' => $this->room->code]),
         ], $locale);

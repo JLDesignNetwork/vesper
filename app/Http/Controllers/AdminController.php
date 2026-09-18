@@ -2,19 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ChannelInvitationNotification;
 use App\Models\AccessLog;
-use App\Models\Message;
+use App\Models\ChannelInvitation;
 use App\Models\Room;
 use App\Models\User;
 use App\Services\AdminDashboardService;
 use App\Services\GeoLocationService;
+use App\Services\LanguageService;
 use App\Services\MediaStorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AdminController extends Controller
@@ -53,15 +58,23 @@ class AdminController extends Controller
     }
 
     /**
-     * Display the Registered Operatives Intelligence Roster page.
+     * Display the Registered Members Directory page.
      */
-    public function operatives(): View
+    public function members(): View
     {
-        $operativesData = $this->dashboardService->getOperativesData();
+        $membersData = $this->dashboardService->getMembersData();
 
-        return view('admin.operatives.index', array_merge([
+        return view('admin.members.index', array_merge([
             'adminUser' => Auth::user(),
-        ], $operativesData));
+        ], $membersData));
+    }
+
+    /**
+     * Compatibility redirect for operatives URL.
+     */
+    public function operatives(): RedirectResponse
+    {
+        return redirect()->route('admin.members.index');
     }
 
     /**
@@ -116,7 +129,7 @@ class AdminController extends Controller
             'passcode' => ['nullable', 'string', 'min:4'],
             'pin' => ['nullable', 'string', 'min:4'],
             'allowed_languages' => ['nullable', 'array'],
-            'allowed_languages.*' => ['string', 'in:en,ru,fr,it'],
+            'allowed_languages.*' => ['string', Rule::in(LanguageService::codes())],
             'expiration' => ['nullable', 'string', 'in:1h,24h,7d,permanent'],
             'burn_after_reading' => ['nullable', 'boolean'],
             'notify_admin' => ['nullable', 'boolean'],
@@ -156,7 +169,7 @@ class AdminController extends Controller
             'status' => 'active',
         ]);
 
-        return redirect()->route('admin.dashboard')->with('created_room', [
+        return redirect()->route('admin.channels.index')->with('created_room', [
             'code' => $room->code,
             'url' => route('rooms.show', ['room' => $room->code]),
             'passcode' => $pin,
@@ -175,7 +188,7 @@ class AdminController extends Controller
             'title' => ['nullable', 'string', 'max:100'],
             'pin' => ['required', 'string', 'min:4'],
             'allowed_languages' => ['required', 'array', 'min:1'],
-            'allowed_languages.*' => ['string', 'in:en,ru,fr,it'],
+            'allowed_languages.*' => ['string', Rule::in(LanguageService::codes())],
             'status' => ['nullable', 'string', 'in:active,archived'],
             'notify_admin' => ['nullable', 'boolean'],
         ]);
@@ -192,7 +205,7 @@ class AdminController extends Controller
 
         $room->save();
 
-        return redirect()->route('admin.dashboard')->with('status', "Channel [{$room->code}] updated successfully.");
+        return redirect()->route('admin.channels.index')->with('status', "Channel [{$room->code}] updated successfully.");
     }
 
     /**
@@ -206,7 +219,7 @@ class AdminController extends Controller
 
         $status = $room->notify_admin ? 'enabled' : 'disabled';
 
-        return redirect()->route('admin.dashboard')->with('status', "Admin notifications {$status} for channel [{$room->code}].");
+        return redirect()->route('admin.channels.index')->with('status', "Admin notifications {$status} for channel [{$room->code}].");
     }
 
     /**
@@ -218,7 +231,7 @@ class AdminController extends Controller
         $room->status = ($room->status === 'active') ? 'archived' : 'active';
         $room->save();
 
-        return redirect()->route('admin.dashboard')->with('status', "Channel status updated to {$room->status}.");
+        return redirect()->route('admin.channels.index')->with('status', "Channel status updated to {$room->status}.");
     }
 
     /**
@@ -234,7 +247,7 @@ class AdminController extends Controller
         $room->accessLogs()->delete();
         $room->delete();
 
-        return redirect()->route('admin.dashboard')->with('status', "Channel [{$code}] and all associated media have been permanently purged.");
+        return redirect()->route('admin.channels.index')->with('status', "Channel [{$code}] and all associated media have been permanently purged.");
     }
 
     /**
@@ -246,25 +259,64 @@ class AdminController extends Controller
 
         $validated = $request->validate([
             'user_id' => ['nullable', 'exists:users,id'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'send_email' => ['nullable', 'boolean'],
             'max_uses' => ['nullable', 'integer', 'min:1', 'max:100'],
             'expires_in_days' => ['nullable', 'integer', 'min:1', 'max:90'],
         ]);
 
+        $targetUser = null;
         if (! empty($validated['user_id'])) {
-            $targetUser = User::findOrFail($validated['user_id']);
-            $room->inviteUser($targetUser, Auth::id());
-
-            return redirect()->route('admin.dashboard')->with('status', "Direct invitation issued to Operative [{$targetUser->name}] for channel [{$room->code}].");
+            $targetUser = User::find($validated['user_id']);
+        } elseif (! empty($validated['email'])) {
+            $email = strtolower(trim($validated['email']));
+            $targetUser = User::where('email', $email)->first();
+            if (! $targetUser) {
+                $targetUser = User::create([
+                    'name' => ucfirst(explode('@', $email)[0]),
+                    'email' => $email,
+                    'password' => Hash::make(Str::random(24)),
+                    'role' => 'member',
+                    'preferred_locale' => app()->getLocale(),
+                ]);
+            }
         }
 
-        $invitation = \App\Models\ChannelInvitation::createForRoom(
+        if ($targetUser) {
+            $room->inviteUser($targetUser, Auth::id());
+
+            if ($request->boolean('send_email', true) && ! empty($targetUser->email) && filter_var($targetUser->email, FILTER_VALIDATE_EMAIL)) {
+                try {
+                    Mail::to($targetUser->email)->send(new ChannelInvitationNotification(
+                        recipient: $targetUser,
+                        room: $room,
+                        invitationUrl: route('rooms.show', ['room' => $room->code]),
+                        invitationCode: $room->code,
+                        inviterName: Auth::user()->name
+                    ));
+                } catch (\Throwable $e) {
+                    Log::warning("Failed to dispatch channel invitation notification: {$e->getMessage()}");
+                }
+            }
+
+            return redirect()->route('admin.channels.index')->with(
+                'status',
+                __('Direct invitation issued to Member [:name] for channel [:code] (Access PIN: :pin).', [
+                    'name' => $targetUser->name,
+                    'code' => $room->code,
+                    'pin' => $room->pin,
+                ])
+            );
+        }
+
+        $invitation = ChannelInvitation::createForRoom(
             room: $room,
             createdByUser: Auth::user(),
             maxUses: ! empty($validated['max_uses']) ? (int) $validated['max_uses'] : null,
             expiresAt: ! empty($validated['expires_in_days']) ? now()->addDays((int) $validated['expires_in_days']) : null
         );
 
-        return redirect()->route('admin.dashboard')->with('generated_invite', [
+        return redirect()->route('admin.channels.index')->with('generated_invite', [
             'room_code' => $room->code,
             'code' => $invitation->code,
             'url' => route('invites.show', ['token' => $invitation->token]),

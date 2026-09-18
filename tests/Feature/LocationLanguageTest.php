@@ -1,9 +1,8 @@
 <?php
 
-use App\Models\User;
 use App\Models\Room;
+use App\Models\User;
 use App\Services\GeoLocationService;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 test('GeoLocationService resolves common language from country code, country, or location text', function () {
@@ -165,4 +164,86 @@ test('locale switcher route persists preferred_locale for authenticated users', 
     $this->get(route('locale.switch', ['locale' => 'auto']));
     $user->refresh();
     expect($user->preferred_locale)->toBeNull();
+});
+
+test('user registers account and immediately sets preferred language', function () {
+    $response = $this->post(route('register.post'), [
+        'name' => 'Matteo Rossi',
+        'email' => 'matteo@example.com',
+        'password' => 'secret123',
+        'preferred_locale' => 'it',
+        'location' => 'Milan, Italy',
+    ]);
+
+    $response->assertRedirect(route('profile.show'));
+    $newUser = User::where('email', 'matteo@example.com')->first();
+    expect($newUser)->not->toBeNull();
+    expect($newUser->preferred_locale)->toBe('it');
+    expect(session('locale'))->toBe('it');
+    expect(app()->getLocale())->toBe('it');
+});
+
+test('every room automatically serves pre-translated messages in the user preferred language with options to switch', function () {
+    $user = User::create([
+        'name' => 'Elena Petrova',
+        'email' => 'elena@example.com',
+        'password' => Hash::make('password123'),
+        'role' => 'member',
+        'preferred_locale' => 'ru',
+    ]);
+
+    $room = Room::create([
+        'code' => 'RU-TEST-ROOM',
+        'name' => 'General Discussion',
+        'is_locked' => false,
+        'ephemeral_mode' => 'persistent',
+        'passcode_hash' => Hash::make('1234'),
+    ]);
+
+    $this->actingAs($user);
+
+    // Enter room
+    $this->withSession(["room_clearance_{$room->id}" => true]);
+
+    // Send a message in English
+    $postRes = $this->postJson(route('messages.store', ['room' => $room->code]), [
+        'content' => 'Welcome to our international conference.',
+    ]);
+    $postRes->assertStatus(200);
+
+    // User polls messages with target_lang=ru (their preferred language)
+    $fetchRes = $this->getJson(route('messages.index', ['room' => $room->code, 'target_lang' => 'ru']));
+    $fetchRes->assertStatus(200);
+    $data = $fetchRes->json('messages');
+    expect($data)->not->toBeEmpty();
+    expect($data[0]['auto_translated_lang'])->toBe('ru');
+    expect($data[0]['auto_translated_text'])->not->toBeNull();
+
+    // User can switch and translate to a different language (e.g. French)
+    $transRes = $this->postJson(route('messages.translate', ['room' => $room->code]), [
+        'message_id' => $data[0]['id'],
+        'target_lang' => 'fr',
+    ]);
+    $transRes->assertStatus(200);
+    $transData = $transRes->json();
+    expect($transData['success'])->toBeTrue();
+    expect($transData['target_lang'])->toBe('fr');
+    expect($transData['translated_text'])->not->toBeNull();
+
+    // User can change preferred language in profile to Italian
+    $profileRes = $this->postJson(route('profile.update'), [
+        'name' => 'Elena Petrova',
+        'email' => 'elena@example.com',
+        'preferred_locale' => 'it',
+    ]);
+    $profileRes->assertStatus(200);
+    $user->refresh();
+    expect($user->preferred_locale)->toBe('it');
+    expect(session('locale'))->toBe('it');
+
+    // Next room poll automatically uses Italian
+    $fetchResIt = $this->getJson(route('messages.index', ['room' => $room->code, 'target_lang' => $user->preferred_locale]));
+    $fetchResIt->assertStatus(200);
+    $dataIt = $fetchResIt->json('messages');
+    expect($dataIt[0]['auto_translated_lang'])->toBe('it');
 });

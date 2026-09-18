@@ -77,4 +77,3 @@ test('translation service handles empty string and cyrillic source text graceful
     expect($fromRussian['target_lang'])->toBe('en');
     expect($fromRussian['translated_text'])->toBe('Hello comrade');
 });
-

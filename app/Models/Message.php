@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Casts\SafeEncryptedCast;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Message extends Model
 {
@@ -15,6 +17,7 @@ class Message extends Model
      */
     protected $fillable = [
         'room_id',
+        'reply_to_id',
         'user_id',
         'sender_name',
         'sender_session_id',
@@ -32,6 +35,8 @@ class Message extends Model
         'latitude',
         'longitude',
         'is_burn_read',
+        'ttl_seconds',
+        'expires_at',
     ];
 
     /**
@@ -52,12 +57,73 @@ class Message extends Model
     protected function casts(): array
     {
         return [
+            'content' => SafeEncryptedCast::class,
             'is_admin' => 'boolean',
             'is_burn_read' => 'boolean',
+            'ttl_seconds' => 'integer',
+            'expires_at' => 'datetime',
             'latitude' => 'float',
             'longitude' => 'float',
             'attachment_size' => 'integer',
         ];
+    }
+
+    /**
+     * Get the parent message being replied to, if any.
+     */
+    public function replyTo(): BelongsTo
+    {
+        return $this->belongsTo(Message::class, 'reply_to_id');
+    }
+
+    /**
+     * Get replies to this message.
+     */
+    public function replies(): HasMany
+    {
+        return $this->hasMany(Message::class, 'reply_to_id');
+    }
+
+    /**
+     * Get all emoji reactions for this message.
+     */
+    public function reactions(): HasMany
+    {
+        return $this->hasMany(Reaction::class);
+    }
+
+    /**
+     * Get all individual operative views and timers for this message.
+     */
+    public function views(): HasMany
+    {
+        return $this->hasMany(MessageUserView::class);
+    }
+
+    /**
+     * Build aggregated reaction pills summary for the active viewer.
+     *
+     * @return list<array{emoji: string, count: int, has_reacted: bool}>
+     */
+    public function reactionsSummary(?string $sessionId, ?int $userId = null): array
+    {
+        $grouped = [];
+        foreach ($this->reactions as $reaction) {
+            $emoji = $reaction->emoji;
+            if (! isset($grouped[$emoji])) {
+                $grouped[$emoji] = [
+                    'emoji' => $emoji,
+                    'count' => 0,
+                    'has_reacted' => false,
+                ];
+            }
+            $grouped[$emoji]['count']++;
+            if (($sessionId && $reaction->session_id === $sessionId) || ($userId && $reaction->user_id === $userId)) {
+                $grouped[$emoji]['has_reacted'] = true;
+            }
+        }
+
+        return array_values($grouped);
     }
 
     /**
@@ -77,7 +143,7 @@ class Message extends Model
     }
 
     /**
-     * Get the public attachment URL.
+     * Get the authenticated streaming attachment URL.
      */
     protected function attachmentUrl(): Attribute
     {
@@ -85,6 +151,11 @@ class Message extends Model
             get: function (): ?string {
                 if (! $this->attachment_path) {
                     return null;
+                }
+
+                $roomCode = $this->room?->code;
+                if ($roomCode) {
+                    return route('messages.attachment', ['room' => $roomCode, 'message' => $this->id]);
                 }
 
                 return '/storage/'.ltrim($this->attachment_path, '/');
@@ -115,4 +186,3 @@ class Message extends Model
         );
     }
 }
-

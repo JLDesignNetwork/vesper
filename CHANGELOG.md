@@ -8,6 +8,57 @@ This project adheres to the **JLDN Generational Versioning Schema (GVS)** (`[YYM
 
 ## [Unreleased]
 
+## [2609.10.0-bs] - 2026-09-18
+
+### Added
+- **Dynamic Multilingual Email Template Engine (15 Languages)**:
+  - Upgraded the Email Templates manager (`/admin/emails`) to dynamically pull all 15 supported languages (`en`, `it`, `fr`, `ru`, `es`, `de`, `pt`, `ja`, `ko`, `zh`, `uz`, `ar`, `tr`, `nl`, `pl`) directly from `LanguageService`.
+  - Replaced hardcoded 4-language tabs with a responsive, horizontally-scrollable tab navigation bar displaying country flag emojis, uppercase language codes, native language names, and real-time custom override indicators.
+  - Upgraded the one-click auto-translation engine to translate from English into all 14 target languages simultaneously with variable token masking (`__VAR_X__`) to protect dynamic variable placeholders (`{{member_name}}`, `{{pin_code}}`, `{{channel_code}}`, etc.).
+  - Added full bidirectional (RTL) text direction support for Arabic (`ar`) across both the template editor inputs/textareas and HTML email preview rendering.
+  - Updated `AdminEmailController` and `EmailTemplateService` to dynamically validate against and default to `LanguageService::codes()`.
+- **Channel Access PIN in Email Dispatches**:
+  - Updated `ChannelInvitationNotification` and the `channel_invitation` email template to supply the channel's secret access PIN code, room code, and direct authenticated link.
+  - Enhanced the Admin channel invitation modal (`invite-channel.blade.php`) with a live PIN preview, custom recipient email input, and email dispatch toggle.
+- **Production SMTP & Real-Time Delivery**:
+  - Configured live production mail credentials and SSL SMTP delivery (`notifications@vesper.mytharios.com` via port 465).
+  - Streamlined live queue delivery for immediate, real-time email dispatch.
+- **Comprehensive Multi-Language Email Test Coverage**:
+  - Added test coverage in `tests/Feature/AdminEmailTemplatesTest.php` asserting all 15 language codes render in the admin interface and saving localized templates in non-legacy languages (e.g., Japanese `ja`).
+
+## [2609.9.0-bs] - 2026-09-13
+
+### Added
+- **Automated Channel Lifecycle & Self-Destruction Command (`vesper:channel-burn-check`)**:
+  - Implemented scheduled artisan command scanning all active channels past their TTL, permanently purging media attachments via `purgeAllMedia()`, and updating status to `destroyed`.
+  - Automated detection of channels expiring within $\le 2$ hours, dispatching `ChannelBurnWarningNotification` to subscribed channel operatives and administrators with deduplication caching.
+- **Executive Operations Intelligence Digest (`vesper:send-operations-digest`)**:
+  - Implemented scheduled artisan command compiling key platform telemetry (active channels, messages sent, total operatives) and dispatching formatted `AdminOperationsDigestNotification` emails to all registered administrators.
+- **SiteGround Production Hardening & Hosting Optimization**:
+  - Registered automated queue runner in `routes/console.php` (`queue:work --stop-when-empty`) allowing queued mailables to process on shared/cloud hosts (such as SiteGround) via standard cron without needing a persistent daemon supervisor.
+  - Added HTTPS scheme enforcement in `AppServiceProvider` when deployed in production or behind SSL reverse proxies (`https://vesper.mytharios.com`).
+  - Added detailed SiteGround configuration guidelines in `.env.example` covering MySQL database credentials and cron scheduling syntax.
+- **Complete Mailable Pipeline & Queue Integration**:
+  - Implemented `Illuminate\Contracts\Queue\ShouldQueue` across all tactical mailables (`NewMessageNotification`, `ChannelInvitationNotification`, `TwoFactorStatusNotification`, `OperativeWelcomeNotification`, `ChannelBurnWarningNotification`, `AdminOperationsDigestNotification`, `SecurityAlertNotification`) ensuring HTTP requests never block on SMTP connections.
+  - Wired direct operative invitations to dispatch `ChannelInvitationNotification` in `AdminController::createInvite`.
+  - Wired 2FA confirmation and deactivation to dispatch `TwoFactorStatusNotification` in `TwoFactorController`.
+  - Wired initial setup and OAuth onboarding to dispatch `OperativeWelcomeNotification`.
+- **Visibility-Aware Polling Optimization**:
+  - Added `document.visibilityState` listener to `/c/{room}` interface, automatically reducing polling frequency from 1.5s to 10s when tabs are backgrounded/minimized, and immediately restoring 1.5s frequency on focus.
+- **Comprehensive Lifecycle Test Suite**:
+  - Added `tests/Feature/ChannelLifecycleAndDigestTest.php` covering channel burning, warning dispatch, operational digests, invite dispatch, and 2FA notifications. Total tests expanded to **93 passing (537 assertions, 100% pass rate)**.
+
+### Fixed
+- **Role Inconsistency Normalization (`'operative'` vs `'member'`)**:
+  - Corrected `OAuthService::linkOrAuthenticate` to provision standard accounts with `'role' => 'member'` matching migration defaults, `User::isMember()` checks, and admin analytics queries.
+- **Admin Navigation Subpage Redirection**:
+  - Corrected channel creation, update, status toggle, purge, and invitation actions in `AdminController` to redirect to `admin.channels.index` rather than kicking administrators out to `admin.dashboard`.
+- **Message Polling N+1 Query & DB Write Churn**:
+  - Batch-resolved unlinked message authors in `MessageController::index` to prevent per-message author queries.
+  - Throttled `AccessLog::last_seen_at` updates to once per 30 seconds during active polling, eliminating database write locks from 1.5s poll loops.
+- **Dead Code Cleanup**:
+  - Removed orphaned legacy templates `resources/views/portal.blade.php` and `resources/views/welcome.blade.php`.
+
 ## [2609.8.0-bs] - 2026-09-05
 
 ### Added

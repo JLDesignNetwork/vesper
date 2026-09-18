@@ -5,12 +5,13 @@ namespace App\Mail;
 use App\Models\User;
 use App\Services\EmailTemplateService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class SecurityAlertNotification extends Mailable
+class SecurityAlertNotification extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
@@ -25,6 +26,7 @@ class SecurityAlertNotification extends Mailable
         $locale = $this->user->preferred_locale ?: app()->getLocale();
 
         return app(EmailTemplateService::class)->render('security_alert', [
+            'member_name' => $this->user->name,
             'operative_name' => $this->user->name,
             'event_description' => $this->eventDescription,
             'ip_address' => $this->ipAddress,
@@ -38,7 +40,7 @@ class SecurityAlertNotification extends Mailable
         $rendered = $this->getRendered();
 
         return new Envelope(
-            subject: $rendered['subject'] ?? __('Vesper // Critical Security Alert'),
+            subject: $rendered['subject'] ?? __('Vesper — Security Alert'),
         );
     }
 

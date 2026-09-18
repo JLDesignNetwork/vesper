@@ -26,10 +26,10 @@ class SocialAuthController extends Controller
             // If in local development and not configured, provide clear instruction
             if (app()->environment('local')) {
                 return redirect()->route('login')->withErrors([
-                    'login' => __(":provider credentials not configured in .env. Please set :id and :secret.", [
+                    'login' => __(':provider credentials not configured in .env. Please set :id and :secret.', [
                         'provider' => ucfirst($provider),
-                        'id' => strtoupper($provider) . '_CLIENT_ID',
-                        'secret' => strtoupper($provider) . '_CLIENT_SECRET',
+                        'id' => strtoupper($provider).'_CLIENT_ID',
+                        'secret' => strtoupper($provider).'_CLIENT_SECRET',
                     ]),
                 ]);
             }

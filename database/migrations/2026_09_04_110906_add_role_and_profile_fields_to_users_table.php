@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -20,7 +21,7 @@ return new class extends Migration
         });
 
         // Ensure any existing administrator accounts are explicitly marked with admin role
-        \Illuminate\Support\Facades\DB::table('users')->update(['role' => 'admin']);
+        DB::table('users')->update(['role' => 'admin']);
     }
 
     /**
@@ -33,4 +34,3 @@ return new class extends Migration
         });
     }
 };
-

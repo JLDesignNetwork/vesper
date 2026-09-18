@@ -1,18 +1,26 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ \App\Services\LanguageService::getDirection(app()->getLocale()) }}" class="dark">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $room->title ?: $room->code }} // {{ __('Vesper Private Communications') }}</title>
 
+    <!-- PWA & Mobile Meta -->
+    <meta name="theme-color" content="#020617">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.json">
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
-    <!-- Leaflet CSS for Intel Radar Map -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    @if($isAdmin)
+        <!-- Leaflet CSS for Intel Radar Map -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    @endif
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -108,8 +116,9 @@
                     </span>
                     @if($room->expires_at)
                         <span class="hidden md:inline text-slate-500">•</span>
-                        <span class="hidden md:inline text-amber-400/90" title="{{ $room->expires_at }}">
-                            {{ __('Auto-Destruct') }}: {{ $room->expires_at->diffForHumans(['parts' => 1]) }}
+                        <span id="room-countdown-badge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400/90 text-[11px] font-mono transition-colors" data-expires="{{ $room->expires_at->toIso8601String() }}" title="{{ __('Channel Expiration Time') }}: {{ $room->expires_at->toIso8601String() }}">
+                            <svg class="w-3 h-3 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span id="room-countdown-text">{{ __('Expires') }}: {{ $room->expires_at->diffForHumans(['parts' => 1]) }}</span>
                         </span>
                     @endif
                 </div>
@@ -118,24 +127,6 @@
 
         <!-- Header Actions -->
         <div class="flex items-center gap-2 font-mono">
-            <!-- Language Switcher (Scoped to Channel's Assigned Languages) -->
-            @php
-                $supportedMap = ['en' => 'EN', 'ru' => 'RU', 'fr' => 'FR', 'it' => 'IT'];
-                $channelAllowedLangs = $room->effectiveAllowedLanguages();
-            @endphp
-            <div class="flex items-center gap-1 bg-slate-900 border border-slate-800 p-1 rounded-lg text-xs">
-                @foreach($supportedMap as $code => $label)
-                    @if(in_array($code, $channelAllowedLangs, true))
-                        <a
-                            href="{{ route('locale.switch', ['locale' => $code]) }}"
-                            class="px-2 py-0.5 rounded transition-all {{ app()->getLocale() === $code ? 'bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40' : 'text-slate-400 hover:text-white' }}"
-                        >
-                            {{ $label }}
-                        </a>
-                    @endif
-                @endforeach
-            </div>
-
             <!-- Profile Settings Button (if authenticated) -->
             @if(Auth::check())
                 <button
@@ -157,6 +148,19 @@
                 </button>
             @endif
 
+            <!-- In-Room Search Toggle (Ctrl+K) -->
+            <button
+                type="button"
+                id="search-toggle-btn"
+                onclick="toggleSearchModal()"
+                class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer"
+                title="{{ __('Search transmissions (Ctrl+K)') }}"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </button>
+
             <!-- Audio chime toggle -->
             <button
                 type="button"
@@ -174,17 +178,19 @@
                 </svg>
             </button>
 
-            <!-- Intel Radar Drawer Toggle -->
-            <button
-                type="button"
-                onclick="toggleRadar()"
-                class="px-2.5 sm:px-3 py-1.5 rounded-lg bg-cyan-950/40 border border-cyan-500/30 hover:bg-cyan-900/40 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-[0_0_12px_rgba(6,182,212,0.15)] cursor-pointer"
-                title="{{ __('INTEL RADAR') }}"
-            >
-                <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-                <span class="hidden sm:inline">{{ __('INTEL RADAR') }}</span>
-                <span class="sm:hidden">{{ __('RADAR') }}</span>
-            </button>
+            <!-- Network Map Drawer Toggle (Admin Only) -->
+            @if($isAdmin)
+                <button
+                    type="button"
+                    onclick="toggleRadar()"
+                    class="px-2.5 sm:px-3 py-1.5 rounded-lg bg-cyan-950/40 border border-cyan-500/30 hover:bg-cyan-900/40 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-[0_0_12px_rgba(6,182,212,0.15)] cursor-pointer"
+                    title="{{ __('NETWORK MAP') }}"
+                >
+                    <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                    <span class="hidden sm:inline">{{ __('NETWORK MAP') }}</span>
+                    <span class="sm:hidden">{{ __('MAP') }}</span>
+                </button>
+            @endif
 
             <!-- Lock Session -->
             <form action="{{ route('rooms.lock', ['room' => $room->code]) }}" method="POST">
@@ -200,17 +206,17 @@
                 </button>
             </form>
 
-            <!-- Emergency Nuke / Self-Destruct -->
+            <!-- Purge Channel -->
             <button
                 type="button"
                 onclick="openNukeModal()"
                 class="px-2.5 sm:px-3 py-1.5 rounded-lg bg-rose-950/50 border border-rose-500/40 hover:bg-rose-900/50 text-rose-300 text-xs font-bold flex items-center gap-1 transition-all shadow-[0_0_12px_rgba(244,63,94,0.15)] cursor-pointer"
-                title="{{ __('NUKE') }}"
+                title="{{ __('PURGE CHANNEL') }}"
             >
                 <svg class="w-3.5 h-3.5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
-                <span class="hidden sm:inline">{{ __('NUKE') }}</span>
+                <span class="hidden sm:inline">{{ __('PURGE') }}</span>
             </button>
         </div>
     </header>
@@ -229,6 +235,22 @@
 
         <!-- Chat Stream Panel -->
         <div class="flex-1 flex flex-col min-w-0 bg-[#06080d] relative">
+
+            <!-- Pinned Channel Briefing Banner -->
+            <div id="pinned-briefing-banner" class="hidden px-4 py-2.5 bg-gradient-to-r from-amber-950/60 via-slate-900/90 to-amber-950/60 border-b border-amber-500/30 backdrop-blur-md flex items-center justify-between text-xs font-mono text-amber-200 z-10 shrink-0">
+                <div class="flex items-center gap-2.5 min-w-0 cursor-pointer flex-1" onclick="jumpToPinnedMessage()">
+                    <span class="p-1 rounded bg-amber-500/20 text-amber-400 shrink-0 text-xs">📌</span>
+                    <div class="min-w-0 truncate">
+                        <span class="font-bold text-amber-300 uppercase tracking-wider text-[10px]">{{ __('PINNED BRIEFING') }}:</span>
+                        <span id="pinned-author" class="text-amber-100 font-semibold ml-1"></span>
+                        <span id="pinned-text" class="text-amber-200/90 ml-1 truncate"></span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0 ml-2">
+                    <button type="button" onclick="jumpToPinnedMessage()" class="text-[11px] text-amber-400 hover:text-amber-300 underline font-semibold">{{ __('VIEW') }}</button>
+                    <button type="button" onclick="unpinCurrentMessage()" class="p-1 rounded text-amber-400/60 hover:text-amber-300 hover:bg-amber-900/40" title="{{ __('Unpin Briefing') }}">✕</button>
+                </div>
+            </div>
 
             <!-- Message Stream Area -->
             <div id="message-stream" class="flex-1 overflow-y-auto chat-scroll p-4 sm:p-6 space-y-4 select-text">
@@ -277,6 +299,31 @@
 
             <!-- Input Bar -->
             <div class="p-3 sm:p-4 bg-slate-950/90 border-t border-slate-800/80 backdrop-blur-md shrink-0">
+                <!-- Quoted Reply Preview Bar -->
+                <div id="reply-preview-bar" class="hidden max-w-5xl mx-auto mb-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-emerald-500/30 flex items-center justify-between font-mono text-xs text-slate-300">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="text-emerald-400 font-bold">↩</span>
+                        <span class="text-slate-400 text-[11px]">{{ __('Replying to') }}</span>
+                        <strong id="reply-sender-name" class="text-emerald-300 truncate"></strong>
+                        <span class="text-slate-500">•</span>
+                        <span id="reply-snippet-text" class="text-slate-400 truncate text-[11px]"></span>
+                    </div>
+                    <button type="button" onclick="cancelReply()" class="p-1 text-slate-400 hover:text-rose-400 rounded transition-colors" title="{{ __('Cancel reply') }}">✕</button>
+                </div>
+
+                <!-- Voice Note Active Recording Bar -->
+                <div id="voice-recording-bar" class="hidden max-w-5xl mx-auto mb-2 px-4 py-2 rounded-xl bg-rose-950/80 border border-rose-500/50 flex items-center justify-between font-mono text-xs text-rose-200">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+                        <span class="font-bold tracking-wider text-rose-300">{{ __('RECORDING VOICE NOTE') }}</span>
+                        <span id="recording-timer" class="font-bold text-white bg-rose-900/60 px-2 py-0.5 rounded">00:00</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="cancelAudioRecording()" class="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 hover:text-rose-300 text-xs transition-colors">{{ __('Cancel') }}</button>
+                        <button type="button" onclick="stopAndSendAudioRecording()" class="px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition-colors">{{ __('Send Voice') }}</button>
+                    </div>
+                </div>
+
                 <form id="message-form" onsubmit="sendMessage(event)" class="flex items-end gap-2 max-w-5xl mx-auto">
                     <!-- File upload trigger -->
                     <label
@@ -296,6 +343,59 @@
                             onchange="handleFileSelected(this)"
                         >
                     </label>
+
+                    <!-- Voice Note Recorder Button -->
+                    <button
+                        type="button"
+                        id="mic-btn"
+                        onclick="toggleAudioRecording()"
+                        class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-rose-500/50 hover:bg-slate-800 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer shrink-0 flex items-center justify-center"
+                        title="{{ __('Record Voice Note') }}"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
+                    </button>
+
+                    <!-- TTL / Self-Destruct Timer Dropdown -->
+                    <div class="relative shrink-0">
+                        <button
+                            type="button"
+                            id="ttl-btn"
+                            onclick="toggleTtlMenu()"
+                            class="relative p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-amber-400 transition-colors flex items-center justify-center cursor-pointer"
+                            title="{{ __('Self-Destruct Timer') }}"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span id="ttl-indicator" class="hidden absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full border-2 border-slate-950"></span>
+                        </button>
+                        <!-- TTL Menu -->
+                        <div id="ttl-menu" class="hidden absolute bottom-full mb-2 left-0 w-36 bg-slate-900 border border-slate-800 rounded-xl p-1 shadow-xl font-mono text-xs z-30 space-y-0.5">
+                            <div class="px-2 py-1 text-[10px] text-slate-500 uppercase font-bold">{{ __('Auto-Destruct') }}</div>
+                            <button type="button" onclick="setTtl(0, 'Off')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-between cursor-pointer">
+                                <span>{{ __('Off') }}</span>
+                                <span id="ttl-check-0" class="text-emerald-400 text-xs">✓</span>
+                            </button>
+                            <button type="button" onclick="setTtl(30, '30s')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-between cursor-pointer">
+                                <span>30 {{ __('sec') }}</span>
+                                <span id="ttl-check-30" class="text-emerald-400 text-xs hidden">✓</span>
+                            </button>
+                            <button type="button" onclick="setTtl(300, '5m')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-between cursor-pointer">
+                                <span>5 {{ __('min') }}</span>
+                                <span id="ttl-check-300" class="text-emerald-400 text-xs hidden">✓</span>
+                            </button>
+                            <button type="button" onclick="setTtl(3600, '1h')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-between cursor-pointer">
+                                <span>1 {{ __('hour') }}</span>
+                                <span id="ttl-check-3600" class="text-emerald-400 text-xs hidden">✓</span>
+                            </button>
+                            <button type="button" onclick="setTtl(86400, '24h')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-between cursor-pointer">
+                                <span>24 {{ __('hours') }}</span>
+                                <span id="ttl-check-86400" class="text-emerald-400 text-xs hidden">✓</span>
+                            </button>
+                        </div>
+                    </div>
 
                     <!-- Text Message Input -->
                     <div class="flex-1 min-w-0 relative">
@@ -325,13 +425,14 @@
             </div>
         </div>
 
-        <!-- Intel Radar Slide-over Drawer -->
+        <!-- Intel Radar Slide-over Drawer (Admin Only) -->
+        @if($isAdmin)
         <aside id="radar-drawer" class="fixed inset-y-0 right-0 w-full sm:w-[440px] bg-slate-950/95 border-l border-slate-800 backdrop-blur-xl z-30 transform translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
-            <!-- Radar Header -->
+            <!-- Map Header -->
             <div class="p-4 border-b border-slate-800 flex items-center justify-between font-mono shrink-0">
                 <div class="flex items-center gap-2">
                     <div class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></div>
-                    <h2 class="font-bold text-sm text-cyan-300 tracking-wider">{{ __('GEOSPATIAL INTEL RADAR') }}</h2>
+                    <h2 class="font-bold text-sm text-cyan-300 tracking-wider">{{ __('GEOSPATIAL NETWORK MAP') }}</h2>
                 </div>
                 <button
                     type="button"
@@ -344,22 +445,22 @@
                 </button>
             </div>
 
-            <!-- Radar Content -->
+            <!-- Map Content -->
             <div class="flex-1 overflow-y-auto chat-scroll p-4 space-y-4">
                 <!-- Interactive Leaflet Map -->
                 <div class="rounded-xl overflow-hidden border border-slate-800 relative">
                     <div id="intel-map" class="w-full h-56 bg-slate-900"></div>
                     <div class="absolute top-2 left-2 z-[400] bg-slate-950/80 border border-slate-700/80 px-2 py-1 rounded text-[10px] font-mono text-cyan-300 flex items-center gap-1.5 backdrop-blur-sm">
                         <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                        <span>{{ __('LIVE SATELLITE PLOT') }}</span>
+                        <span>{{ __('LIVE LOCATION MAP') }}</span>
                     </div>
                 </div>
 
                 <!-- GPS Enhancement Action -->
                 <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between font-mono text-xs">
                     <div>
-                        <div class="font-semibold text-white">{{ __('Browser GPS Coordinates') }}</div>
-                        <div class="text-[11px] text-slate-400">{{ __('Transmit exact device latitude & longitude') }}</div>
+                        <div class="font-semibold text-white">{{ __('Browser GPS Location') }}</div>
+                        <div class="text-[11px] text-slate-400">{{ __('Share device latitude & longitude') }}</div>
                     </div>
                     <button
                         type="button"
@@ -371,10 +472,10 @@
                     </button>
                 </div>
 
-                <!-- Active Operatives List -->
+                <!-- Active Members List -->
                 <div>
                     <div class="font-mono text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
-                        <span>{{ __('Connected Nodes') }} (<span id="operatives-count">0</span>)</span>
+                        <span>{{ __('Connected Members') }} (<span id="operatives-count">0</span>)</span>
                         <button type="button" onclick="loadRadarData()" class="text-[10px] text-cyan-400 hover:text-cyan-300">{{ __('Refresh') }}</button>
                     </div>
                     <div id="operatives-list" class="space-y-2">
@@ -393,6 +494,41 @@
                 </div>
             </div>
         </aside>
+        @endif
+    </div>
+
+    <!-- In-Room Search Modal (Ctrl+K) -->
+    <div id="search-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex flex-col items-center justify-start pt-16 sm:pt-24 p-4" onclick="closeSearchModal()">
+        <div class="w-full max-w-xl bg-slate-900/95 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col font-mono" onclick="event.stopPropagation()">
+            <div class="p-3.5 border-b border-slate-800 flex items-center gap-3 bg-slate-950/70">
+                <svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                    type="text"
+                    id="search-input"
+                    placeholder="{{ __('Search room messages by alias, text, or file... (Esc to close)') }}"
+                    class="w-full bg-transparent border-none text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-0 font-sans"
+                    oninput="handleSearchInput(this.value)"
+                >
+                <kbd class="hidden sm:inline-block px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-[10px] text-slate-400">ESC</kbd>
+                <button type="button" onclick="closeSearchModal()" class="p-1 text-slate-400 hover:text-white sm:hidden">✕</button>
+            </div>
+            <div id="search-results-list" class="max-h-80 overflow-y-auto chat-scroll p-2 space-y-1.5 divide-y divide-slate-800/40 font-sans">
+                <div class="py-8 text-center text-xs text-slate-500 font-mono">{{ __('Type to search room transmissions...') }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Reaction Picker Popover -->
+    <div id="reaction-picker-popover" class="fixed hidden z-50 bg-slate-900/95 border border-slate-700/80 rounded-2xl p-1.5 shadow-2xl backdrop-blur-md flex items-center gap-1">
+        <button type="button" onclick="selectReactionEmoji('👍')" class="w-8 h-8 flex items-center justify-center hover:bg-slate-800 rounded-xl text-lg hover:scale-125 transition-transform cursor-pointer" title="Thumbs Up">👍</button>
+        <button type="button" onclick="selectReactionEmoji('❤️')" class="w-8 h-8 flex items-center justify-center hover:bg-slate-800 rounded-xl text-lg hover:scale-125 transition-transform cursor-pointer" title="Heart">❤️</button>
+        <button type="button" onclick="selectReactionEmoji('🔥')" class="w-8 h-8 flex items-center justify-center hover:bg-slate-800 rounded-xl text-lg hover:scale-125 transition-transform cursor-pointer" title="Fire">🔥</button>
+        <button type="button" onclick="selectReactionEmoji('🚀')" class="w-8 h-8 flex items-center justify-center hover:bg-slate-800 rounded-xl text-lg hover:scale-125 transition-transform cursor-pointer" title="Rocket">🚀</button>
+        <button type="button" onclick="selectReactionEmoji('👀')" class="w-8 h-8 flex items-center justify-center hover:bg-slate-800 rounded-xl text-lg hover:scale-125 transition-transform cursor-pointer" title="Eyes">👀</button>
+        <button type="button" onclick="selectReactionEmoji('🤫')" class="w-8 h-8 flex items-center justify-center hover:bg-slate-800 rounded-xl text-lg hover:scale-125 transition-transform cursor-pointer" title="Shh / Classified">🤫</button>
+        <button type="button" onclick="selectReactionEmoji('🎯')" class="w-8 h-8 flex items-center justify-center hover:bg-slate-800 rounded-xl text-lg hover:scale-125 transition-transform cursor-pointer" title="Target">🎯</button>
     </div>
 
     <!-- Media Lightbox Modal -->
@@ -434,7 +570,7 @@
         </div>
     </div>
 
-    <!-- Emergency Nuke Confirmation Modal -->
+    <!-- Channel Data Purge Confirmation Modal -->
     <div id="nuke-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
         <div class="w-full max-w-md bg-slate-900 border border-rose-500/50 rounded-2xl p-6 shadow-[0_0_30px_rgba(244,63,94,0.3)] font-mono space-y-4">
             <div class="flex items-center gap-3 text-rose-400">
@@ -444,16 +580,16 @@
                     </svg>
                 </div>
                 <div>
-                    <h3 class="font-bold text-base text-white tracking-wider">{{ __('CONFIRM EMERGENCY NUKE') }}</h3>
-                    <p class="text-[11px] text-rose-400">{{ __('Irreversible Self-Destruct Action') }}</p>
+                    <h3 class="font-bold text-base text-white tracking-wider">{{ __('CONFIRM CHANNEL DATA PURGE') }}</h3>
+                    <p class="text-[11px] text-rose-400">{{ __('Irreversible Action') }}</p>
                 </div>
             </div>
 
             <p class="text-xs text-slate-300 leading-relaxed">
-                {{ __('Executing the Emergency Nuke will immediately:') }}
+                {{ __('Purging this channel will immediately:') }}
             </p>
             <ul class="text-xs text-slate-400 list-disc list-inside space-y-1 text-[11px]">
-                <li>{{ __('Permanently wipe and destroy this channel') }} (<strong class="text-white">{{ $room->code }}</strong>)</li>
+                <li>{{ __('Permanently delete this channel') }} (<strong class="text-white">{{ $room->code }}</strong>)</li>
                 <li>{{ __('Permanently delete every message and conversation') }}</li>
                 <li>{{ __('Purge and erase all shared images, videos, and files from storage') }}</li>
                 <li>{{ __('Revoke access tokens for all active participants') }}</li>
@@ -680,15 +816,10 @@
                             </label>
                             @php
                                 $detectedLang = Auth::user()->resolveLocationLocale();
-                                $langMap = [
-                                    'en' => 'English (EN)',
-                                    'ru' => 'Russian (RU)',
-                                    'fr' => 'French (FR)',
-                                    'it' => 'Italian (IT)',
-                                ];
+                                $supportedRoomLangs = \App\Services\LanguageService::supported();
                             @endphp
                             <span class="text-[10px] font-mono text-emerald-400/80">
-                                {{ __('Detected') }}: {{ $langMap[$detectedLang] ?? strtoupper($detectedLang) }}
+                                {{ __('Detected') }}: {{ $supportedRoomLangs[$detectedLang]['name'] ?? strtoupper($detectedLang) }}
                             </span>
                         </div>
                         <select
@@ -696,20 +827,13 @@
                             class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-xs focus:outline-none focus:border-emerald-500 font-sans cursor-pointer"
                         >
                             <option value="auto" {{ empty(Auth::user()->preferred_locale) ? 'selected' : '' }}>
-                                🌐 {{ __('Auto-detect from Registered Location') }} ({{ $langMap[$detectedLang] ?? strtoupper($detectedLang) }})
+                                🌐 {{ __('Auto-detect from Registered Location') }} ({{ $supportedRoomLangs[$detectedLang]['name'] ?? strtoupper($detectedLang) }})
                             </option>
-                            <option value="en" {{ Auth::user()->preferred_locale === 'en' ? 'selected' : '' }}>
-                                🇬🇧 English (EN)
-                            </option>
-                            <option value="ru" {{ Auth::user()->preferred_locale === 'ru' ? 'selected' : '' }}>
-                                🇷🇺 Russian (RU) - Русский
-                            </option>
-                            <option value="fr" {{ Auth::user()->preferred_locale === 'fr' ? 'selected' : '' }}>
-                                🇫🇷 French (FR) - Français
-                            </option>
-                            <option value="it" {{ Auth::user()->preferred_locale === 'it' ? 'selected' : '' }}>
-                                🇮🇹 Italian (IT) - Italiano
-                            </option>
+                            @foreach($supportedRoomLangs as $code => $lang)
+                                <option value="{{ $code }}" {{ Auth::user()->preferred_locale === $code ? 'selected' : '' }}>
+                                    {{ $lang['flag'] }} {{ $lang['name'] }} ({{ strtoupper($code) }}) - {{ $lang['native'] }}
+                                </option>
+                            @endforeach
                         </select>
                         <p class="text-[10px] text-slate-400 leading-snug">
                             {{ __('Selecting a preferred language overrides your registered location language across all devices.') }}
@@ -959,7 +1083,7 @@
             <!-- Step 1: Scan QR Code & Confirm -->
             <div id="two-factor-step-1" class="space-y-4">
                 <p class="text-xs text-slate-400">
-                    {{ __('Scan this QR code with Apple Passwords (iCloud Keychain), Google Authenticator, or 1Password to bind your operative identity.') }}
+                    {{ __('Scan this QR code with Apple Passwords (iCloud Keychain), Google Authenticator, or 1Password to bind your security identity.') }}
                 </p>
 
                 <div id="two-factor-setup-alert" class="hidden p-2.5 rounded-xl text-xs font-mono"></div>
@@ -1081,23 +1205,29 @@
         </div>
     </div>
 
-    <!-- Leaflet JS for Intel Radar -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    @if($isAdmin)
+        <!-- Leaflet JS for Intel Radar -->
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    @endif
 
     <script>
         // Configuration and State
         const ROOM_CODE = "{{ $room->code }}";
         const SESSION_ID = "{{ $sessionId }}";
         const CURRENT_LOCALE = "{{ app()->getLocale() }}";
+        const USER_PREFERRED_LOCALE = "{{ $userPreferredLocale ?? (Auth::user()?->effectiveLocale() ?? app()->getLocale()) }}";
+        const IS_ADMIN = {{ $isAdmin ? 'true' : 'false' }};
         const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         const ALLOWED_LANGUAGES = @json($room->effectiveAllowedLanguages());
         const CURRENT_USER_NAME = @json(Auth::user()?->name);
+        const FLAG_MAP = @json(collect(\App\Services\LanguageService::supported())->mapWithKeys(fn($l, $k) => [$k => $l['flag']]));
 
         // Client localization strings
         const I18N = {
             active: "{{ __('Active') }}",
             expand: "{{ __('EXPAND') }}",
             expandVideo: "{{ __('Expand Video') }}",
+            translation: "{{ __('TRANSLATION') }}",
             translate: "{{ __('Translate') }}",
             translating: "{{ __('Translating...') }}",
             original: "{{ __('Original') }}",
@@ -1107,13 +1237,27 @@
             viewProfile: "{{ __('Click to view profile') }}",
             commandCenter: "{{ __('Command Center') }}",
             localNetwork: "{{ __('Local Network') }}",
-            noOperatives: "{{ __('No active operatives detected.') }}",
+            noOperatives: "{{ __('No active members detected.') }}",
             justNow: "{{ __('Just now') }}",
             syncSuccess: "{{ __('✓ GPS SYNCED') }}",
             acquiring: "{{ __('ACQUIRING...') }}",
             closeLightbox: "{{ __('Close Lightbox (Esc)') }}",
             locationHidden: "{{ __('Location Hidden') }}",
-            hidden: "{{ __('Hidden') }}"
+            hidden: "{{ __('Hidden') }}",
+            classifiedMedia: "{{ __('CLASSIFIED MEDIA • TAP TO REVEAL') }}",
+            reblurMedia: "{{ __('Re-blur Media') }}",
+            downloadMedia: "{{ __('Download Media') }}",
+            reply: "{{ __('Reply') }}",
+            pin: "{{ __('Pin Briefing') }}",
+            unpin: "{{ __('Unpin Briefing') }}",
+            pinnedBriefing: "{{ __('PINNED BRIEFING') }}",
+            view: "{{ __('VIEW') }}",
+            copyCode: "{{ __('Copy') }}",
+            copied: "{{ __('✓ Copied') }}",
+            voiceNote: "{{ __('Voice Note') }}",
+            recordingVoice: "{{ __('RECORDING VOICE NOTE') }}",
+            sendVoice: "{{ __('Send Voice') }}",
+            cancel: "{{ __('Cancel') }}"
         };
 
         const GENDER_LABELS = {
@@ -1131,6 +1275,18 @@
         let mapMarkers = [];
         let radarOpen = false;
         let selectedFile = null;
+
+        // Tactical Suite State
+        let replyingTo = null;
+        let selectedTtl = 0;
+        let activeReactionMsgId = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordingTimerInterval = null;
+        let recordingSeconds = 0;
+        let loadedMessages = new Map();
+        let pinnedMessage = null;
+        let revealedMediaSet = new Set();
 
         // Initialize Web Audio API synthesizer chimes
         function getAudioContext() {
@@ -1194,7 +1350,7 @@
             isPolling = true;
 
             try {
-                const res = await fetch(`/c/${encodeURIComponent(ROOM_CODE)}/messages?after_id=${lastMessageId}`, {
+                const res = await fetch(`/c/${encodeURIComponent(ROOM_CODE)}/messages?after_id=${lastMessageId}&target_lang=${encodeURIComponent(USER_PREFERRED_LOCALE)}`, {
                     headers: { 'Accept': 'application/json' }
                 });
 
@@ -1212,10 +1368,28 @@
 
                 if (res.ok) {
                     const data = await res.json();
+
+                    if (data.pinned_message !== undefined) {
+                        updatePinnedBriefing(data.pinned_message);
+                    }
+
                     if (data.messages && data.messages.length > 0) {
                         let hasIncoming = false;
                         data.messages.forEach(msg => {
-                            if (msg.id > lastMessageId) {
+                            loadedMessages.set(msg.id, msg);
+                            if (document.getElementById(`msg-${msg.id}`)) {
+                                updateMessageReactions(msg.id, msg.reactions);
+                                if (msg.expires_at) {
+                                    const pill = document.getElementById(`ttl-pill-${msg.id}`);
+                                    if (pill && !pill.classList.contains('ttl-countdown')) {
+                                        pill.className = 'ttl-countdown text-amber-400 font-mono text-[10px] flex items-center gap-1 bg-amber-950/50 px-1.5 py-0.5 rounded border border-amber-500/30 mr-auto';
+                                        pill.dataset.expires = msg.expires_at;
+                                        pill.innerHTML = `<span class="text-[9px]">⏳</span><span class="ttl-val">...</span>`;
+                                    } else if (pill && pill.dataset.expires !== msg.expires_at) {
+                                        pill.dataset.expires = msg.expires_at;
+                                    }
+                                }
+                            } else {
                                 appendMessage(msg);
                                 lastMessageId = Math.max(lastMessageId, msg.id);
                                 if (!msg.is_self) {
@@ -1241,13 +1415,96 @@
             }
         }
 
+        // Markdown Formatting & Syntax Highlighter
+        function formatTacticalMarkdown(rawText) {
+            if (!rawText) return '';
+            let escaped = escapeHtml(rawText);
+
+            // Multi-line code blocks
+            escaped = escaped.replace(/```([a-zA-Z0-9_\-]*)\n?([\s\S]*?)```/g, (match, lang, code) => {
+                const blockId = 'cb-' + Math.random().toString(36).substring(2, 9);
+                return `<div class="my-2 rounded-xl overflow-hidden border border-slate-700/70 bg-slate-950 font-mono text-xs">
+                    <div class="px-3 py-1.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                        <span class="uppercase tracking-wider font-semibold text-emerald-400">${lang || 'CODE'}</span>
+                        <button type="button" onclick="copyCodeBlock('${blockId}', this)" class="text-[10px] hover:text-white px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 flex items-center gap-1 transition-colors cursor-pointer">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                            <span>${I18N.copyCode}</span>
+                        </button>
+                    </div>
+                    <pre class="p-3 text-slate-200 overflow-x-auto select-text font-mono leading-relaxed"><code id="${blockId}">${code.trim()}</code></pre>
+                </div>`;
+            });
+
+            // Inline code: `code`
+            escaped = escaped.replace(/`([^`\n]+)`/g, '<code class="px-1.5 py-0.5 rounded bg-slate-800/90 text-emerald-300 font-mono text-[12px] border border-slate-700/50">$1</code>');
+
+            // Bold: **text**
+            escaped = escaped.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold text-white">$1</strong>');
+
+            // Italic: *text*
+            escaped = escaped.replace(/(^|[^*])\*([^*]+)\*/g, '$1<em class="italic text-slate-200">$2</em>');
+
+            // Strikethrough: ~~text~~
+            escaped = escaped.replace(/~~([^~]+)~~/g, '<del class="line-through opacity-70">$1</del>');
+
+            // Safe Auto-links: http/https
+            escaped = escaped.replace(/(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-cyan-400 underline hover:text-cyan-300 break-all">$1</a>');
+
+            return escaped;
+        }
+
+        function copyCodeBlock(id, btn) {
+            const codeEl = document.getElementById(id);
+            if (!codeEl) return;
+            const text = codeEl.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                const original = btn.innerHTML;
+                btn.innerHTML = `<span class="text-emerald-400 font-bold">${I18N.copied}</span>`;
+                setTimeout(() => { btn.innerHTML = original; }, 1500);
+            });
+        }
+
+        // Media Blur & Reveal Handlers
+        function revealMedia(msgId, e) {
+            if (e) e.stopPropagation();
+            revealedMediaSet.add(msgId);
+            const wrap = document.getElementById(`media-wrap-${msgId}`);
+            const shield = document.getElementById(`media-shield-${msgId}`);
+            const actions = document.getElementById(`media-actions-${msgId}`);
+            if (wrap) wrap.classList.remove('filter', 'blur-lg', 'select-none');
+            if (shield) shield.classList.add('hidden');
+            if (actions) actions.classList.remove('hidden');
+        }
+
+        function reblurMedia(msgId, e) {
+            if (e) e.stopPropagation();
+            revealedMediaSet.delete(msgId);
+            const wrap = document.getElementById(`media-wrap-${msgId}`);
+            const shield = document.getElementById(`media-shield-${msgId}`);
+            const actions = document.getElementById(`media-actions-${msgId}`);
+            if (wrap) wrap.classList.add('filter', 'blur-lg', 'select-none');
+            if (shield) shield.classList.remove('hidden');
+            if (actions) actions.classList.add('hidden');
+        }
+
+        function handleMediaClick(msgId, url, type, name) {
+            if (!revealedMediaSet.has(msgId)) {
+                revealMedia(msgId);
+            } else {
+                openLightbox(url, type, name);
+            }
+        }
+
         // Render Message Card in DOM
         function appendMessage(msg) {
+            if (!msg || !msg.id) return;
+            if (document.getElementById(`msg-${msg.id}`)) return;
+            loadedMessages.set(msg.id, msg);
             const container = document.getElementById('messages-list');
             const isSelf = msg.is_self;
 
             const wrapper = document.createElement('div');
-            wrapper.className = `flex flex-col ${isSelf ? 'items-end' : 'items-start'} mb-3 transition-opacity duration-300`;
+            wrapper.className = `group flex flex-col ${isSelf ? 'items-end' : 'items-start'} mb-3 transition-all duration-300 relative`;
             wrapper.id = `msg-${msg.id}`;
 
             // Meta line above bubble
@@ -1305,98 +1562,149 @@
 
             let bubbleContent = '';
 
+            // Quoted Reply Preview
+            if (msg.reply_to) {
+                bubbleContent += `
+                    <div class="mb-2 p-2 rounded-xl bg-black/40 border-l-2 border-emerald-400 text-xs font-mono cursor-pointer hover:bg-black/60 transition-colors" onclick="jumpToMessage(${msg.reply_to.id})">
+                        <div class="text-emerald-400 text-[10px] font-bold flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                            <span>${escapeHtml(msg.reply_to.sender_name)}</span>
+                        </div>
+                        <div class="text-slate-300 text-[11px] truncate mt-0.5">${escapeHtml(msg.reply_to.snippet)}</div>
+                    </div>
+                `;
+            }
+
             // Render Attachment
             if (msg.attachment_url) {
                 const mediaUrl = normalizeAttachmentUrl(msg.attachment_url);
                 const mediaName = msg.attachment_name || 'attachment';
+                const dlUrl = mediaUrl + (mediaUrl.includes('?') ? '&' : '?') + 'download=1';
+                const isRevealed = revealedMediaSet.has(msg.id);
 
                 if (msg.attachment_type === 'image') {
                     bubbleContent += `
-                        <div
-                            class="mb-2 rounded-xl overflow-hidden cursor-pointer group relative border border-white/10 bg-black/40"
-                            onclick="openLightbox(this.dataset.url, 'image', this.dataset.name)"
-                            data-url="${escapeHtml(mediaUrl)}"
-                            data-name="${escapeHtml(mediaName)}"
-                        >
-                            <img src="${escapeHtml(mediaUrl)}" alt="${escapeHtml(mediaName)}" class="max-h-80 w-auto rounded-lg object-cover transition-transform group-hover:scale-105 duration-200">
-                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-mono gap-1">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
-                                <span>${I18N.expand}</span>
+                        <div class="mb-2 relative rounded-xl overflow-hidden border border-white/10 bg-black/40 group/media">
+                            <div
+                                id="media-wrap-${msg.id}"
+                                class="transition-all duration-300 ${isRevealed ? '' : 'filter blur-lg select-none'} cursor-pointer"
+                                onclick="handleMediaClick(${msg.id}, '${escapeHtml(mediaUrl)}', 'image', '${escapeHtml(mediaName)}')"
+                            >
+                                <img src="${escapeHtml(mediaUrl)}" alt="${escapeHtml(mediaName)}" class="max-h-80 w-auto rounded-lg object-cover">
+                            </div>
+                            <div
+                                id="media-shield-${msg.id}"
+                                class="absolute inset-0 bg-slate-950/75 backdrop-blur-sm flex flex-col items-center justify-center p-3 cursor-pointer transition-opacity duration-200 ${isRevealed ? 'hidden' : ''}"
+                                onclick="revealMedia(${msg.id})"
+                            >
+                                <div class="px-3 py-1.5 rounded-lg bg-emerald-950/90 border border-emerald-500/40 text-emerald-300 font-mono text-[11px] flex items-center gap-1.5 shadow-xl font-bold uppercase tracking-wider hover:bg-emerald-900/90">
+                                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    <span>${I18N.classifiedMedia}</span>
+                                </div>
+                            </div>
+                            <div id="media-actions-${msg.id}" class="${isRevealed ? '' : 'hidden'} absolute top-2 right-2 flex items-center gap-1.5 z-10">
+                                <button type="button" onclick="reblurMedia(${msg.id}, event)" class="p-1.5 rounded-lg bg-black/80 hover:bg-black text-slate-300 hover:text-amber-400 text-xs backdrop-blur-sm border border-white/10 cursor-pointer" title="${I18N.reblurMedia}">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"/></svg>
+                                </button>
+                                <a href="${escapeHtml(dlUrl)}" download="${escapeHtml(mediaName)}" class="p-1.5 rounded-lg bg-black/80 hover:bg-black text-slate-300 hover:text-emerald-400 text-xs backdrop-blur-sm border border-white/10" title="${I18N.downloadMedia}" onclick="event.stopPropagation()">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                </a>
                             </div>
                         </div>
                     `;
                 } else if (msg.attachment_type === 'video') {
                     bubbleContent += `
-                        <div class="mb-2 rounded-xl overflow-hidden border border-white/10 bg-black/60 relative group">
-                            <video src="${escapeHtml(mediaUrl)}" controls class="max-h-80 w-full rounded-lg" preload="metadata"></video>
-                            <button
-                                type="button"
-                                onclick="openLightbox(this.dataset.url, 'video', this.dataset.name)"
-                                data-url="${escapeHtml(mediaUrl)}"
-                                data-name="${escapeHtml(mediaName)}"
-                                class="absolute top-2 right-2 px-2 py-1 rounded-lg bg-black/80 hover:bg-black text-white text-[11px] flex items-center gap-1 font-mono transition-opacity opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-white/10 cursor-pointer"
-                                title="Expand Video"
+                        <div class="mb-2 relative rounded-xl overflow-hidden border border-white/10 bg-black/60 group/media">
+                            <div
+                                id="media-wrap-${msg.id}"
+                                class="transition-all duration-300 ${isRevealed ? '' : 'filter blur-lg select-none'}"
                             >
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
-                                <span>${I18N.expand}</span>
-                            </button>
+                                <video src="${escapeHtml(mediaUrl)}" controls class="max-h-80 w-full rounded-lg" preload="metadata"></video>
+                            </div>
+                            <div
+                                id="media-shield-${msg.id}"
+                                class="absolute inset-0 bg-slate-950/75 backdrop-blur-sm flex flex-col items-center justify-center p-3 cursor-pointer transition-opacity duration-200 ${isRevealed ? 'hidden' : ''}"
+                                onclick="revealMedia(${msg.id})"
+                            >
+                                <div class="px-3 py-1.5 rounded-lg bg-emerald-950/90 border border-emerald-500/40 text-emerald-300 font-mono text-[11px] flex items-center gap-1.5 shadow-xl font-bold uppercase tracking-wider hover:bg-emerald-900/90">
+                                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    <span>${I18N.classifiedMedia}</span>
+                                </div>
+                            </div>
+                            <div id="media-actions-${msg.id}" class="${isRevealed ? '' : 'hidden'} absolute top-2 right-2 flex items-center gap-1.5 z-10">
+                                <button type="button" onclick="reblurMedia(${msg.id}, event)" class="p-1.5 rounded-lg bg-black/80 hover:bg-black text-slate-300 hover:text-amber-400 text-xs backdrop-blur-sm border border-white/10 cursor-pointer" title="${I18N.reblurMedia}">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"/></svg>
+                                </button>
+                                <button type="button" onclick="openLightbox('${escapeHtml(mediaUrl)}', 'video', '${escapeHtml(mediaName)}')" class="p-1.5 rounded-lg bg-black/80 hover:bg-black text-slate-300 hover:text-white text-xs backdrop-blur-sm border border-white/10 cursor-pointer" title="${I18N.expandVideo}">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                                </button>
+                                <a href="${escapeHtml(dlUrl)}" download="${escapeHtml(mediaName)}" class="p-1.5 rounded-lg bg-black/80 hover:bg-black text-slate-300 hover:text-emerald-400 text-xs backdrop-blur-sm border border-white/10" title="${I18N.downloadMedia}" onclick="event.stopPropagation()">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                </a>
+                            </div>
                         </div>
                     `;
                 } else if (msg.attachment_type === 'audio') {
                     bubbleContent += `
-                        <div class="mb-2 p-2 rounded-xl bg-black/30 border border-white/10">
+                        <div class="mb-2 p-2.5 rounded-xl bg-black/40 border border-white/10 flex items-center gap-2">
                             <audio src="${escapeHtml(mediaUrl)}" controls class="w-full h-8"></audio>
+                            <a href="${escapeHtml(dlUrl)}" download="${escapeHtml(mediaName)}" class="p-1.5 rounded-lg bg-black/60 hover:bg-black text-slate-300 hover:text-emerald-400 text-xs shrink-0 border border-white/10 transition-colors" title="${I18N.downloadMedia}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            </a>
                         </div>
                     `;
                 } else {
                     bubbleContent += `
-                        <a href="${escapeHtml(mediaUrl)}" download="${escapeHtml(mediaName)}" class="mb-2 p-2.5 rounded-xl bg-black/30 border border-white/10 flex items-center gap-3 hover:bg-black/50 transition-colors font-mono text-xs">
+                        <a href="${escapeHtml(dlUrl)}" download="${escapeHtml(mediaName)}" class="mb-2 p-2.5 rounded-xl bg-black/30 border border-white/10 flex items-center gap-3 hover:bg-black/50 transition-colors font-mono text-xs">
                             <svg class="w-6 h-6 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                             <div class="min-w-0 flex-1">
                                 <div class="truncate text-white font-medium">${escapeHtml(mediaName)}</div>
                                 <div class="text-[10px] text-slate-400">${escapeHtml(msg.formatted_size || '')}</div>
                             </div>
-                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                         </a>
                     `;
                 }
             }
 
-            // Text Content + Translation Box
+            // Text Content + Automatic Translation Box
             if (msg.content) {
+                const isAutoTranslated = Boolean(msg.auto_translated_text && msg.auto_translated_lang);
+                const currentLang = isAutoTranslated ? msg.auto_translated_lang : '';
+                const currentFlag = FLAG_MAP[currentLang] || '🌐';
+                const transWord = I18N.translation || 'TRANSLATION';
+                const currentLabel = currentLang ? `${transWord} (${currentLang.toUpperCase()}):` : `${transWord}:`;
+
                 bubbleContent += `
-                    <div id="msg-text-${msg.id}" class="text-sm leading-relaxed break-words whitespace-pre-wrap">${escapeHtml(msg.content)}</div>
-                    <div id="msg-trans-${msg.id}" class="hidden mt-2 pt-2 border-t border-white/10 text-xs font-sans text-cyan-200 bg-cyan-950/30 p-2 rounded-lg" data-current-lang="">
+                    <div id="msg-text-${msg.id}" class="text-sm leading-relaxed break-words font-sans">${formatTacticalMarkdown(msg.content)}</div>
+                    <div id="msg-trans-${msg.id}" class="${isAutoTranslated ? '' : 'hidden '}mt-2 pt-2 border-t border-white/10 text-xs font-sans text-cyan-200 bg-cyan-950/30 p-2 rounded-lg" data-current-lang="${currentLang}">
                         <div class="text-[10px] font-mono text-cyan-400 flex items-center gap-1 mb-1">
-                            <span class="trans-flag">🌐</span>
-                            <span class="trans-label font-bold">TRANSLATION:</span>
+                            <span class="trans-flag">${currentFlag}</span>
+                            <span class="trans-label font-bold">${currentLabel}</span>
                         </div>
-                        <div class="trans-body leading-relaxed break-words whitespace-pre-wrap"></div>
+                        <div class="trans-body leading-relaxed break-words font-sans">${isAutoTranslated ? formatTacticalMarkdown(msg.auto_translated_text) : ''}</div>
                     </div>
                 `;
             }
 
-            // Allowed Translate Pills scoped to channel configuration
-            const allowedLangs = Array.isArray(ALLOWED_LANGUAGES) && ALLOWED_LANGUAGES.length > 0 ? ALLOWED_LANGUAGES : ['en', 'ru', 'fr', 'it'];
-            let translateButtons = '';
-            allowedLangs.forEach(langCode => {
-                const upper = langCode.toUpperCase();
-                translateButtons += `<button type="button" onclick="translateMessage(${msg.id}, '${langCode}', this)" class="px-1.5 py-0.5 rounded hover:bg-white/10 hover:text-white transition-colors cursor-pointer" title="${upper}">${upper}</button>`;
-            });
+            // Message Footer: Countdown timer, Timestamp & Delivery Status
+            let ttlBadgeMarkup = '';
+            if (msg.expires_at) {
+                ttlBadgeMarkup = `<span class="ttl-countdown text-amber-400 font-mono text-[10px] flex items-center gap-1 bg-amber-950/50 px-1.5 py-0.5 rounded border border-amber-500/30 mr-auto" data-expires="${escapeHtml(msg.expires_at)}" id="ttl-pill-${msg.id}"><span class="text-[9px]">⏳</span><span class="ttl-val">...</span></span>`;
+            } else if (msg.ttl_seconds) {
+                const ttlSec = parseInt(msg.ttl_seconds, 10);
+                const m = Math.floor(ttlSec / 60);
+                const s = ttlSec % 60;
+                const formattedTtl = m > 0 ? `${m}m ${s ? s + 's' : ''}` : `${s}s`;
+                ttlBadgeMarkup = `<span class="ttl-pending text-amber-400/80 font-mono text-[10px] flex items-center gap-1 bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-500/20 mr-auto" id="ttl-pill-${msg.id}" title="Timer activates individually for each recipient when viewed"><span class="text-[9px]">⏳</span><span>${formattedTtl} per recipient</span></span>`;
+            }
 
-            // Footer ticks & Translate Pills
             bubbleContent += `
-                <div class="flex items-center justify-between gap-2 mt-2 pt-1.5 text-[10px] font-mono opacity-90 border-t border-white/10">
-                    ${(msg.content && allowedLangs.length > 0) ? `
-                        <div class="flex items-center gap-1 text-slate-400 flex-wrap">
-                            <span class="text-[11px]">🌐</span>
-                            <span class="text-[10px] text-slate-400 mr-0.5">${I18N.translate || 'Translate'}:</span>
-                            ${translateButtons}
-                        </div>
-                    ` : '<span></span>'}
-                    <div class="flex items-center gap-1">
+                <div class="flex items-center justify-between gap-2 mt-2 pt-1.5 text-[10px] font-mono opacity-85 border-t border-white/10 text-slate-400">
+                    ${ttlBadgeMarkup}
+                    <div class="flex items-center gap-1 ml-auto">
                         <span>${msg.created_at_time}</span>
-                        ${isSelf ? '<svg class="w-3 h-3 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7m-4 4l4 4" /></svg>' : ''}
+                        ${isSelf ? '<svg class="w-3 h-3 text-emerald-300 inline ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7m-4 4l4 4" /></svg>' : ''}
                     </div>
                 </div>
             `;
@@ -1404,24 +1712,441 @@
             bubble.innerHTML = bubbleContent;
             wrapper.appendChild(meta);
             wrapper.appendChild(bubble);
+
+            // Floating Tactical Action Toolbar
+            const actionsBar = document.createElement('div');
+            actionsBar.className = 'flex items-center gap-1 mt-1 px-1 opacity-80 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-200';
+            actionsBar.id = `msg-actions-${msg.id}`;
+
+            const replySnippet = escapeHtml((msg.content || msg.attachment_name || 'Media').substring(0, 50));
+            let actionsHtml = `
+                <button type="button" onclick="openReactionPicker(${msg.id}, event)" class="px-1.5 py-0.5 rounded bg-slate-900/90 hover:bg-slate-800 text-slate-400 hover:text-amber-300 border border-slate-800 text-xs transition-colors cursor-pointer" title="Add reaction">
+                    😊+
+                </button>
+                <button type="button" onclick="replyToMessage(${msg.id}, '${escapeHtml(msg.sender_name)}', '${replySnippet}')" class="px-1.5 py-0.5 rounded bg-slate-900/90 hover:bg-slate-800 text-slate-400 hover:text-emerald-300 border border-slate-800 text-xs transition-colors cursor-pointer" title="${I18N.reply}">
+                    ↩
+                </button>
+            `;
+            if (IS_ADMIN) {
+                actionsHtml += `
+                    <button type="button" onclick="togglePin(${msg.id})" class="px-1.5 py-0.5 rounded bg-slate-900/90 hover:bg-slate-800 text-slate-400 hover:text-amber-400 border border-slate-800 text-xs transition-colors cursor-pointer" title="${I18N.pin}">
+                        📌
+                    </button>
+                `;
+            }
+            actionsBar.innerHTML = actionsHtml;
+            wrapper.appendChild(actionsBar);
+
+            // Reaction Pills Row
+            const reactionsRow = document.createElement('div');
+            reactionsRow.className = 'flex flex-wrap gap-1 mt-1.5 px-1';
+            reactionsRow.id = `msg-reactions-${msg.id}`;
+            renderReactionPills(reactionsRow, msg.id, msg.reactions || []);
+            wrapper.appendChild(reactionsRow);
+
             container.appendChild(wrapper);
+
+            // Auto-translate to user's registered preferred language if not pre-rendered and not authored by user
+            if (msg.content && !msg.auto_translated_text && USER_PREFERRED_LOCALE && !isSelf) {
+                setTimeout(() => autoTranslateMessage(msg.id, USER_PREFERRED_LOCALE), 100);
+            }
         }
 
-        // Inline Message Translation Action (supporting RU, FR, IT, EN)
-        async function translateMessage(msgId, targetLang, btn) {
-            const textEl = document.getElementById(`msg-text-${msgId}`);
-            const transBox = document.getElementById(`msg-trans-${msgId}`);
-            if (!textEl || !transBox) return;
+        // Reactions Management
+        function openReactionPicker(msgId, event) {
+            if (event) event.stopPropagation();
+            activeReactionMsgId = msgId;
+            const popover = document.getElementById('reaction-picker-popover');
+            if (!popover) return;
 
-            // If already shown for this target language, toggle off
-            if (!transBox.classList.contains('hidden') && transBox.dataset.currentLang === targetLang) {
-                transBox.classList.add('hidden');
+            const rect = event.currentTarget.getBoundingClientRect();
+            popover.style.top = `${Math.max(10, rect.top - 48)}px`;
+            const left = Math.min(window.innerWidth - 290, Math.max(10, rect.left - 40));
+            popover.style.left = `${left}px`;
+            popover.classList.remove('hidden');
+        }
+
+        function closeReactionPicker() {
+            const popover = document.getElementById('reaction-picker-popover');
+            if (popover) popover.classList.add('hidden');
+            activeReactionMsgId = null;
+        }
+
+        async function selectReactionEmoji(emoji) {
+            if (!activeReactionMsgId) return;
+            const msgId = activeReactionMsgId;
+            closeReactionPicker();
+            await toggleReaction(msgId, emoji);
+        }
+
+        async function toggleReaction(msgId, emoji) {
+            try {
+                const res = await fetch(`/c/${encodeURIComponent(ROOM_CODE)}/messages/${msgId}/react`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': CSRF_TOKEN,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ emoji: emoji })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.reactions) {
+                        updateMessageReactions(msgId, data.reactions);
+                    }
+                }
+            } catch (err) {
+                console.warn('Reaction failed:', err);
+            }
+        }
+
+        function updateMessageReactions(msgId, reactions) {
+            const row = document.getElementById(`msg-reactions-${msgId}`);
+            if (row) {
+                renderReactionPills(row, msgId, reactions || []);
+            }
+            const cached = loadedMessages.get(msgId);
+            if (cached) {
+                cached.reactions = reactions;
+            }
+        }
+
+        function renderReactionPills(container, msgId, reactions) {
+            container.innerHTML = '';
+            if (!reactions || reactions.length === 0) return;
+
+            reactions.forEach(r => {
+                const pill = document.createElement('button');
+                pill.type = 'button';
+                pill.className = `px-2 py-0.5 rounded-full text-xs font-mono flex items-center gap-1 border transition-all cursor-pointer ${
+                    r.has_reacted
+                        ? 'bg-emerald-950/80 border-emerald-500/60 text-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.25)]'
+                        : 'bg-slate-900/90 border-slate-800 hover:border-slate-700 text-slate-300'
+                }`;
+                pill.title = r.has_reacted ? 'Click to remove reaction' : 'Click to react';
+                pill.innerHTML = `<span>${r.emoji}</span><span class="text-[10px] font-bold">${r.count}</span>`;
+                pill.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleReaction(msgId, r.emoji);
+                };
+                container.appendChild(pill);
+            });
+        }
+
+        // Quoted Reply Handlers
+        function replyToMessage(msgId, senderName, snippet) {
+            replyingTo = { id: msgId, senderName: senderName, snippet: snippet };
+            document.getElementById('reply-sender-name').textContent = senderName;
+            document.getElementById('reply-snippet-text').textContent = snippet;
+            document.getElementById('reply-preview-bar').classList.remove('hidden');
+            const input = document.getElementById('message-input');
+            if (input) input.focus();
+        }
+
+        function cancelReply() {
+            replyingTo = null;
+            document.getElementById('reply-preview-bar').classList.add('hidden');
+        }
+
+        function jumpToMessage(msgId) {
+            const el = document.getElementById(`msg-${msgId}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('ring-2', 'ring-emerald-400', 'rounded-2xl');
+                setTimeout(() => {
+                    el.classList.remove('ring-2', 'ring-emerald-400');
+                }, 2000);
+            }
+        }
+
+        // Pinned Briefing Handlers
+        function updatePinnedBriefing(pinned) {
+            pinnedMessage = pinned;
+            const banner = document.getElementById('pinned-briefing-banner');
+            if (!banner) return;
+            if (pinned && pinned.id) {
+                document.getElementById('pinned-author').textContent = pinned.sender_name || 'Operative';
+                document.getElementById('pinned-text').textContent = `— "${pinned.content || ''}"`;
+                banner.classList.remove('hidden');
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+
+        function jumpToPinnedMessage() {
+            if (pinnedMessage && pinnedMessage.id) {
+                jumpToMessage(pinnedMessage.id);
+            }
+        }
+
+        async function unpinCurrentMessage() {
+            if (!pinnedMessage || !pinnedMessage.id) return;
+            await togglePin(pinnedMessage.id);
+        }
+
+        async function togglePin(msgId) {
+            try {
+                const res = await fetch(`/c/${encodeURIComponent(ROOM_CODE)}/messages/${msgId}/pin`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': CSRF_TOKEN,
+                        'Accept': 'application/json'
+                    }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (!data.is_pinned) {
+                        updatePinnedBriefing(null);
+                    } else {
+                        const cached = loadedMessages.get(msgId);
+                        if (cached) {
+                            updatePinnedBriefing({
+                                id: cached.id,
+                                sender_name: cached.sender_name,
+                                content: cached.content || cached.attachment_name || 'Media Attachment'
+                            });
+                        }
+                    }
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert(err.error || 'Only channel owners or admins can pin messages.');
+                }
+            } catch (err) {
+                console.warn('Pin toggle failed:', err);
+            }
+        }
+
+        // In-Room Search (Ctrl+K)
+        function toggleSearchModal() {
+            const modal = document.getElementById('search-modal');
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                const input = document.getElementById('search-input');
+                input.value = '';
+                input.focus();
+                handleSearchInput('');
+            } else {
+                closeSearchModal();
+            }
+        }
+
+        function closeSearchModal() {
+            document.getElementById('search-modal').classList.add('hidden');
+        }
+
+        function handleSearchInput(query) {
+            query = (query || '').trim().toLowerCase();
+            const list = document.getElementById('search-results-list');
+            list.innerHTML = '';
+
+            if (!query) {
+                list.innerHTML = `<div class="py-8 text-center text-xs text-slate-500 font-mono">${I18N.view || 'Type to search transmissions...'}</div>`;
                 return;
             }
 
+            const matches = [];
+            for (let msg of loadedMessages.values()) {
+                const content = (msg.content || '').toLowerCase();
+                const sender = (msg.sender_name || '').toLowerCase();
+                const attName = (msg.attachment_name || '').toLowerCase();
+                if (content.includes(query) || sender.includes(query) || attName.includes(query)) {
+                    matches.push(msg);
+                }
+            }
+
+            if (matches.length === 0) {
+                list.innerHTML = `<div class="py-8 text-center text-xs text-slate-500 font-mono">No matching transmissions found.</div>`;
+                return;
+            }
+
+            matches.reverse().slice(0, 30).forEach(msg => {
+                const item = document.createElement('div');
+                item.className = 'p-2.5 rounded-xl hover:bg-slate-800/80 cursor-pointer transition-colors';
+                item.onclick = () => {
+                    closeSearchModal();
+                    jumpToMessage(msg.id);
+                };
+
+                const snippet = escapeHtml(msg.content || msg.attachment_name || 'Media');
+                item.innerHTML = `
+                    <div class="flex items-center justify-between text-xs font-mono text-slate-400 mb-1">
+                        <strong class="text-emerald-400 font-semibold">${escapeHtml(msg.sender_name)}</strong>
+                        <span class="text-[10px] text-slate-500">${msg.created_at_time || ''}</span>
+                    </div>
+                    <div class="text-xs text-slate-200 line-clamp-2">${snippet}</div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        // Voice Note Recorder Handlers
+        async function toggleAudioRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                stopAndSendAudioRecording();
+            } else {
+                await startAudioRecording();
+            }
+        }
+
+        async function startAudioRecording() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert('Audio recording is not supported in this browser.');
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioChunks = [];
+                mediaRecorder = new MediaRecorder(stream);
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data && e.data.size > 0) {
+                        audioChunks.push(e.data);
+                    }
+                };
+
+                mediaRecorder.start(250);
+                recordingSeconds = 0;
+                document.getElementById('recording-timer').textContent = '00:00';
+                document.getElementById('voice-recording-bar').classList.remove('hidden');
+                document.getElementById('mic-btn').classList.add('text-rose-400', 'border-rose-500');
+
+                if (recordingTimerInterval) clearInterval(recordingTimerInterval);
+                recordingTimerInterval = setInterval(() => {
+                    recordingSeconds++;
+                    const m = String(Math.floor(recordingSeconds / 60)).padStart(2, '0');
+                    const s = String(recordingSeconds % 60).padStart(2, '0');
+                    document.getElementById('recording-timer').textContent = `${m}:${s}`;
+                }, 1000);
+            } catch (err) {
+                console.error('Mic access error:', err);
+                alert('Microphone access denied or unavailable.');
+            }
+        }
+
+        function cancelAudioRecording() {
+            if (recordingTimerInterval) clearInterval(recordingTimerInterval);
+            if (mediaRecorder) {
+                try {
+                    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                } catch (_) {}
+                mediaRecorder = null;
+            }
+            audioChunks = [];
+            document.getElementById('voice-recording-bar').classList.add('hidden');
+            document.getElementById('mic-btn').classList.remove('text-rose-400', 'border-rose-500');
+        }
+
+        function stopAndSendAudioRecording() {
+            if (!mediaRecorder) return;
+            if (recordingTimerInterval) clearInterval(recordingTimerInterval);
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                const voiceFile = new File([blob], `voice-note-${Date.now()}.webm`, { type: 'audio/webm' });
+                setFileAttachment(voiceFile);
+                document.getElementById('voice-recording-bar').classList.add('hidden');
+                document.getElementById('mic-btn').classList.remove('text-rose-400', 'border-rose-500');
+                document.getElementById('message-form').requestSubmit();
+            };
+
+            try {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            } catch (_) {}
+        }
+
+        // TTL / Auto-Destruct Handlers
+        function toggleTtlMenu() {
+            const menu = document.getElementById('ttl-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        function setTtl(seconds, label) {
+            selectedTtl = seconds;
+            document.getElementById('ttl-menu').classList.add('hidden');
+            const ind = document.getElementById('ttl-indicator');
+            const btn = document.getElementById('ttl-btn');
+
+            [0, 30, 300, 3600, 86400].forEach(s => {
+                const el = document.getElementById(`ttl-check-${s}`);
+                if (el) el.classList.toggle('hidden', s !== seconds);
+            });
+
+            if (seconds > 0) {
+                ind.classList.remove('hidden');
+                btn.classList.add('text-amber-400', 'border-amber-500/50');
+                btn.title = `Self-Destruct: ${label}`;
+            } else {
+                ind.classList.add('hidden');
+                btn.classList.remove('text-amber-400', 'border-amber-500/50');
+                btn.title = 'Self-Destruct Timer';
+            }
+        }
+
+        function initTtlCountdownLoop() {
+            setInterval(() => {
+                const now = Date.now();
+                document.querySelectorAll('.ttl-countdown').forEach(el => {
+                    const expiresIso = el.dataset.expires;
+                    if (!expiresIso) return;
+                    const expiresAt = new Date(expiresIso).getTime();
+                    const diffSec = Math.floor((expiresAt - now) / 1000);
+
+                    if (diffSec <= 0) {
+                        const msgCard = el.closest('[id^="msg-"]');
+                        if (msgCard) {
+                            msgCard.style.transition = 'all 0.5s ease';
+                            msgCard.style.opacity = '0';
+                            msgCard.style.transform = 'scale(0.95)';
+                            setTimeout(() => msgCard.remove(), 500);
+                        }
+                    } else {
+                        const m = Math.floor(diffSec / 60);
+                        const s = diffSec % 60;
+                        const formatted = m > 0 ? `${m}m ${s}s` : `${s}s`;
+                        const val = el.querySelector('.ttl-val');
+                        if (val) val.textContent = formatted;
+                    }
+                });
+            }, 1000);
+        }
+
+        // Global Keydown & Click Listeners for Popovers
+        document.addEventListener('click', (e) => {
+            const popover = document.getElementById('reaction-picker-popover');
+            if (popover && !popover.contains(e.target)) {
+                closeReactionPicker();
+            }
+            const ttlMenu = document.getElementById('ttl-menu');
+            const ttlBtn = document.getElementById('ttl-btn');
+            if (ttlMenu && !ttlMenu.contains(e.target) && (!ttlBtn || !ttlBtn.contains(e.target))) {
+                ttlMenu.classList.add('hidden');
+            }
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                toggleSearchModal();
+            }
+            if (e.key === 'Escape') {
+                closeSearchModal();
+                closeReactionPicker();
+            }
+        });
+
+        // Automatic translation helper (translates to user's registered preferred language)
+        async function autoTranslateMessage(msgId, targetLang) {
+            const transBox = document.getElementById(`msg-trans-${msgId}`);
+            if (!transBox || !transBox.classList.contains('hidden')) return;
+            const textEl = document.getElementById(`msg-text-${msgId}`);
+            if (!textEl) return;
+
             const originalText = textEl.textContent.trim();
-            const originalBtnText = btn.textContent;
-            btn.textContent = '...';
+            if (!originalText) return;
 
             try {
                 const res = await fetch(`/c/${encodeURIComponent(ROOM_CODE)}/translate`, {
@@ -1437,35 +2162,34 @@
                     })
                 });
 
-                btn.textContent = originalBtnText;
-
                 if (res.ok) {
                     const data = await res.json();
                     const transBody = transBox.querySelector('.trans-body');
                     const transFlag = transBox.querySelector('.trans-flag');
                     const transLabel = transBox.querySelector('.trans-label');
 
-                    const flagMap = { 'ru': '🇷🇺', 'fr': '🇫🇷', 'it': '🇮🇹', 'en': '🇬🇧' };
                     const lang = data.target_lang || targetLang;
 
-                    if (transFlag) transFlag.textContent = flagMap[lang] || '🌐';
-                    if (transLabel) transLabel.textContent = `TRANSLATION (${lang.toUpperCase()}):`;
+                    if (transFlag) transFlag.textContent = FLAG_MAP[lang] || '🌐';
+                    const transWord = I18N.translation || 'TRANSLATION';
+                    if (transLabel) transLabel.textContent = `${transWord} (${lang.toUpperCase()}):`;
 
-                    transBody.textContent = data.translated_text || originalText;
+                    transBody.innerHTML = formatTacticalMarkdown(data.translated_text || originalText);
                     transBox.dataset.currentLang = lang;
                     transBox.classList.remove('hidden');
-                } else {
-                    alert('Translation service currently busy. Please retry.');
                 }
             } catch (err) {
-                console.warn('Translation error:', err);
-                btn.textContent = originalBtnText;
+                console.warn('Auto-translation error:', err);
             }
         }
 
+        let isSendingMessage = false;
+
         // Send Message & Attachments
         async function sendMessage(event) {
-            event.preventDefault();
+            if (event) event.preventDefault();
+            if (isSendingMessage) return;
+
             const textInput = document.getElementById('message-input');
             const sendBtn = document.getElementById('send-btn');
             const content = textInput.value.trim();
@@ -1474,6 +2198,7 @@
                 return;
             }
 
+            isSendingMessage = true;
             sendBtn.disabled = true;
 
             const formData = new FormData();
@@ -1483,6 +2208,18 @@
             if (selectedFile) {
                 formData.append('attachment', selectedFile);
             }
+            if (replyingTo && replyingTo.id) {
+                formData.append('reply_to_id', replyingTo.id);
+            }
+            if (selectedTtl > 0) {
+                formData.append('ttl_seconds', selectedTtl);
+            }
+
+            // Immediately clear inputs to prevent double clicks and double submissions
+            textInput.value = '';
+            textInput.style.height = 'auto';
+            clearSelectedAttachment();
+            cancelReply();
 
             try {
                 const res = await fetch(`/c/${encodeURIComponent(ROOM_CODE)}/messages`, {
@@ -1502,18 +2239,20 @@
                         playChime('send');
                         scrollToBottom();
                     }
-
-                    textInput.value = '';
-                    textInput.style.height = 'auto';
-                    clearSelectedAttachment();
                 } else {
+                    // Restore message content on failure
+                    textInput.value = content;
+                    autoResizeTextarea(textInput);
                     const errData = await res.json().catch(() => ({}));
                     alert(errData.error || errData.message || 'Failed to transmit message.');
                 }
             } catch (err) {
                 console.error('Send error:', err);
+                textInput.value = content;
+                autoResizeTextarea(textInput);
                 alert('Transmission interrupted. Check connection.');
             } finally {
+                isSendingMessage = false;
                 sendBtn.disabled = false;
                 textInput.focus();
             }
@@ -1528,6 +2267,7 @@
         function handleTextareaKey(event) {
             if (event.key === 'Enter' && !event.shiftKey) {
                 event.preventDefault();
+                if (isSendingMessage) return;
                 document.getElementById('message-form').requestSubmit();
             }
         }
@@ -1657,7 +2397,7 @@
                 video.src = '';
             } catch (_) {}
 
-            dl.href = cleanUrl;
+            dl.href = cleanUrl ? (cleanUrl + (cleanUrl.includes('?') ? '&' : '?') + 'download=1') : '#';
             dl.download = name || 'media';
             caption.textContent = name || '';
 
@@ -1759,7 +2499,9 @@
 
         // Intel Radar & Leaflet Map
         function toggleRadar() {
+            if (!IS_ADMIN) return;
             const drawer = document.getElementById('radar-drawer');
+            if (!drawer) return;
             radarOpen = !radarOpen;
             if (radarOpen) {
                 drawer.classList.remove('translate-x-full');
@@ -1771,6 +2513,7 @@
         }
 
         function initIntelMap() {
+            if (!IS_ADMIN) return;
             if (!leafletMap) {
                 leafletMap = L.map('intel-map', {
                     attributionControl: false,
@@ -1788,11 +2531,12 @@
                 L.control.zoom({ position: 'bottomright' }).addTo(leafletMap);
             }
             setTimeout(() => {
-                leafletMap.invalidateSize();
+                if (leafletMap) leafletMap.invalidateSize();
             }, 300);
         }
 
         async function loadRadarData() {
+            if (!IS_ADMIN) return;
             try {
                 const res = await fetch(`/c/${encodeURIComponent(ROOM_CODE)}/radar`, {
                     headers: { 'Accept': 'application/json' }
@@ -2616,9 +3360,72 @@
             }
         }
 
-        // Initialize polling loop
+        // Ephemeral channel countdown timer
+        const countdownBadge = document.getElementById('room-countdown-badge');
+        const countdownText = document.getElementById('room-countdown-text');
+        if (countdownBadge && countdownText) {
+            const expiresAt = new Date(countdownBadge.dataset.expires).getTime();
+            function updateCountdown() {
+                const now = Date.now();
+                const diffMs = expiresAt - now;
+                if (diffMs <= 0) {
+                    countdownBadge.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[11px] font-mono animate-pulse';
+                    countdownText.textContent = '{{ __("Channel Expired") }}';
+                    setTimeout(() => {
+                        window.location.href = "{{ route('channels.index') }}";
+                    }, 2500);
+                    return;
+                }
+
+                const totalSec = Math.floor(diffMs / 1000);
+                const hrs = Math.floor(totalSec / 3600);
+                const mins = Math.floor((totalSec % 3600) / 60);
+                const secs = totalSec % 60;
+
+                let formatted = '';
+                if (hrs > 0) {
+                    formatted = `${hrs}h ${mins}m ${secs}s`;
+                } else if (mins > 0) {
+                    formatted = `${mins}m ${secs}s`;
+                } else {
+                    formatted = `${secs}s`;
+                }
+
+                if (totalSec <= 300) {
+                    countdownBadge.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[11px] font-mono animate-pulse';
+                } else if (totalSec <= 1800) {
+                    countdownBadge.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[11px] font-mono';
+                }
+
+                countdownText.textContent = `⏳ ${formatted}`;
+            }
+
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+        }
+
+        // Initialize visibility-aware polling loop (1.5s active, 10s when backgrounded)
+        let pollTimer = null;
+        const ACTIVE_POLL_INTERVAL = 1500;
+        const BACKGROUND_POLL_INTERVAL = 10000;
+
+        function startPolling(interval = ACTIVE_POLL_INTERVAL) {
+            if (pollTimer) clearInterval(pollTimer);
+            pollTimer = setInterval(fetchMessages, interval);
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                startPolling(BACKGROUND_POLL_INTERVAL);
+            } else {
+                fetchMessages();
+                startPolling(ACTIVE_POLL_INTERVAL);
+            }
+        });
+
         fetchMessages();
-        setInterval(fetchMessages, 1500);
+        startPolling(ACTIVE_POLL_INTERVAL);
+        initTtlCountdownLoop();
     </script>
 
     <!-- Room Toast Notification Container -->

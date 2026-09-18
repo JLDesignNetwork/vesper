@@ -2,16 +2,15 @@
 
 use App\Mail\EmergencyAccountRecovery;
 use App\Mail\RecoveryEmailVerification;
-use App\Mail\SecurityAlertNotification;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Models\WebAuthnCredential;
-use App\Services\OAuthService;
 use App\Services\TwoFactorService;
-use App\Services\WebAuthnService;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 /* -------------------------------------------------------------
@@ -69,8 +68,8 @@ test('user can register a mock webauthn biometric credential', function () {
     $credId = random_bytes(16);
     $credIdLen = pack('n', 16);
     // Minimal COSE EC2 public key representation
-    $coseKey = hex2bin('a5010203262001215820' . bin2hex(random_bytes(32)) . '225820' . bin2hex(random_bytes(32)));
-    $authData = $rpIdHash . $flags . $signCount . $aaguid . $credIdLen . $credId . $coseKey;
+    $coseKey = hex2bin('a5010203262001215820'.bin2hex(random_bytes(32)).'225820'.bin2hex(random_bytes(32)));
+    $authData = $rpIdHash.$flags.$signCount.$aaguid.$credIdLen.$credId.$coseKey;
 
     $payload = [
         'id' => rtrim(strtr(base64_encode($credId), '+/', '-_'), '='),
@@ -184,7 +183,7 @@ test('2FA confirmation activates 2FA and returns 8 recovery codes', function () 
 
     $freshUser = $user->fresh();
     expect($freshUser->hasTwoFactor())->toBeTrue();
-    expect(\Illuminate\Support\Facades\Crypt::decryptString($freshUser->two_factor_secret))->toBe($secret);
+    expect(Crypt::decryptString($freshUser->two_factor_secret))->toBe($secret);
     expect($freshUser->two_factor_recovery_codes)->not->toBeEmpty();
 });
 
@@ -197,7 +196,7 @@ test('user with 2FA enabled is intercepted during login and redirected to challe
         'email' => 'guarded@vesper.test',
         'role' => 'admin',
         'password' => Hash::make('agent-password'),
-        'two_factor_secret' => \Illuminate\Support\Facades\Crypt::encryptString($secret),
+        'two_factor_secret' => Crypt::encryptString($secret),
         'two_factor_confirmed_at' => now(),
         'two_factor_recovery_codes' => [
             hash('sha256', 'RECOV-1111'),
@@ -229,7 +228,7 @@ test('user can complete 2FA challenge using TOTP code', function () {
         'email' => 'solver@vesper.test',
         'role' => 'admin',
         'password' => Hash::make('password123'),
-        'two_factor_secret' => \Illuminate\Support\Facades\Crypt::encryptString($secret),
+        'two_factor_secret' => Crypt::encryptString($secret),
         'two_factor_confirmed_at' => now(),
     ]);
 
@@ -258,7 +257,7 @@ test('user can complete 2FA challenge using single-use emergency recovery code',
         'email' => 'bypass@vesper.test',
         'role' => 'admin',
         'password' => Hash::make('password123'),
-        'two_factor_secret' => \Illuminate\Support\Facades\Crypt::encryptString($secret),
+        'two_factor_secret' => Crypt::encryptString($secret),
         'two_factor_confirmed_at' => now(),
         'two_factor_recovery_codes' => [
             password_hash(str_replace(['-', ' '], '', $rawCode), PASSWORD_DEFAULT),
@@ -349,7 +348,7 @@ test('user can verify secondary recovery email via signed URL', function () {
         'recovery_email' => 'backup@domain.test',
     ]);
 
-    $signedUrl = \Illuminate\Support\Facades\URL::signedRoute('recovery.email.verify', [
+    $signedUrl = URL::signedRoute('recovery.email.verify', [
         'id' => $user->id,
         'hash' => sha1('backup@domain.test'),
     ]);
@@ -437,7 +436,7 @@ test('google oauth redirect constructs valid google accounts URL', function () {
     $targetUrl = $response->headers->get('Location');
     expect($targetUrl)->toContain('https://accounts.google.com/o/oauth2/v2/auth');
     expect($targetUrl)->toContain('client_id=test-google-id');
-    expect($targetUrl)->toContain('scope=' . urlencode('openid email profile'));
+    expect($targetUrl)->toContain('scope='.urlencode('openid email profile'));
 });
 
 test('apple oauth redirect constructs valid apple id URL', function () {

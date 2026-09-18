@@ -2,11 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\MemberWelcomeNotification;
 use App\Models\User;
+use App\Services\LanguageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -24,7 +29,64 @@ class AuthController extends Controller
 
         return view('auth.login', [
             'needsSetup' => $needsSetup,
+            'isRegister' => false,
         ]);
+    }
+
+    /**
+     * Display the registration portal for new members.
+     */
+    public function showRegister(): View|RedirectResponse
+    {
+        if (Auth::check()) {
+            return redirect()->to(Auth::user()->homeRoute());
+        }
+
+        return view('auth.login', [
+            'needsSetup' => false,
+            'isRegister' => true,
+        ]);
+    }
+
+    /**
+     * Register a new member account with immediate preferred language selection.
+     */
+    public function register(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:50'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:6'],
+            'preferred_locale' => ['nullable', 'string', Rule::in(LanguageService::codes())],
+            'location' => ['nullable', 'string', 'max:100'],
+            'bio' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $preferredLocale = $validated['preferred_locale'] ?? session('locale', config('app.locale', 'en'));
+
+        $user = User::create([
+            'name' => trim($validated['name']),
+            'email' => strtolower(trim($validated['email'])),
+            'password' => Hash::make($validated['password']),
+            'role' => 'member',
+            'preferred_locale' => $preferredLocale,
+            'location' => ! empty($validated['location']) ? trim($validated['location']) : null,
+            'bio' => ! empty($validated['bio']) ? trim($validated['bio']) : null,
+            'email_notifications' => true,
+        ]);
+
+        try {
+            Mail::to($user->email)->send(new MemberWelcomeNotification($user));
+        } catch (\Throwable $e) {
+            Log::warning("Failed to dispatch welcome notification to new member: {$e->getMessage()}");
+        }
+
+        Auth::login($user, true);
+        $request->session()->regenerate();
+        $request->session()->put('locale', $preferredLocale);
+        app()->setLocale($preferredLocale);
+
+        return redirect()->route('profile.show')->with('status', __('Welcome to Vesper! Your account is active.'));
     }
 
     /**
@@ -39,16 +101,29 @@ class AuthController extends Controller
                 'name' => ['required', 'string', 'max:50'],
                 'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
                 'password' => ['required', 'string', 'min:6'],
+                'preferred_locale' => ['nullable', 'string', Rule::in(LanguageService::codes())],
             ]);
+
+            $locale = $validated['preferred_locale'] ?? session('locale', config('app.locale', 'en'));
 
             $user = User::create([
                 'name' => trim($validated['name']),
                 'email' => strtolower(trim($validated['email'])),
                 'password' => Hash::make($validated['password']),
+                'role' => 'admin',
+                'preferred_locale' => $locale,
             ]);
+
+            try {
+                Mail::to($user->email)->send(new MemberWelcomeNotification($user));
+            } catch (\Throwable $e) {
+                Log::warning("Failed to dispatch welcome notification to initial admin: {$e->getMessage()}");
+            }
 
             Auth::login($user, true);
             $request->session()->regenerate();
+            $request->session()->put('locale', $locale);
+            app()->setLocale($locale);
 
             return redirect()->route('admin.dashboard')->with('status', 'Admin account configured successfully.');
         }

@@ -12,7 +12,7 @@
             <h1 class="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
                 <span>{{ __('Email Templates') }}</span>
                 <span class="text-xs font-mono font-normal px-2.5 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-400">
-                    {{ count($definitions) }} {{ __('Tactical Presets') }} &bull; 4 {{ __('Locales') }}
+                    {{ count($definitions) }} {{ __('Tactical Presets') }} &bull; {{ count($supportedLanguages) }} {{ __('Locales') }}
                 </span>
             </h1>
             <p class="text-xs text-slate-400 mt-1 max-w-2xl">
@@ -91,7 +91,7 @@
                                                 <span class="truncate max-w-[140px]">{{ $key }}</span>
                                                 <span>
                                                     @if($customizedCount > 0)
-                                                        <span class="text-emerald-400">{{ $customizedCount }}/4 {{ __('custom') }}</span>
+                                                        <span class="text-emerald-400">{{ $customizedCount }}/{{ count($supportedLanguages) }} {{ __('custom') }}</span>
                                                     @else
                                                         <span class="text-slate-600">{{ __('factory') }}</span>
                                                     @endif
@@ -111,42 +111,51 @@
         <div class="xl:col-span-9 space-y-6">
 
             <!-- Locale Selection & Auto-Translate Action Bar -->
-            <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 shadow-xl backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <!-- Locale Tabs -->
-                <div class="flex items-center gap-1.5 p-1 bg-slate-950/60 border border-slate-800/80 rounded-xl font-mono text-xs">
-                    @foreach(['en' => 'English', 'it' => 'Italiano', 'fr' => 'Français', 'ru' => 'Русский'] as $loc => $label)
+            <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 shadow-xl backdrop-blur-xl flex flex-col gap-3">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/60 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-mono text-slate-400 uppercase tracking-wider">{{ __('Language Locales') }}</span>
+                        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300">
+                            {{ count($supportedLanguages) }} {{ __('Supported') }}
+                        </span>
+                    </div>
+
+                    <!-- One-Click Auto-Translation Trigger -->
+                    <button
+                        type="button"
+                        id="btn-auto-translate"
+                        onclick="triggerAutoTranslate('{{ $activeKey }}')"
+                        class="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-medium shadow-lg shadow-violet-950/50 hover:shadow-violet-900/50 transition-all flex items-center justify-center gap-2 cursor-pointer border border-violet-400/30 shrink-0"
+                        title="{{ __('Translate current English copy to all other :count languages automatically', ['count' => count($supportedLanguages) - 1]) }}"
+                    >
+                        <svg id="translate-icon-svg" class="w-4 h-4 text-violet-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                        </svg>
+                        <span id="translate-spinner" class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                        <span id="translate-btn-text">{{ __('Auto-Translate All Languages (:count)', ['count' => count($supportedLanguages) - 1]) }}</span>
+                    </button>
+                </div>
+
+                <!-- Locale Tabs with Horizontal Scrolling -->
+                <div class="flex items-center gap-1.5 p-1.5 bg-slate-950/60 border border-slate-800/80 rounded-xl font-mono text-xs overflow-x-auto custom-scroll max-w-full">
+                    @foreach($supportedLanguages as $loc => $meta)
                         @php
                             $isTabActive = ($activeLocale === $loc);
                             $isCustomized = isset($customizedMatrix[$activeKey][$loc]);
                         @endphp
                         <a
                             href="{{ route('admin.emails.index', ['template' => $activeKey, 'locale' => $loc]) }}"
-                            class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all {{ $isTabActive ? 'bg-violet-600 text-white font-semibold shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800/70' }}"
+                            class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0 {{ $isTabActive ? 'bg-violet-600 text-white font-semibold shadow-md ring-1 ring-violet-400/40' : 'text-slate-400 hover:text-white hover:bg-slate-800/70 border border-transparent hover:border-slate-700' }}"
+                            title="{{ $meta['name'] }} ({{ $meta['native'] }})"
                         >
+                            <span>{{ $meta['flag'] }}</span>
                             <span class="uppercase font-bold">{{ $loc }}</span>
-                            <span class="hidden sm:inline text-[11px] opacity-80">{{ $label }}</span>
+                            <span class="hidden sm:inline text-[11px] opacity-80">{{ $meta['native'] }}</span>
                             @if($isCustomized)
-                                <span class="w-1.5 h-1.5 rounded-full {{ $isTabActive ? 'bg-white' : 'bg-emerald-400' }}"></span>
+                                <span class="w-1.5 h-1.5 rounded-full {{ $isTabActive ? 'bg-white' : 'bg-emerald-400' }}" title="{{ __('Customized in this locale') }}"></span>
                             @endif
                         </a>
                     @endforeach
-                </div>
-
-                <!-- One-Click Auto-Translation Trigger -->
-                <div class="flex items-center gap-2">
-                    <button
-                        type="button"
-                        id="btn-auto-translate"
-                        onclick="triggerAutoTranslate('{{ $activeKey }}')"
-                        class="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-medium shadow-lg shadow-violet-950/50 hover:shadow-violet-900/50 transition-all flex items-center justify-center gap-2 cursor-pointer border border-violet-400/30"
-                        title="{{ __('Translate current English copy to Italian, French, and Russian automatically') }}"
-                    >
-                        <svg id="translate-icon-svg" class="w-4 h-4 text-violet-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-                        </svg>
-                        <span id="translate-spinner" class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                        <span id="translate-btn-text">{{ __('Auto-Translate to IT, FR, RU') }}</span>
-                    </button>
                 </div>
             </div>
 
@@ -202,6 +211,10 @@
                         </div>
                     </div>
 
+                    @php
+                        $textDir = \App\Services\LanguageService::getDirection($activeLocale);
+                    @endphp
+
                     <!-- Editor Form -->
                     <form id="template-edit-form" method="POST" action="{{ route('admin.emails.update', $activeKey) }}" class="space-y-4">
                         @csrf
@@ -219,6 +232,7 @@
                                 id="input-subject"
                                 value="{{ old('subject', $activeTemplate['subject']) }}"
                                 required
+                                dir="{{ $textDir }}"
                                 oninput="handleEditorInput()"
                                 class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/90 border border-slate-800 text-slate-100 text-xs font-mono focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 transition-all outline-none"
                                 placeholder="{{ __('Enter email subject line with placeholders...') }}"
@@ -238,6 +252,7 @@
                                 name="preheader"
                                 id="input-preheader"
                                 value="{{ old('preheader', $activeTemplate['preheader']) }}"
+                                dir="{{ $textDir }}"
                                 oninput="handleEditorInput()"
                                 class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/90 border border-slate-800 text-slate-100 text-xs font-mono focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 transition-all outline-none"
                                 placeholder="{{ __('Optional summary preview text displayed in email clients...') }}"
@@ -264,6 +279,7 @@
                                 id="input-body-markdown"
                                 rows="10"
                                 required
+                                dir="{{ $textDir }}"
                                 oninput="handleEditorInput()"
                                 class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/90 border border-slate-800 text-slate-100 text-xs font-mono leading-relaxed focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 transition-all outline-none resize-y"
                                 placeholder="{{ __('Write email message in Markdown format...') }}"
@@ -281,6 +297,7 @@
                                     name="button_text"
                                     id="input-button-text"
                                     value="{{ old('button_text', $activeTemplate['button_text']) }}"
+                                    dir="{{ $textDir }}"
                                     oninput="handleEditorInput()"
                                     class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 text-xs font-mono focus:border-violet-500 outline-none"
                                     placeholder="{{ __('e.g., Access Terminal (Leave empty to hide)') }}"
@@ -314,6 +331,7 @@
                                 name="footer_text"
                                 id="input-footer-text"
                                 rows="3"
+                                dir="{{ $textDir }}"
                                 oninput="handleEditorInput()"
                                 class="w-full px-3.5 py-2 rounded-xl bg-slate-950/90 border border-slate-800 text-slate-300 text-xs font-mono focus:border-violet-500 outline-none resize-y"
                                 placeholder="{{ __('Tactical compliance disclaimer...') }}"
@@ -553,7 +571,10 @@
         const icon = document.getElementById('translate-icon-svg');
         const text = document.getElementById('translate-btn-text');
 
-        if (!confirm('{{ __("Auto-translate this template from English into Italian, French, and Russian? Dynamic variables will be automatically protected.") }}')) {
+        const allTargetLocales = @json(array_values(array_diff(array_keys($supportedLanguages), ['en'])));
+        const targetCount = allTargetLocales.length;
+
+        if (!confirm('{{ __("Auto-translate this template from English into all other ") }}' + targetCount + '{{ __(" supported languages? Dynamic variables will be automatically protected.") }}')) {
             return;
         }
 
@@ -572,7 +593,7 @@
                 },
                 body: JSON.stringify({
                     from_locale: 'en',
-                    target_locales: ['it', 'fr', 'ru']
+                    target_locales: allTargetLocales
                 })
             });
 
@@ -590,7 +611,7 @@
             btn.disabled = false;
             spinner.classList.add('hidden');
             icon.classList.remove('hidden');
-            text.innerText = '{{ __("Auto-Translate to IT, FR, RU") }}';
+            text.innerText = '{{ __("Auto-Translate All Languages (:count)", ["count" => count($supportedLanguages) - 1]) }}';
         }
     }
 

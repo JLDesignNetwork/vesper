@@ -5,12 +5,13 @@ namespace App\Mail;
 use App\Models\User;
 use App\Services\EmailTemplateService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class AdminOperationsDigestNotification extends Mailable
+class AdminOperationsDigestNotification extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
@@ -24,11 +25,21 @@ class AdminOperationsDigestNotification extends Mailable
         $locale = $this->admin->preferred_locale ?: app()->getLocale();
 
         return app(EmailTemplateService::class)->render('admin_operations_digest', [
+            'admin_name' => $this->admin->name,
+            'member_name' => $this->admin->name,
             'operative_name' => $this->admin->name,
+            'active_channels' => (string) ($this->digestStats['active_channels_count'] ?? '0'),
             'active_channels_count' => (string) ($this->digestStats['active_channels_count'] ?? '0'),
+            'total_members' => (string) ($this->digestStats['total_members_count'] ?? ($this->digestStats['total_operatives_count'] ?? '0')),
+            'total_members_count' => (string) ($this->digestStats['total_members_count'] ?? ($this->digestStats['total_operatives_count'] ?? '0')),
+            'total_operatives' => (string) ($this->digestStats['total_operatives_count'] ?? '0'),
             'total_operatives_count' => (string) ($this->digestStats['total_operatives_count'] ?? '0'),
+            'messages_count' => (string) ($this->digestStats['total_messages_count'] ?? '0'),
             'total_messages_count' => (string) ($this->digestStats['total_messages_count'] ?? '0'),
+            'visitors_count' => (string) ($this->digestStats['visitors_count'] ?? '0'),
+            'security_alerts_count' => (string) ($this->digestStats['security_incidents_count'] ?? '0'),
             'security_incidents_count' => (string) ($this->digestStats['security_incidents_count'] ?? '0'),
+            'admin_url' => route('admin.dashboard'),
             'admin_dashboard_url' => route('admin.dashboard'),
         ], $locale);
     }

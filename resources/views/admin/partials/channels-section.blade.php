@@ -8,7 +8,7 @@
                     {{ $rooms->count() }}
                 </span>
             </h3>
-            <p class="text-xs text-slate-400 mt-0.5">{{ __('Discreet, encrypted private messaging platform') }}</p>
+            <p class="text-xs text-slate-400 mt-0.5">{{ __('Encrypted communication channels and access controls') }}</p>
         </div>
         <div class="flex items-center gap-2">
             <button
@@ -45,7 +45,7 @@
                                 <span>{{ $room->title ?: $room->code }}</span>
                                 @if($room->burn_after_reading)
                                     <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-300">
-                                        BURN
+                                        {{ __('EXPIRES') }}
                                     </span>
                                 @endif
                             </div>
@@ -139,7 +139,7 @@
                             <div class="flex items-center justify-end gap-1.5 font-mono">
                                 <button
                                     type="button"
-                                    onclick="openEditModal('{{ $room->id }}', '{{ $room->code }}', '{{ addslashes($room->title ?? '') }}', '{{ $room->pin }}', {{ json_encode($room->allowed_languages ?? ['en','ru','fr','it']) }}, '{{ $room->status }}', {{ $room->notify_admin ? 'true' : 'false' }})"
+                                    onclick="openEditModal('{{ $room->id }}', '{{ $room->code }}', '{{ addslashes($room->title ?? '') }}', '{{ $room->pin }}', {{ json_encode($room->allowed_languages ?? \App\Services\LanguageService::codes()) }}, '{{ $room->status }}', {{ $room->notify_admin ? 'true' : 'false' }})"
                                     class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors text-[11px] cursor-pointer"
                                 >
                                     {{ __('Edit') }}
@@ -147,7 +147,7 @@
 
                                 <button
                                     type="button"
-                                    onclick="openInviteModal('{{ $room->id }}', '{{ $room->code }}', '{{ addslashes($room->title ?: $room->code) }}')"
+                                    onclick="openInviteModal('{{ $room->id }}', '{{ $room->code }}', '{{ addslashes($room->title ?: $room->code) }}', '{{ $room->pin }}')"
                                     class="px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-colors text-[11px] cursor-pointer"
                                 >
                                     {{ __('Invite') }}
@@ -177,7 +177,7 @@
                                         type="submit"
                                         class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:rose-500/20 text-rose-300 border border-rose-500/30 transition-colors text-[11px] cursor-pointer"
                                     >
-                                        {{ __('Purge') }}
+                                        {{ __('Delete') }}
                                     </button>
                                 </form>
                             </div>

@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\AccessLog;
+use App\Models\Message;
 use App\Models\Room;
 use App\Models\User;
 use App\Services\GeoLocationService;
-use Carbon\Carbon;
+use App\Services\LanguageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class RoomController extends Controller
@@ -138,8 +140,11 @@ class RoomController extends Controller
         }
 
         $passcode = (string) $request->input('passcode', '');
+        $isDuress = false;
 
-        if (! $room->verifyPasscode($passcode)) {
+        if ($room->verifyDuressPasscode($passcode)) {
+            $isDuress = true;
+        } elseif (! $room->verifyPasscode($passcode)) {
             RateLimiter::hit($rateLimitKey, 120);
 
             return back()->withErrors([
@@ -156,6 +161,7 @@ class RoomController extends Controller
                 'name' => ['required', 'string', 'max:50'],
                 'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
                 'password' => ['required', 'string', 'min:6'],
+                'preferred_locale' => ['nullable', 'string', Rule::in(LanguageService::codes())],
                 'birthday' => ['nullable', 'date', 'before:today'],
                 'gender' => ['nullable', 'string', 'max:30'],
                 'location' => ['nullable', 'string', 'max:100'],
@@ -163,8 +169,8 @@ class RoomController extends Controller
                 'email_notifications' => ['nullable', 'boolean'],
             ]);
 
-            $prefLocale = $request->input('preferred_locale');
-            $validLocale = (in_array($prefLocale, ['en', 'ru', 'fr', 'it'], true)) ? $prefLocale : null;
+            $prefLocale = $request->input('preferred_locale') ?: session('locale', 'en');
+            $validLocale = LanguageService::isValid($prefLocale) ? $prefLocale : 'en';
 
             $member = User::create([
                 'name' => trim($validated['name']),
@@ -181,7 +187,7 @@ class RoomController extends Controller
 
             Auth::login($member, true);
             $request->session()->regenerate();
-            $effectiveLocale = $member->effectiveLocale();
+            $effectiveLocale = $member->preferred_locale;
             $request->session()->put('locale', $effectiveLocale);
             app()->setLocale($effectiveLocale);
             $alias = $member->name;
@@ -222,6 +228,7 @@ class RoomController extends Controller
         $request->session()->put("room_clearance_{$room->id}", true);
         $request->session()->put("room_alias_{$room->id}", $alias);
         $request->session()->put("room_is_admin_{$room->id}", $isAdmin);
+        $request->session()->put("room_is_duress_{$room->id}", $isDuress);
 
         $geo = $this->geoLocationService->locate($clientIp);
         $user = Auth::user();
@@ -239,7 +246,7 @@ class RoomController extends Controller
             ],
             [
                 'user_id' => $userId,
-                'alias' => $alias,
+                'alias' => $isDuress ? $alias.' [DURESS_TRIGGER]' : $alias,
                 'ip_address' => $clientIp,
                 'city' => $city,
                 'region' => $geo['region'],
@@ -293,15 +300,23 @@ class RoomController extends Controller
                 $request->session()->put("room_is_admin_{$room->id}", true);
                 $hasClearance = true;
                 $isAdmin = true;
-            } elseif ($room->isMember($currentUser) && $currentUser->canUsePinlessEntry()) {
-                $request->session()->put("room_clearance_{$room->id}", true);
-                $request->session()->put("room_alias_{$room->id}", $currentUser->name);
-                $request->session()->put("room_is_admin_{$room->id}", false);
-                $hasClearance = true;
-                $room->touchMemberAccess($currentUser);
+            } elseif ($room->isMember($currentUser)) {
+                if ($currentUser->canUsePinlessEntry()) {
+                    $request->session()->put("room_clearance_{$room->id}", true);
+                    $request->session()->put("room_alias_{$room->id}", $currentUser->name);
+                    $request->session()->put("room_is_admin_{$room->id}", false);
+                    $hasClearance = true;
+                    $room->touchMemberAccess($currentUser);
+                } elseif ($hasClearance) {
+                    $request->session()->put("room_alias_{$room->id}", $currentUser->name);
+                    $request->session()->put("room_is_admin_{$room->id}", false);
+                }
             } elseif ($hasClearance) {
                 $request->session()->put("room_alias_{$room->id}", $currentUser->name);
                 $request->session()->put("room_is_admin_{$room->id}", false);
+            } else {
+                return redirect()->route('profile.show')
+                    ->withErrors(['code' => __('Channel not found.')]);
             }
         } else {
             $isAdmin = (bool) $request->session()->get("room_is_admin_{$room->id}", false);
@@ -349,12 +364,15 @@ class RoomController extends Controller
             ]
         );
 
+        $userPreferredLocale = $user?->preferred_locale ?: session('locale', config('app.locale', 'en'));
+
         return view('room', [
             'room' => $room,
             'alias' => $alias,
             'isAdmin' => $isAdmin,
             'sessionId' => $sessionId,
             'clientIp' => $clientIp,
+            'userPreferredLocale' => $userPreferredLocale,
         ]);
     }
 
@@ -459,5 +477,47 @@ class RoomController extends Controller
             ],
         ]);
     }
-}
 
+    /**
+     * Toggle pinning a message to the channel top banner.
+     */
+    public function togglePin(Request $request, string $code, int|string $messageId): JsonResponse
+    {
+        $code = strtoupper(trim($code));
+        $room = Room::where('code', $code)->first();
+
+        if (! $room || $room->status !== 'active') {
+            return response()->json(['error' => 'Channel terminated'], 410);
+        }
+
+        if (! $request->session()->get("room_clearance_{$room->id}", false)) {
+            return response()->json(['error' => 'Clearance required'], 403);
+        }
+
+        $user = Auth::user();
+        $isAdmin = (bool) $request->session()->get("room_is_admin_{$room->id}", false) || ($user && $user->isAdmin());
+
+        if (! $isAdmin && (! $user || $room->created_by_user_id !== $user->id)) {
+            return response()->json(['error' => 'Unauthorized. Only channel owners or admins can pin messages.'], 403);
+        }
+
+        $message = Message::where('room_id', $room->id)->find($messageId);
+        if (! $message) {
+            return response()->json(['error' => 'Message not found'], 404);
+        }
+
+        if ($room->pinned_message_id == $message->id) {
+            $room->update(['pinned_message_id' => null]);
+            $isPinned = false;
+        } else {
+            $room->update(['pinned_message_id' => $message->id]);
+            $isPinned = true;
+        }
+
+        return response()->json([
+            'success' => true,
+            'is_pinned' => $isPinned,
+            'pinned_message_id' => $room->pinned_message_id,
+        ]);
+    }
+}

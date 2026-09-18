@@ -7,7 +7,7 @@
         <div>
             <div class="flex items-center gap-2 font-mono text-xs text-cyan-400 mb-1">
                 <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                <span>{{ __('Frequency Directory & Security Protocols') }}</span>
+                <span>{{ __('Channel Directory & Security Management') }}</span>
             </div>
             <h1 class="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
                 <span>{{ __('Encrypted Channels') }}</span>
@@ -16,7 +16,7 @@
                 </span>
             </h1>
             <p class="text-xs text-slate-400 mt-1 max-w-2xl">
-                {{ __('Manage private frequency nodes, configure zero-discovery authorization PINs, monitor message quotas, and generate time-expiring clearance tokens.') }}
+                {{ __('Manage private communication channels, configure access PINs, monitor message limits, and generate time-limited invitation links.') }}
             </p>
         </div>
 

@@ -2,6 +2,11 @@
 
 namespace App\Services;
 
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
+
 class TwoFactorService
 {
     protected const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -32,18 +37,18 @@ class TwoFactorService
         $binarySecret = $this->base32Decode($secret);
 
         // Pack 64-bit integer into big-endian bytes
-        $timeBytes = pack('N*', 0) . pack('N*', $timeSlice);
+        $timeBytes = pack('N*', 0).pack('N*', $timeSlice);
 
         // HMAC-SHA1
         $hash = hash_hmac('sha1', $timeBytes, $binarySecret, true);
 
         // Dynamic truncation
-        $offset = ord($hash[19]) & 0x0f;
+        $offset = ord($hash[19]) & 0x0F;
         $binaryCode = (
-            ((ord($hash[$offset]) & 0x7f) << 24) |
-            ((ord($hash[$offset + 1]) & 0xff) << 16) |
-            ((ord($hash[$offset + 2]) & 0xff) << 8) |
-            (ord($hash[$offset + 3]) & 0xff)
+            ((ord($hash[$offset]) & 0x7F) << 24) |
+            ((ord($hash[$offset + 1]) & 0xFF) << 16) |
+            ((ord($hash[$offset + 2]) & 0xFF) << 8) |
+            (ord($hash[$offset + 3]) & 0xFF)
         );
 
         $code = $binaryCode % 1000000;
@@ -91,15 +96,16 @@ class TwoFactorService
     public function getInlineSvgQrCode(string $otpAuthUrl, int $size = 200): string
     {
         try {
-            $renderer = new \BaconQrCode\Renderer\ImageRenderer(
-                new \BaconQrCode\Renderer\RendererStyle\RendererStyle($size, 1),
-                new \BaconQrCode\Renderer\Image\SvgImageBackEnd()
+            $renderer = new ImageRenderer(
+                new RendererStyle($size, 1),
+                new SvgImageBackEnd
             );
-            $writer = new \BaconQrCode\Writer($renderer);
+            $writer = new Writer($renderer);
+
             return $writer->writeString($otpAuthUrl);
         } catch (\Throwable $e) {
             // Fallback to QuickChart URL if BaconQrCode encounters rendering issue
-            return '<img src="' . htmlspecialchars($this->getQrCodeUrl($otpAuthUrl), ENT_QUOTES) . '" alt="2FA QR Code" class="w-48 h-48 rounded-xl border border-emerald-500/30" />';
+            return '<img src="'.htmlspecialchars($this->getQrCodeUrl($otpAuthUrl), ENT_QUOTES).'" alt="2FA QR Code" class="w-48 h-48 rounded-xl border border-emerald-500/30" />';
         }
     }
 
@@ -110,6 +116,7 @@ class TwoFactorService
     public function getQrCodeUrl(string $otpAuthUrl): string
     {
         $encoded = rawurlencode($otpAuthUrl);
+
         return "https://quickchart.io/qr?text={$encoded}&size=200&dark=10b981&light=0b0f19&ecLevel=M&margin=1";
     }
 
@@ -139,7 +146,7 @@ class TwoFactorService
 
             if ($bitsLeft >= 8) {
                 $bitsLeft -= 8;
-                $result .= chr(($buffer >> $bitsLeft) & 0xff);
+                $result .= chr(($buffer >> $bitsLeft) & 0xFF);
             }
         }
 

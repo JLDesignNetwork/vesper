@@ -14,7 +14,7 @@ return new class extends Migration
     {
         Schema::create('room_user', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('room_id')->constrained('rooms')->cascadeOnDelete();
+            $table->foreignUlid('room_id')->constrained('rooms')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('role', 30)->default('member'); // 'member', 'channel_admin'
             $table->string('alias', 50)->nullable();
@@ -29,7 +29,7 @@ return new class extends Migration
 
         Schema::create('channel_invitations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('room_id')->constrained('rooms')->cascadeOnDelete();
+            $table->foreignUlid('room_id')->constrained('rooms')->cascadeOnDelete();
             $table->foreignId('created_by_user_id')->constrained('users')->cascadeOnDelete();
             $table->string('token', 64)->unique();
             $table->string('code', 16)->unique();
@@ -79,7 +79,7 @@ return new class extends Migration
                     'updated_at' => now(),
                 ]);
             }
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             // Ignore backfill errors in fresh environments
         }
     }

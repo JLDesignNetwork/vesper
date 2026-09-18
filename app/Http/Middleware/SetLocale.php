@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\LanguageService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +17,7 @@ class SetLocale
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $supportedLocales = ['en', 'ru', 'fr', 'it'];
+        $supportedLocales = LanguageService::codes();
 
         $queryLang = $request->query('lang');
 
@@ -54,4 +55,3 @@ class SetLocale
         return $next($request);
     }
 }
-

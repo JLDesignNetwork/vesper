@@ -76,7 +76,7 @@
 
             <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80">
                 <div class="flex items-center justify-between mb-1.5 font-mono">
-                    <div class="text-[10px] text-slate-500 uppercase">{{ __('Bio / Intelligence Dossier') }}</div>
+                    <div class="text-[10px] text-slate-500 uppercase">{{ __('Bio / Notes') }}</div>
                     <span id="dossier-bio-badge" class="hidden text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">🔒 {{ __('Hidden from members') }}</span>
                 </div>
                 <p id="dossier-bio" class="text-xs text-slate-300 leading-relaxed italic whitespace-pre-wrap"></p>
@@ -90,7 +90,7 @@
                 onclick="closeUserDossier()"
                 class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
             >
-                {{ __('Close Dossier') }}
+                {{ __('Close') }}
             </button>
             <button
                 type="button"

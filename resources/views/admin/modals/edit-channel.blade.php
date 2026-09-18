@@ -60,10 +60,10 @@
             <div>
                 <label class="block font-medium text-slate-300 mb-1.5">{{ __('Enabled Translations') }}</label>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    @foreach(['en' => 'English (EN)', 'ru' => 'Russian (RU)', 'fr' => 'French (FR)', 'it' => 'Italian (IT)'] as $code => $label)
+                    @foreach(\App\Services\LanguageService::supported() as $code => $lang)
                         <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 hover:border-emerald-500/50 cursor-pointer select-none">
                             <input type="checkbox" name="allowed_languages[]" value="{{ $code }}" id="edit-lang-{{ $code }}" class="rounded bg-slate-900 border-slate-700 text-emerald-500">
-                            <span class="text-xs font-mono">{{ $label }}</span>
+                            <span class="text-xs font-mono">{{ $lang['flag'] }} {{ $lang['name'] }}</span>
                         </label>
                     @endforeach
                 </div>

@@ -25,6 +25,7 @@ class EmergencyAccountRecovery extends Mailable
         $locale = $this->user->preferred_locale ?: app()->getLocale();
 
         return app(EmailTemplateService::class)->render('emergency_recovery', [
+            'member_name' => $this->user->name,
             'operative_name' => $this->user->name,
             'email' => $this->user->email,
             'reset_url' => $this->resetUrl,
@@ -38,7 +39,7 @@ class EmergencyAccountRecovery extends Mailable
         $rendered = $this->getRendered();
 
         return new Envelope(
-            subject: $rendered['subject'] ?? __('Vesper // Emergency Account Recovery Link'),
+            subject: $rendered['subject'] ?? __('Vesper — Account Recovery Link'),
         );
     }
 

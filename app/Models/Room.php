@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\LanguageService;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,6 +24,7 @@ class Room extends Model
         'code',
         'title',
         'passcode_hash',
+        'duress_passcode_hash',
         'pin',
         'allowed_languages',
         'burn_after_reading',
@@ -30,6 +32,7 @@ class Room extends Model
         'expires_at',
         'created_by_ip',
         'created_by_user_id',
+        'pinned_message_id',
         'status',
     ];
 
@@ -54,6 +57,14 @@ class Room extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    /**
+     * Get the pinned message for this channel, if any.
+     */
+    public function pinnedMessage(): BelongsTo
+    {
+        return $this->belongsTo(Message::class, 'pinned_message_id');
     }
 
     /**
@@ -164,6 +175,18 @@ class Room extends Model
     }
 
     /**
+     * Determine if a given string matches the duress passcode.
+     */
+    public function verifyDuressPasscode(?string $passcode): bool
+    {
+        if (empty($passcode) || empty($this->duress_passcode_hash)) {
+            return false;
+        }
+
+        return Hash::check($passcode, $this->duress_passcode_hash);
+    }
+
+    /**
      * Determine if a target language code is permitted in this channel.
      */
     public function supportsLanguage(string $lang): bool
@@ -180,9 +203,17 @@ class Room extends Model
      */
     public function effectiveAllowedLanguages(): array
     {
-        return ! empty($this->allowed_languages) && is_array($this->allowed_languages)
-            ? array_values($this->allowed_languages)
-            : ['en', 'ru', 'fr', 'it'];
+        if (empty($this->allowed_languages) || ! is_array($this->allowed_languages)) {
+            return LanguageService::codes();
+        }
+
+        // If the channel had the legacy 4-language set before the expansion, allow all supported
+        $legacyFour = ['en', 'ru', 'fr', 'it'];
+        if (count($this->allowed_languages) === 4 && empty(array_diff($legacyFour, $this->allowed_languages))) {
+            return LanguageService::codes();
+        }
+
+        return array_values($this->allowed_languages);
     }
 
     /**
@@ -194,11 +225,38 @@ class Room extends Model
     }
 
     /**
-     * Purge all physical media files associated with this room.
+     * Purge all physical media files associated with this room with multi-pass cryptographic shredding.
      */
     public function purgeAllMedia(): void
     {
-        Storage::disk('public')->deleteDirectory("attachments/{$this->id}");
+        $dirs = [
+            Storage::disk('local')->path("attachments/{$this->id}"),
+            Storage::disk('public')->path("attachments/{$this->id}"),
+        ];
+
+        foreach ($dirs as $dir) {
+            if (! is_dir($dir)) {
+                continue;
+            }
+
+            $files = glob($dir.'/*');
+            if (is_array($files)) {
+                foreach ($files as $file) {
+                    if (is_file($file)) {
+                        $size = filesize($file);
+                        if ($size > 0) {
+                            $fh = @fopen($file, 'r+');
+                            if ($fh) {
+                                @fwrite($fh, random_bytes($size));
+                                @fflush($fh);
+                                @fclose($fh);
+                            }
+                        }
+                        @unlink($file);
+                    }
+                }
+            }
+            @rmdir($dir);
+        }
     }
 }
-

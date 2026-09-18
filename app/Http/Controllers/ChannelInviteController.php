@@ -25,9 +25,9 @@ class ChannelInviteController extends Controller
 
         // If user is already authenticated and an active member, route them in
         if (Auth::check() && $invitation->room->isMember(Auth::user())) {
-            return redirect()->route('channels.index')->with(
+            return redirect()->route('profile.show')->with(
                 'status',
-                __('You are already an enrolled member of :title.', ['title' => $invitation->room->title ?: $invitation->room->code])
+                __('You are already a member of :title.', ['title' => $invitation->room->title ?: $invitation->room->code])
             );
         }
 
@@ -39,14 +39,14 @@ class ChannelInviteController extends Controller
     }
 
     /**
-     * Accept and claim an invitation link as the authenticated operative.
+     * Accept and claim an invitation link as the authenticated member.
      */
     public function acceptInviteLink(string $token, Request $request): RedirectResponse
     {
         $invitation = ChannelInvitation::with('room')->where('token', $token)->first();
 
         if (! $invitation || ! $invitation->isValid()) {
-            return redirect()->route('channels.index')->withErrors([
+            return redirect()->route('profile.show')->withErrors([
                 'channel' => __('This invitation link is invalid or has expired.'),
             ]);
         }
@@ -54,7 +54,7 @@ class ChannelInviteController extends Controller
         $user = $request->user();
         $invitation->consume($user);
 
-        return redirect()->route('channels.index')->with(
+        return redirect()->route('profile.show')->with(
             'status',
             __('Invitation claimed! Clearance granted to channel :title.', ['title' => $invitation->room->title ?: $invitation->room->code])
         );

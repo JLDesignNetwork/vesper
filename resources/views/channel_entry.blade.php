@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ app()->getLocale() }}" class="h-full bg-slate-950 text-slate-100 antialiased">
+<html lang="{{ app()->getLocale() }}" dir="{{ \App\Services\LanguageService::getDirection(app()->getLocale()) }}" class="h-full bg-slate-950 text-slate-100 antialiased">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -253,19 +253,21 @@
                         </div>
 
                         <div>
-                            <label for="reg-preferred-locale" class="block text-xs font-medium text-slate-400 mb-1">
-                                {{ __('Language Preference') }}
+                            <label for="reg-preferred-locale" class="block text-xs font-medium text-slate-300 mb-1">
+                                {{ __('Preferred Language') }} <span class="text-emerald-400">*</span>
                             </label>
                             <select
                                 id="reg-preferred-locale"
                                 name="preferred_locale"
+                                required
                                 class="w-full px-3 py-2 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-emerald-500/60"
                             >
-                                <option value="auto">🌐 {{ __('Auto-detect from Location') }}</option>
-                                <option value="en">🇬🇧 English (EN)</option>
-                                <option value="ru">🇷🇺 Russian (RU) - Русский</option>
-                                <option value="fr">🇫🇷 French (FR) - Français</option>
-                                <option value="it">🇮🇹 Italian (IT) - Italiano</option>
+                                <option value="" disabled selected>{{ __('-- Select Preferred Language --') }}</option>
+                                @foreach(\App\Services\LanguageService::supported() as $code => $lang)
+                                    <option value="{{ $code }}">
+                                        {{ $lang['flag'] }} {{ $lang['name'] }} ({{ strtoupper($code) }}) - {{ $lang['native'] }}
+                                    </option>
+                                @endforeach
                             </select>
                         </div>
 

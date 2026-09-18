@@ -8,3 +8,21 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
+/* RTL Support */
+[dir="rtl"] {
+    text-align: right;
+}
+
+[dir="rtl"] input:not([type="password"]):not([type="number"]),
+[dir="rtl"] textarea {
+    text-align: right;
+}
+
+[dir="rtl"] .font-mono,
+[dir="rtl"] code,
+[dir="rtl"] pre {
+    direction: ltr;
+    text-align: left;
+}
+
+

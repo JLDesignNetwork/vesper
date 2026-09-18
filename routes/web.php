@@ -14,12 +14,22 @@ use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\TwoFactorController;
 use App\Http\Controllers\WebAuthnController;
 use App\Http\Middleware\EnsureAdmin;
+use App\Services\LanguageService;
 use Illuminate\Support\Facades\Route;
+
+// PWA Manifest
+Route::get('/manifest.json', function () {
+    return response(file_get_contents(public_path('manifest.json')), 200, [
+        'Content-Type' => 'application/manifest+json',
+    ]);
+})->name('pwa.manifest');
 
 // Public Root & Authentication Entry Point
 Route::get('/', [AuthController::class, 'showLogin'])->name('portal');
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+Route::post('/register', [AuthController::class, 'register'])->name('register.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // WebAuthn / Biometrics (Passkeys)
@@ -27,12 +37,15 @@ Route::post('/webauthn/login/options', [WebAuthnController::class, 'optionsLogin
 Route::post('/webauthn/login/verify', [WebAuthnController::class, 'verifyLogin'])->name('webauthn.login.verify');
 
 Route::middleware('auth')->group(function () {
-    // Operative Channels Hub (Enrolled channels only)
-    Route::get('/channels', [ChannelHubController::class, 'index'])->name('channels.index');
+    // Member Profile & Channels Dashboard
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::get('/channels', function () {
+        return redirect()->route('profile.show');
+    })->name('channels.index');
     Route::post('/channels/enter/{room}', [ChannelHubController::class, 'enter'])->name('channels.enter');
     Route::post('/channels/invites/{roomId}/accept', [ChannelHubController::class, 'acceptInvite'])->name('channels.invites.accept');
     Route::post('/channels/invites/{roomId}/decline', [ChannelHubController::class, 'declineInvite'])->name('channels.invites.decline');
-    Route::post('/channels/redeem', [ChannelHubController::class, 'redeemCode'])->name('channels.redeem');
+    Route::post('/channels/redeem', [ChannelHubController::class, 'redeemCode'])->name('channels.redeem')->middleware('throttle:5,1');
 
     // WebAuthn registration
     Route::get('/webauthn/register/options', [WebAuthnController::class, 'optionsRegister'])->name('webauthn.register.options');
@@ -71,7 +84,7 @@ Route::post('/profile/gps', [ProfileController::class, 'updateGps'])->name('prof
 
 // Multilingual Locale Switcher (EN, RU, FR, IT, or auto)
 Route::get('/locale/{locale}', function (string $locale) {
-    if (in_array($locale, ['en', 'ru', 'fr', 'it'], true)) {
+    if (LanguageService::isValid($locale)) {
         session(['locale' => $locale]);
         if (Auth::check()) {
             Auth::user()->update(['preferred_locale' => $locale]);
@@ -90,7 +103,8 @@ Route::get('/locale/{locale}', function (string $locale) {
 Route::middleware(['auth', EnsureAdmin::class])->prefix('admin')->group(function () {
     Route::get('/', [AdminController::class, 'index'])->name('admin.dashboard');
     Route::get('/channels', [AdminController::class, 'channels'])->name('admin.channels.index');
-    Route::get('/operatives', [AdminController::class, 'operatives'])->name('admin.operatives.index');
+    Route::get('/members', [AdminController::class, 'members'])->name('admin.members.index');
+    Route::get('/operatives', fn () => redirect()->route('admin.members.index'))->name('admin.operatives.index');
     Route::get('/intel', [AdminController::class, 'intel'])->name('admin.intel.index');
     Route::get('/logs', [AdminController::class, 'logs'])->name('admin.logs.index');
     Route::get('/emails', [AdminEmailController::class, 'index'])->name('admin.emails.index');
@@ -112,7 +126,7 @@ Route::middleware(['auth', EnsureAdmin::class])->prefix('admin')->group(function
 
 // Channel Invitation Links (Acceptance flow)
 Route::get('/invite/{token}', [ChannelInviteController::class, 'showInvite'])->name('invites.show');
-Route::post('/invite/{token}/accept', [ChannelInviteController::class, 'acceptInviteLink'])->name('invites.accept')->middleware('auth');
+Route::post('/invite/{token}/accept', [ChannelInviteController::class, 'acceptInviteLink'])->name('invites.accept')->middleware(['auth', 'throttle:10,1']);
 
 // Private Channel Direct Access (Zero public discovery)
 Route::post('/rooms/{room}/verify', [RoomController::class, 'verify'])->name('rooms.verify');
@@ -125,7 +139,11 @@ Route::prefix('c/{room}')->group(function () {
 
     Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
     Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
+    Route::post('/messages/{message}/react', [MessageController::class, 'toggleReaction'])->name('messages.react');
+    Route::post('/messages/{message}/pin', [RoomController::class, 'togglePin'])->name('rooms.pin');
+    Route::get('/attachments/{message}', [MessageController::class, 'streamAttachment'])->name('messages.attachment');
     Route::post('/translate', [MessageController::class, 'translate'])->name('messages.translate');
+    Route::post('/translate-batch', [MessageController::class, 'translateBatch'])->name('messages.translate-batch');
 
     Route::get('/radar', [IntelController::class, 'radar'])->name('intel.radar');
     Route::post('/gps', [IntelController::class, 'updateGps'])->name('intel.gps');

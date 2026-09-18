@@ -32,7 +32,7 @@ test('authenticated user can upload a profile picture', function () {
 
     $user->refresh();
     expect($user->avatar_path)->not->toBeNull();
-    expect($user->avatarUrl())->toContain('/storage/' . $user->avatar_path);
+    expect($user->avatarUrl())->toContain('/storage/'.$user->avatar_path);
 
     Storage::disk('public')->assertExists($user->avatar_path);
 });
@@ -193,4 +193,3 @@ test('member profile endpoint returns user profile details and avatar url for ch
     expect($data['location'])->toBe('Sector 7, Matrix');
     expect($data['bio'])->toBe('Elite cryptographer.');
 });
-

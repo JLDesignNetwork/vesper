@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\TwoFactorStatusNotification;
 use App\Models\User;
 use App\Services\TwoFactorService;
 use Illuminate\Http\JsonResponse;
@@ -10,6 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
 
 class TwoFactorController extends Controller
@@ -72,6 +75,14 @@ class TwoFactorController extends Controller
 
         $recoveryCodes = $user->generateTwoFactorRecoveryCodes();
 
+        if ($user->email && filter_var($user->email, FILTER_VALIDATE_EMAIL)) {
+            try {
+                Mail::to($user->email)->send(new TwoFactorStatusNotification($user, 'enabled', $request->ip()));
+            } catch (\Throwable $e) {
+                Log::warning("Failed to dispatch 2FA status notification: {$e->getMessage()}");
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => __('Two-factor authentication enabled successfully.'),
@@ -102,6 +113,14 @@ class TwoFactorController extends Controller
             'two_factor_confirmed_at' => null,
             'two_factor_recovery_codes' => null,
         ])->save();
+
+        if ($user->email && filter_var($user->email, FILTER_VALIDATE_EMAIL)) {
+            try {
+                Mail::to($user->email)->send(new TwoFactorStatusNotification($user, 'disabled', $request->ip()));
+            } catch (\Throwable $e) {
+                Log::warning("Failed to dispatch 2FA status notification: {$e->getMessage()}");
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -152,6 +171,7 @@ class TwoFactorController extends Controller
         $user = User::find($userId);
         if (! $user) {
             session()->forget(['2fa_user_id', '2fa_remember']);
+
             return redirect()->route('login');
         }
 

@@ -24,6 +24,7 @@ class RecoveryEmailVerification extends Mailable
         $locale = $this->user->preferred_locale ?: app()->getLocale();
 
         return app(EmailTemplateService::class)->render('recovery_verification', [
+            'member_name' => $this->user->name,
             'operative_name' => $this->user->name,
             'email' => $this->user->email,
             'verification_url' => $this->verificationUrl,

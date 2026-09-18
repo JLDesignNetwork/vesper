@@ -2,11 +2,14 @@
 
 namespace App\Services;
 
+use App\Mail\MemberWelcomeNotification;
 use App\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class OAuthService
@@ -100,7 +103,7 @@ class OAuthService
             return [
                 'provider_id' => (string) ($data['sub'] ?? ''),
                 'email' => strtolower($data['email'] ?? ''),
-                'name' => $data['name'] ?? $data['given_name'] ?? 'Google Operative',
+                'name' => $data['name'] ?? $data['given_name'] ?? 'Google Member',
                 'avatar' => $data['picture'] ?? null,
             ];
         }
@@ -123,7 +126,7 @@ class OAuthService
 
             $userParam = json_decode($request->input('user', '{}'), true) ?: [];
             $nameParts = array_filter([$userParam['name']['firstName'] ?? '', $userParam['name']['lastName'] ?? '']);
-            $fullName = implode(' ', $nameParts) ?: 'Apple Operative';
+            $fullName = implode(' ', $nameParts) ?: 'Apple Member';
 
             return [
                 'provider_id' => (string) ($claims['sub'] ?? Str::random(16)),
@@ -184,12 +187,12 @@ class OAuthService
             }
         }
 
-        // Provision new operative user
+        // Provision new member user
         $newUser = User::create([
-            'name' => $identity['name'] ?: ucfirst($provider) . ' Operative',
-            'email' => $email ?: ($providerId . '@' . $provider . '.identity'),
-            'password' => \Illuminate\Support\Facades\Hash::make(Str::random(32)),
-            'role' => 'operative',
+            'name' => $identity['name'] ?: ucfirst($provider).' Member',
+            'email' => $email ?: ($providerId.'@'.$provider.'.identity'),
+            'password' => Hash::make(Str::random(32)),
+            'role' => 'member',
             'avatar_path' => $identity['avatar'] ?? null,
         ]);
 
@@ -200,6 +203,14 @@ class OAuthService
             'email' => $email,
             'avatar' => $identity['avatar'] ?? null,
         ]);
+
+        if ($email && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            try {
+                Mail::to($newUser->email)->send(new MemberWelcomeNotification($newUser));
+            } catch (\Throwable $e) {
+                Log::warning("Failed to dispatch welcome notification to {$newUser->email}: {$e->getMessage()}");
+            }
+        }
 
         return $newUser;
     }

@@ -33,7 +33,7 @@ test('admin can create a private room from the dashboard', function () {
     expect($room)->not->toBeNull();
     expect(Hash::check('classified-pass', $room->passcode_hash))->toBeTrue();
 
-    $response->assertRedirect(route('admin.dashboard'));
+    $response->assertRedirect(route('admin.channels.index'));
 });
 
 test('an unauthorized user visiting a room is presented with the passkey prompt', function () {
@@ -113,7 +113,7 @@ test('emergency nuke action purges the room, all messages, and storage directory
 });
 
 test('authenticated admin user can directly access room and view interface without error', function () {
-    $admin = \App\Models\User::create([
+    $admin = User::create([
         'name' => 'Commander',
         'email' => 'commander@sundaycity.local',
         'password' => Hash::make('password'),
@@ -129,4 +129,41 @@ test('authenticated admin user can directly access room and view interface witho
     $response = $this->actingAs($admin)->get(route('rooms.show', ['room' => 'ADMIN-DIRECT']));
     $response->assertStatus(200);
     $response->assertSee('Vesper');
+    $response->assertSee('NETWORK MAP');
+});
+
+test('network map is only visible to admin role and completely hidden for regular members', function () {
+    $admin = User::create([
+        'name' => 'GeneralAdmin',
+        'email' => 'general@example.com',
+        'password' => Hash::make('password123'),
+        'role' => 'admin',
+    ]);
+
+    $member = User::create([
+        'name' => 'GrantMember',
+        'email' => 'grant@example.com',
+        'password' => Hash::make('password123'),
+        'role' => 'member',
+    ]);
+
+    $room = Room::create([
+        'code' => 'ROLE-MAP-01',
+        'passcode_hash' => Hash::make('password'),
+        'status' => 'active',
+    ]);
+
+    // Admin in room sees Network Map
+    $adminResponse = $this->actingAs($admin)->get(route('rooms.show', ['room' => $room->code]));
+    $adminResponse->assertStatus(200);
+    $adminResponse->assertSee('NETWORK MAP');
+    $adminResponse->assertSee('id="radar-drawer"', false);
+
+    // Regular Member in room does NOT see Network Map
+    $memberResponse = $this->actingAs($member)->withSession([
+        "room_clearance_{$room->id}" => true,
+    ])->get(route('rooms.show', ['room' => $room->code]));
+    $memberResponse->assertStatus(200);
+    $memberResponse->assertDontSee('NETWORK MAP');
+    $memberResponse->assertDontSee('id="radar-drawer"', false);
 });

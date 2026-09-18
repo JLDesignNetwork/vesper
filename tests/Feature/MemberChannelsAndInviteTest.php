@@ -44,13 +44,13 @@ test('member is routed to operative channels hub on login', function () {
         'password' => 'password123',
     ]);
 
-    $response->assertRedirect(route('channels.index'));
+    $response->assertRedirect(route('profile.show'));
     $this->assertAuthenticatedAs($member);
 });
 
-test('member cannot access admin dashboard and is redirected to channels hub', function () {
+test('member cannot access admin dashboard and is redirected to member profile hub', function () {
     $member = User::create([
-        'name' => 'OperativeRaven',
+        'name' => 'MemberRaven',
         'email' => 'raven@vesper.test',
         'password' => Hash::make('password123'),
         'role' => 'member',
@@ -58,12 +58,12 @@ test('member cannot access admin dashboard and is redirected to channels hub', f
 
     $response = $this->actingAs($member)->get(route('admin.dashboard'));
 
-    $response->assertRedirect(route('channels.index'));
+    $response->assertRedirect(route('profile.show'));
 });
 
-test('channels hub enforces strict zero discovery and displays only enrolled channels', function () {
+test('member profile hub enforces strict zero discovery and displays only enrolled channels', function () {
     $member = User::create([
-        'name' => 'OperativeEcho',
+        'name' => 'MemberEcho',
         'email' => 'echo@vesper.test',
         'password' => Hash::make('password123'),
         'role' => 'member',
@@ -86,7 +86,7 @@ test('channels hub enforces strict zero discovery and displays only enrolled cha
         'status' => 'active',
     ]);
 
-    $response = $this->actingAs($member)->get(route('channels.index'));
+    $response = $this->actingAs($member)->get(route('profile.show'));
 
     $response->assertStatus(200);
     $response->assertSee('ALPHA-ENROLLED');
@@ -187,14 +187,14 @@ test('operative can redeem alphanumeric invitation code to join a channel', func
         'code' => $invitation->code,
     ]);
 
-    $response->assertRedirect(route('channels.index'));
+    $response->assertRedirect(route('profile.show'));
     $response->assertSessionHas('status');
 
     expect($room->isMember($member))->toBeTrue();
     expect($invitation->fresh()->uses_count)->toBe(1);
 });
 
-test('operative can accept invite via invite link token', function () {
+test('member can accept invite via invite link token', function () {
     $admin = User::create([
         'name' => 'AdminLinker',
         'email' => 'linker@vesper.test',
@@ -226,7 +226,7 @@ test('operative can accept invite via invite link token', function () {
 
     // Claim as authenticated member
     $acceptResponse = $this->actingAs($member)->post(route('invites.accept', ['token' => $invitation->token]));
-    $acceptResponse->assertRedirect(route('channels.index'));
+    $acceptResponse->assertRedirect(route('profile.show'));
 
     expect($room->isMember($member))->toBeTrue();
 });

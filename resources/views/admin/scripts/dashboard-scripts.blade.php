@@ -9,9 +9,13 @@
             document.getElementById('create-modal').classList.add('hidden');
         }
 
-        function openInviteModal(roomId, roomCode, roomTitle) {
+        function openInviteModal(roomId, roomCode, roomTitle, roomPin) {
             document.getElementById('invite-channel-form').action = `/admin/channels/${roomId}/invite`;
             document.getElementById('invite-channel-subtitle').innerText = `Target Channel: [${roomCode}] ${roomTitle}`;
+            const pinEl = document.getElementById('invite-channel-pin');
+            if (pinEl) {
+                pinEl.innerText = roomPin || '••••••';
+            }
             document.getElementById('invite-channel-modal').classList.remove('hidden');
         }
 

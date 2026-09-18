@@ -7,13 +7,14 @@ use App\Models\Room;
 use App\Models\User;
 use App\Services\EmailTemplateService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Str;
 
-class NewMessageNotification extends Mailable
+class NewMessageNotification extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 

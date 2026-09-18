@@ -1,15 +1,12 @@
 <?php
 
 use App\Mail\EmergencyAccountRecovery;
-use App\Mail\NewMessageNotification;
 use App\Models\EmailTemplate;
-use App\Models\Message;
-use App\Models\Room;
 use App\Models\User;
 use App\Services\EmailTemplateService;
 use App\Services\TranslationService;
+use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 
 beforeEach(function () {
@@ -35,9 +32,9 @@ test('guest cannot access email template manager', function () {
     $response->assertRedirect(route('login'));
 });
 
-test('regular operative without admin privileges is redirected to channels hub', function () {
+test('regular member without admin privileges is redirected to profile hub', function () {
     $response = $this->actingAs($this->operative)->get(route('admin.emails.index'));
-    $response->assertRedirect(route('channels.index'));
+    $response->assertRedirect(route('profile.show'));
 });
 
 test('admin can view the email templates manager and see library', function () {
@@ -64,7 +61,7 @@ test('admin can preview an email template via GET and draft POST', function () {
     $response->assertStatus(200);
     $response->assertHeader('Content-Type', 'text/html; charset=UTF-8');
     $response->assertSee('VESPER');
-    $response->assertSee('GHOSTWIRE');
+    $response->assertSee('ENTERPRISE');
 
     // Live POST draft preview
     $postDraft = $this->actingAs($this->admin)->post(route('admin.emails.preview', 'registration_welcome'), [
@@ -137,7 +134,7 @@ test('auto-translation preserves dynamic variable tokens across target locales',
             return [
                 'success' => true,
                 'original_text' => $text,
-                'translated_text' => "[{$targetLang}] " . $text,
+                'translated_text' => "[{$targetLang}] ".$text,
                 'target_lang' => $targetLang,
             ];
         });
@@ -152,7 +149,7 @@ test('auto-translation preserves dynamic variable tokens across target locales',
         $saved = EmailTemplate::where('key', 'registration_welcome')->where('locale', $loc)->first();
         expect($saved)->not->toBeNull();
         // Dynamic variables must remain intact in translated markdown
-        expect($saved->body_markdown)->toContain('{{operative_name}}');
+        expect($saved->body_markdown)->toContain('{{member_name}}');
         expect($saved->body_markdown)->toContain('{{email}}');
     }
 });
@@ -167,7 +164,7 @@ test('admin can dispatch a test email to their own address', function () {
     $response->assertStatus(200);
     $response->assertJson(['success' => true]);
 
-    Mail::assertSent(function (\Illuminate\Mail\Mailable $mail) {
+    Mail::assertSent(function (Mailable $mail) {
         return $mail->hasTo('admin@vesper.test');
     });
 });
@@ -210,3 +207,31 @@ test('outgoing mailables render using customized email templates or factory fall
     expect($customContent->htmlString)->toContain('CLASSIFIED INTRUSION DETECTED for Agent007');
     expect($customContent->htmlString)->toContain('LOCKDOWN LINK');
 });
+
+test('admin email templates interface supports all 15 dynamic languages', function () {
+    $response = $this->actingAs($this->admin)->get(route('admin.emails.index'));
+    $response->assertStatus(200);
+
+    // Verify all 15 language codes are present in the UI
+    foreach (\App\Services\LanguageService::codes() as $code) {
+        $response->assertSee('locale='.$code, false);
+    }
+
+    // Verify saving a template in a non-legacy language like Spanish (es) or Japanese (ja)
+    $updateResponse = $this->actingAs($this->admin)->put(route('admin.emails.update', 'registration_welcome'), [
+        'locale' => 'ja',
+        'subject' => 'Vesperへようこそ: {{member_name}}',
+        'preheader' => 'アカウントの準備が整いました',
+        'body_markdown' => 'こんにちは **{{member_name}}** さん、Vesperへようこそ。',
+        'button_text' => 'ダッシュボードへ',
+        'button_color' => 'success',
+        'footer_text' => 'Vesper 機密通信',
+    ]);
+
+    $updateResponse->assertRedirect(route('admin.emails.index', ['template' => 'registration_welcome', 'locale' => 'ja']));
+
+    $jaTemplate = EmailTemplate::where('key', 'registration_welcome')->where('locale', 'ja')->first();
+    expect($jaTemplate)->not->toBeNull();
+    expect($jaTemplate->subject)->toBe('Vesperへようこそ: {{member_name}}');
+});
+
