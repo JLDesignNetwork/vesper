@@ -4,6 +4,7 @@ use App\Mail\EmergencyAccountRecovery;
 use App\Models\EmailTemplate;
 use App\Models\User;
 use App\Services\EmailTemplateService;
+use App\Services\LanguageService;
 use App\Services\TranslationService;
 use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\Hash;
@@ -213,7 +214,7 @@ test('admin email templates interface supports all 15 dynamic languages', functi
     $response->assertStatus(200);
 
     // Verify all 15 language codes are present in the UI
-    foreach (\App\Services\LanguageService::codes() as $code) {
+    foreach (LanguageService::codes() as $code) {
         $response->assertSee('locale='.$code, false);
     }
 
@@ -234,4 +235,3 @@ test('admin email templates interface supports all 15 dynamic languages', functi
     expect($jaTemplate)->not->toBeNull();
     expect($jaTemplate->subject)->toBe('Vesperへようこそ: {{member_name}}');
 });
-
