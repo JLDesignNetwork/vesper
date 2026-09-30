@@ -67,74 +67,178 @@
             font-family: 'JetBrains Mono', monospace !important;
         }
 
-        /* Themes & Color Palettes */
+        /* Themes & Color Palettes CSS Custom Properties */
+        :root {
+            --theme-bg: #07090e;
+            --theme-chat-bg: #06080d;
+            --theme-header-bg: rgba(2, 6, 23, 0.85);
+            --theme-header-border: rgba(16, 185, 129, 0.2);
+            --theme-footer-bg: rgba(2, 6, 23, 0.95);
+            --theme-footer-border: rgba(16, 185, 129, 0.2);
+            --theme-accent: #10b981;
+            --theme-accent-glow: rgba(16, 185, 129, 0.4);
+            --theme-accent-hover: #34d399;
+            --theme-accent-text: #020617;
+            --theme-bubble-self-bg: linear-gradient(135deg, rgba(5, 150, 105, 0.95) 0%, rgba(15, 118, 110, 0.95) 100%);
+            --theme-bubble-self-border: rgba(52, 211, 153, 0.45);
+            --theme-bubble-self-text: #ffffff;
+            --theme-bubble-peer-bg: rgba(15, 23, 42, 0.92);
+            --theme-bubble-peer-border: rgba(51, 65, 85, 0.7);
+            --theme-bubble-peer-text: #f1f5f9;
+            --theme-input-border-focus: #10b981;
+        }
+
         body.theme-neon {
-            background-color: #080612 !important;
-        }
-        body.theme-neon header {
-            background-color: rgba(13, 10, 26, 0.85) !important;
-            border-color: rgba(147, 51, 234, 0.25) !important;
-        }
-        body.theme-neon .bubble-self {
-            background: linear-gradient(135deg, rgba(6, 182, 212, 0.9) 0%, rgba(147, 51, 234, 0.9) 100%) !important;
-            border-color: rgba(6, 182, 212, 0.4) !important;
+            --theme-bg: #090614;
+            --theme-chat-bg: #090614;
+            --theme-header-bg: rgba(16, 10, 31, 0.88);
+            --theme-header-border: rgba(168, 85, 247, 0.35);
+            --theme-footer-bg: rgba(16, 10, 31, 0.95);
+            --theme-footer-border: rgba(6, 182, 212, 0.35);
+            --theme-accent: #06b6d4;
+            --theme-accent-glow: rgba(6, 182, 212, 0.5);
+            --theme-accent-hover: #22d3ee;
+            --theme-accent-text: #020617;
+            --theme-bubble-self-bg: linear-gradient(135deg, rgba(8, 145, 178, 0.95) 0%, rgba(126, 34, 206, 0.95) 100%);
+            --theme-bubble-self-border: rgba(6, 182, 212, 0.6);
+            --theme-bubble-self-text: #ffffff;
+            --theme-bubble-peer-bg: rgba(24, 16, 46, 0.92);
+            --theme-bubble-peer-border: rgba(126, 34, 206, 0.5);
+            --theme-bubble-peer-text: #f8fafc;
+            --theme-input-border-focus: #06b6d4;
         }
 
         body.theme-stealth {
-            background-color: #0b0f17 !important;
-        }
-        body.theme-stealth header {
-            background-color: rgba(15, 23, 42, 0.85) !important;
-            border-color: rgba(71, 85, 105, 0.3) !important;
-        }
-        body.theme-stealth .bubble-self {
-            background: linear-gradient(135deg, rgba(71, 85, 105, 0.9) 0%, rgba(30, 41, 59, 0.95) 100%) !important;
-            border-color: rgba(148, 163, 184, 0.3) !important;
+            --theme-bg: #0b0f19;
+            --theme-chat-bg: #0b0f19;
+            --theme-header-bg: rgba(15, 23, 42, 0.88);
+            --theme-header-border: rgba(100, 116, 139, 0.3);
+            --theme-footer-bg: rgba(15, 23, 42, 0.95);
+            --theme-footer-border: rgba(100, 116, 139, 0.3);
+            --theme-accent: #60a5fa;
+            --theme-accent-glow: rgba(96, 165, 250, 0.4);
+            --theme-accent-hover: #93c5fd;
+            --theme-accent-text: #020617;
+            --theme-bubble-self-bg: linear-gradient(135deg, rgba(51, 65, 85, 0.95) 0%, rgba(30, 41, 59, 0.98) 100%);
+            --theme-bubble-self-border: rgba(148, 163, 184, 0.5);
+            --theme-bubble-self-text: #ffffff;
+            --theme-bubble-peer-bg: rgba(17, 24, 39, 0.92);
+            --theme-bubble-peer-border: rgba(51, 65, 85, 0.7);
+            --theme-bubble-peer-text: #e2e8f0;
+            --theme-input-border-focus: #60a5fa;
         }
 
         body.theme-amber {
-            background-color: #100b05 !important;
-        }
-        body.theme-amber header {
-            background-color: rgba(28, 19, 8, 0.85) !important;
-            border-color: rgba(217, 119, 6, 0.25) !important;
-        }
-        body.theme-amber .bubble-self {
-            background: linear-gradient(135deg, rgba(217, 119, 6, 0.9) 0%, rgba(180, 83, 9, 0.95) 100%) !important;
-            border-color: rgba(245, 158, 11, 0.4) !important;
+            --theme-bg: #120c04;
+            --theme-chat-bg: #120c04;
+            --theme-header-bg: rgba(28, 18, 8, 0.88);
+            --theme-header-border: rgba(245, 158, 11, 0.35);
+            --theme-footer-bg: rgba(28, 18, 8, 0.95);
+            --theme-footer-border: rgba(245, 158, 11, 0.35);
+            --theme-accent: #f59e0b;
+            --theme-accent-glow: rgba(245, 158, 11, 0.5);
+            --theme-accent-hover: #fbbf24;
+            --theme-accent-text: #020617;
+            --theme-bubble-self-bg: linear-gradient(135deg, rgba(217, 119, 6, 0.95) 0%, rgba(180, 83, 9, 0.95) 100%);
+            --theme-bubble-self-border: rgba(245, 158, 11, 0.6);
+            --theme-bubble-self-text: #ffffff;
+            --theme-bubble-peer-bg: rgba(36, 24, 12, 0.92);
+            --theme-bubble-peer-border: rgba(146, 64, 14, 0.5);
+            --theme-bubble-peer-text: #fef3c7;
+            --theme-input-border-focus: #f59e0b;
         }
 
         body.theme-matrix {
-            background-color: #020502 !important;
-        }
-        body.theme-matrix header {
-            background-color: rgba(2, 10, 2, 0.85) !important;
-            border-color: rgba(34, 197, 94, 0.25) !important;
-        }
-        body.theme-matrix .bubble-self {
-            background: linear-gradient(135deg, rgba(21, 128, 61, 0.9) 0%, rgba(22, 101, 52, 0.95) 100%) !important;
-            border-color: rgba(34, 197, 94, 0.4) !important;
+            --theme-bg: #010501;
+            --theme-chat-bg: #010501;
+            --theme-header-bg: rgba(2, 12, 3, 0.88);
+            --theme-header-border: rgba(34, 197, 94, 0.35);
+            --theme-footer-bg: rgba(2, 12, 3, 0.95);
+            --theme-footer-border: rgba(34, 197, 94, 0.35);
+            --theme-accent: #22c55e;
+            --theme-accent-glow: rgba(34, 197, 94, 0.5);
+            --theme-accent-hover: #4ade80;
+            --theme-accent-text: #010501;
+            --theme-bubble-self-bg: linear-gradient(135deg, rgba(21, 128, 61, 0.95) 0%, rgba(20, 83, 45, 0.98) 100%);
+            --theme-bubble-self-border: rgba(74, 222, 128, 0.6);
+            --theme-bubble-self-text: #ffffff;
+            --theme-bubble-peer-bg: rgba(4, 20, 6, 0.92);
+            --theme-bubble-peer-border: rgba(22, 101, 52, 0.6);
+            --theme-bubble-peer-text: #dcfce7;
+            --theme-input-border-focus: #22c55e;
         }
 
-        /* Chat Background Patterns */
+        /* Elements using dynamic theme variables */
+        body {
+            background-color: var(--theme-bg) !important;
+            transition: background-color 0.25s ease;
+        }
+        #chat-stream-panel {
+            background-color: var(--theme-chat-bg) !important;
+            transition: background-color 0.25s ease;
+        }
+        header.theme-header {
+            background-color: var(--theme-header-bg) !important;
+            border-color: var(--theme-header-border) !important;
+            transition: background-color 0.25s ease, border-color 0.25s ease;
+        }
+        #chat-input-bar {
+            background-color: var(--theme-footer-bg) !important;
+            border-color: var(--theme-footer-border) !important;
+            transition: background-color 0.25s ease, border-color 0.25s ease;
+        }
+        .bubble-self {
+            background: var(--theme-bubble-self-bg) !important;
+            border-color: var(--theme-bubble-self-border) !important;
+            color: var(--theme-bubble-self-text) !important;
+        }
+        .bubble-peer {
+            background-color: var(--theme-bubble-peer-bg) !important;
+            border-color: var(--theme-bubble-peer-border) !important;
+            color: var(--theme-bubble-peer-text) !important;
+        }
+        .theme-author-self {
+            color: var(--theme-accent) !important;
+        }
+        .theme-reply-bar {
+            border-left-color: var(--theme-accent) !important;
+        }
+        .theme-accent-text {
+            color: var(--theme-accent) !important;
+        }
+        #send-btn, #mobile-send-btn {
+            background-color: var(--theme-accent) !important;
+            color: var(--theme-accent-text) !important;
+            box-shadow: 0 0 16px var(--theme-accent-glow) !important;
+            transition: all 0.2s ease;
+        }
+        #send-btn:hover, #mobile-send-btn:hover {
+            background-color: var(--theme-accent-hover) !important;
+        }
+        #message-input:focus, #mobile-input-textarea:focus {
+            border-color: var(--theme-input-border-focus) !important;
+            box-shadow: 0 0 0 1px var(--theme-input-border-focus) !important;
+        }
+
+        /* Chat Background Patterns - Vibrant & High-Definition */
         .bg-pattern-grid {
-            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-                              linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px) !important;
-            background-size: 28px 28px !important;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.22) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.22) 1px, transparent 1px) !important;
+            background-size: 32px 32px !important;
         }
         .bg-pattern-dots {
-            background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px) !important;
-            background-size: 18px 18px !important;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.35) 1.5px, transparent 1.5px) !important;
+            background-size: 22px 22px !important;
         }
         .bg-pattern-carbon {
-            background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.03) 2px, transparent 2px, transparent 8px) !important;
+            background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.15) 2px, transparent 2px, transparent 10px) !important;
         }
         .bg-pattern-stars {
-            background-image: radial-gradient(1px 1px at 20px 30px, #ffffff, rgba(0,0,0,0)),
-                              radial-gradient(1.5px 1.5px at 70px 80px, rgba(16,185,129,0.7), rgba(0,0,0,0)),
-                              radial-gradient(1px 1px at 140px 40px, #ffffff, rgba(0,0,0,0)),
-                              radial-gradient(2px 2px at 200px 140px, rgba(56,189,248,0.6), rgba(0,0,0,0)) !important;
-            background-size: 220px 220px !important;
+            background-image: radial-gradient(1.5px 1.5px at 20px 30px, #ffffff, rgba(0,0,0,0)),
+                              radial-gradient(2px 2px at 70px 80px, var(--theme-accent), rgba(0,0,0,0)),
+                              radial-gradient(1.5px 1.5px at 140px 40px, #ffffff, rgba(0,0,0,0)),
+                              radial-gradient(2.5px 2.5px at 200px 140px, #38bdf8, rgba(0,0,0,0)) !important;
+            background-size: 240px 240px !important;
         }
 
         .pb-safe {
@@ -143,9 +247,22 @@
     </style>
 </head>
 <body id="vesper-body" class="bg-[#07090e] text-slate-100 h-[100dvh] flex flex-col font-sans antialiased overflow-hidden select-none">
+    <script>
+        (function() {
+            try {
+                var s = localStorage.getItem('vesper_theme_settings');
+                if (s) {
+                    var p = JSON.parse(s);
+                    if (p.theme && p.theme !== 'vesper') {
+                        document.body.classList.add('theme-' + p.theme);
+                    }
+                }
+            } catch (_) {}
+        })();
+    </script>
 
     <!-- Top Navigation / Channel Control Bar -->
-    <header class="h-16 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between shrink-0 z-20">
+    <header class="h-16 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between shrink-0 z-20 theme-header">
         <!-- Channel Info -->
         <div class="flex items-center gap-3 min-w-0">
             <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 font-mono font-bold text-sm shadow-[0_0_15px_rgba(16,185,129,0.2)] shrink-0">
@@ -321,7 +438,7 @@
         </div>
 
         <!-- Chat Stream Panel -->
-        <div class="flex-1 flex flex-col min-w-0 bg-[#06080d] relative">
+        <div id="chat-stream-panel" class="flex-1 flex flex-col min-w-0 relative">
 
             <!-- Pinned Channel Briefing Banner -->
             <div id="pinned-briefing-banner" class="hidden px-4 py-2.5 bg-gradient-to-r from-amber-950/60 via-slate-900/90 to-amber-950/60 border-b border-amber-500/30 backdrop-blur-md flex items-center justify-between text-xs font-mono text-amber-200 z-10 shrink-0">
@@ -390,7 +507,7 @@
             </div>
 
             <!-- Input Bar -->
-            <div class="p-3 sm:p-4 bg-slate-950/90 border-t border-slate-800/80 backdrop-blur-md shrink-0">
+            <div id="chat-input-bar" class="p-3 sm:p-4 border-t backdrop-blur-md shrink-0">
                 <!-- Quoted Reply Preview Bar -->
                 <div id="reply-preview-bar" class="hidden max-w-5xl mx-auto mb-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-emerald-500/30 flex items-center justify-between font-mono text-xs text-slate-300">
                     <div class="flex items-center gap-2 min-w-0">
@@ -722,14 +839,14 @@
                 <div>
                     <div class="flex items-center justify-between mb-1.5">
                         <label class="text-slate-400 text-[11px] font-semibold">{{ __('Background Opacity') }}</label>
-                        <span id="bg-opacity-label" class="text-emerald-400 font-bold text-xs">20%</span>
+                        <span id="bg-opacity-label" class="text-emerald-400 font-bold text-xs theme-accent-text">30%</span>
                     </div>
                     <input
                         type="range"
                         id="bg-opacity-slider"
-                        min="5"
-                        max="60"
-                        value="20"
+                        min="10"
+                        max="85"
+                        value="30"
                         class="w-full accent-emerald-500 cursor-pointer"
                         oninput="setChatBgOpacity(this.value)"
                     />
@@ -1662,7 +1779,7 @@
         let currentTheme = 'vesper';
         let currentChatBg = 'none';
         let currentChatBgUrl = '';
-        let currentChatBgOpacity = 20;
+        let currentChatBgOpacity = 30;
         let activeReactionMsgId = null;
         let mediaRecorder = null;
         let audioChunks = [];
@@ -1949,7 +2066,7 @@
 
             const nameBtn = document.createElement('button');
             nameBtn.type = 'button';
-            nameBtn.className = `font-semibold ${isSelf ? 'text-emerald-400' : 'text-slate-200'} flex items-center gap-1.5 hover:underline cursor-pointer`;
+            nameBtn.className = `font-semibold ${isSelf ? 'theme-author-self text-emerald-400' : 'text-slate-200'} flex items-center gap-1.5 hover:underline cursor-pointer`;
             nameBtn.title = (memberData.age || memberData.location) ? I18N.viewProfile : '';
             nameBtn.innerHTML = `
                 ${avatarMarkup}
@@ -1975,8 +2092,8 @@
             const bubble = document.createElement('div');
             bubble.className = `max-w-[85%] sm:max-w-[70%] rounded-2xl p-3.5 shadow-lg ${
                 isSelf
-                    ? 'bg-gradient-to-br from-emerald-600/90 to-teal-700/90 text-white rounded-br-none border border-emerald-400/30'
-                    : 'bg-slate-900/90 text-slate-100 rounded-bl-none border border-slate-800 backdrop-blur-md'
+                    ? 'bubble-self text-white rounded-br-none border shadow-md'
+                    : 'bubble-peer text-slate-100 rounded-bl-none border backdrop-blur-md shadow-md'
             }`;
 
             let bubbleContent = '';
@@ -1984,8 +2101,8 @@
             // Quoted Reply Preview
             if (msg.reply_to) {
                 bubbleContent += `
-                    <div class="mb-2 p-2 rounded-xl bg-black/40 border-l-2 border-emerald-400 text-xs font-mono cursor-pointer hover:bg-black/60 transition-colors" onclick="jumpToMessage(${msg.reply_to.id})">
-                        <div class="text-emerald-400 text-[10px] font-bold flex items-center gap-1">
+                    <div class="mb-2 p-2 rounded-xl bg-black/40 border-l-2 theme-reply-bar border-emerald-400 text-xs font-mono cursor-pointer hover:bg-black/60 transition-colors" onclick="jumpToMessage(${msg.reply_to.id})">
+                        <div class="theme-accent-text text-emerald-400 text-[10px] font-bold flex items-center gap-1">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
                             <span>${escapeHtml(msg.reply_to.sender_name)}</span>
                         </div>
@@ -2596,7 +2713,7 @@
             currentTheme = 'vesper';
             currentChatBg = 'none';
             currentChatBgUrl = '';
-            currentChatBgOpacity = 20;
+            currentChatBgOpacity = 30;
             applyThemeClass(currentTheme);
             applyChatBg();
             saveThemeSettings();
@@ -2622,7 +2739,7 @@
                     currentTheme = parsed.theme || 'vesper';
                     currentChatBg = parsed.bg || 'none';
                     currentChatBgUrl = parsed.bg_url || '';
-                    currentChatBgOpacity = parsed.opacity !== undefined ? parsed.opacity : 20;
+                    currentChatBgOpacity = parsed.opacity !== undefined ? parsed.opacity : 30;
                 }
             } catch (_) {}
             applyThemeClass(currentTheme);
