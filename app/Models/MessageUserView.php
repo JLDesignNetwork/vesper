@@ -21,6 +21,7 @@ class MessageUserView extends Model
         'session_id',
         'viewed_at',
         'expires_at',
+        'media_expires_at',
     ];
 
     /**
@@ -33,6 +34,7 @@ class MessageUserView extends Model
         return [
             'viewed_at' => 'datetime',
             'expires_at' => 'datetime',
+            'media_expires_at' => 'datetime',
         ];
     }
 

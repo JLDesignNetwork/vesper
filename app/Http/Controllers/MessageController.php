@@ -201,10 +201,10 @@ class MessageController extends Controller
             });
         };
 
-        // For non-sender messages with ttl_seconds, initialize their personal view countdown upon first viewing
+        // For non-sender messages with ttl_seconds or media_ttl_seconds, initialize their personal view countdown upon first viewing
         foreach ($rawMessages as $m) {
             $isSender = ($m->sender_session_id === $sessionId) || ($viewer && $m->user_id === $viewer->id);
-            if (! $isSender && ! empty($m->ttl_seconds)) {
+            if (! $isSender && (! empty($m->ttl_seconds) || (! empty($m->media_ttl_seconds) && ! empty($m->attachment_path)))) {
                 $userView = $resolveView($m);
                 if (! $userView) {
                     $newView = MessageUserView::create([
@@ -212,14 +212,70 @@ class MessageController extends Controller
                         'user_id' => $viewer?->id,
                         'session_id' => $sessionId,
                         'viewed_at' => now(),
-                        'expires_at' => now()->addSeconds((int) $m->ttl_seconds),
+                        'expires_at' => ! empty($m->ttl_seconds) ? now()->addSeconds((int) $m->ttl_seconds) : null,
+                        'media_expires_at' => (! empty($m->media_ttl_seconds) && ! empty($m->attachment_path))
+                            ? now()->addSeconds((int) $m->media_ttl_seconds)
+                            : null,
                     ]);
                     $m->views->push($newView);
+                } else {
+                    $updates = [];
+                    if (! empty($m->ttl_seconds) && $userView->expires_at === null) {
+                        $updates['expires_at'] = now()->addSeconds((int) $m->ttl_seconds);
+                    }
+                    if (! empty($m->media_ttl_seconds) && ! empty($m->attachment_path) && $userView->media_expires_at === null) {
+                        $updates['media_expires_at'] = now()->addSeconds((int) $m->media_ttl_seconds);
+                    }
+                    if (! empty($updates)) {
+                        $userView->update($updates);
+                        foreach ($updates as $k => $v) {
+                            $userView->{$k} = $v;
+                        }
+                    }
                 }
             }
         }
 
-        $resolveSenderExpiresAt = function (Message $message) use ($room): ?\Illuminate\Support\Carbon {
+        $checkAllViewed = function (Message $message, $recipientViews) use ($room): bool {
+            if ($recipientViews->isEmpty()) {
+                return false;
+            }
+
+            // Check enrolled members first if any exist
+            $otherMemberIds = $room->members()
+                ->when($message->user_id, fn ($q) => $q->where('users.id', '!=', $message->user_id))
+                ->pluck('users.id');
+
+            if ($otherMemberIds->isNotEmpty()) {
+                $viewedUserIds = $recipientViews->pluck('user_id')->filter()->all();
+
+                return $otherMemberIds->every(fn ($id) => in_array($id, $viewedUserIds));
+            }
+
+            // Passcode / open channel without formal membership:
+            // Check distinct other operatives recorded in access logs in last 24h
+            $otherOperatives = AccessLog::where('room_id', $room->id)
+                ->where('session_id', '!=', $message->sender_session_id)
+                ->where('last_seen_at', '>=', now()->subHours(24))
+                ->when($message->user_id, fn ($q) => $q->where(function ($sq) use ($message) {
+                    $sq->whereNull('user_id')->orWhere('user_id', '!=', $message->user_id);
+                }))
+                ->get();
+
+            if ($otherOperatives->isNotEmpty()) {
+                return $otherOperatives->every(function ($op) use ($recipientViews) {
+                    if ($op->user_id) {
+                        return $recipientViews->contains('user_id', $op->user_id);
+                    }
+
+                    return $recipientViews->contains('session_id', $op->session_id);
+                });
+            }
+
+            return true;
+        };
+
+        $resolveSenderExpiresAt = function (Message $message) use ($checkAllViewed): ?\Illuminate\Support\Carbon {
             if (empty($message->ttl_seconds)) {
                 return $message->expires_at;
             }
@@ -232,45 +288,7 @@ class MessageController extends Controller
                 return $v->session_id !== $message->sender_session_id;
             });
 
-            if ($recipientViews->isEmpty()) {
-                return null;
-            }
-
-            $allViewed = false;
-
-            // Check enrolled members first if any exist
-            $otherMemberIds = $room->members()
-                ->when($message->user_id, fn ($q) => $q->where('users.id', '!=', $message->user_id))
-                ->pluck('users.id');
-
-            if ($otherMemberIds->isNotEmpty()) {
-                $viewedUserIds = $recipientViews->pluck('user_id')->filter()->all();
-                $allViewed = $otherMemberIds->every(fn ($id) => in_array($id, $viewedUserIds));
-            } else {
-                // Passcode / open channel without formal membership:
-                // Check distinct other operatives recorded in access logs in last 24h
-                $otherOperatives = AccessLog::where('room_id', $room->id)
-                    ->where('session_id', '!=', $message->sender_session_id)
-                    ->where('last_seen_at', '>=', now()->subHours(24))
-                    ->when($message->user_id, fn ($q) => $q->where(function ($sq) use ($message) {
-                        $sq->whereNull('user_id')->orWhere('user_id', '!=', $message->user_id);
-                    }))
-                    ->get();
-
-                if ($otherOperatives->isNotEmpty()) {
-                    $allViewed = $otherOperatives->every(function ($op) use ($recipientViews) {
-                        if ($op->user_id) {
-                            return $recipientViews->contains('user_id', $op->user_id);
-                        }
-
-                        return $recipientViews->contains('session_id', $op->session_id);
-                    });
-                } else {
-                    $allViewed = true;
-                }
-            }
-
-            if (! $allViewed) {
+            if (! $checkAllViewed($message, $recipientViews)) {
                 return null;
             }
 
@@ -280,25 +298,84 @@ class MessageController extends Controller
             return $maxExpiresAt;
         };
 
-        // Filter out any messages whose per-user countdown has already expired for this viewer
-        $rawMessages = $rawMessages->filter(function (Message $m) use ($sessionId, $viewer, $resolveView, $resolveSenderExpiresAt): bool {
-            $isSender = ($m->sender_session_id === $sessionId) || ($viewer && $m->user_id === $viewer->id);
-            if ($isSender) {
-                $senderExpiresAt = $resolveSenderExpiresAt($m);
-                if ($senderExpiresAt && $senderExpiresAt <= now()) {
-                    if ($m->expires_at === null) {
-                        $m->update(['expires_at' => now()->subSecond()]);
-                    }
+        $resolveSenderMediaExpiresAt = function (Message $message) use ($checkAllViewed): ?\Illuminate\Support\Carbon {
+            if (empty($message->media_ttl_seconds) || empty($message->attachment_path)) {
+                return $message->media_expires_at;
+            }
 
+            $recipientViews = $message->views->filter(function (MessageUserView $v) use ($message): bool {
+                if ($message->user_id && $v->user_id && $v->user_id === $message->user_id) {
                     return false;
                 }
 
-                return true;
+                return $v->session_id !== $message->sender_session_id;
+            });
+
+            if (! $checkAllViewed($message, $recipientViews)) {
+                return null;
             }
 
-            $userView = $resolveView($m);
-            if ($userView && $userView->expires_at && $userView->expires_at <= now()) {
-                return false;
+            /** @var Carbon|null $maxMediaExpiresAt */
+            $maxMediaExpiresAt = $recipientViews->max('media_expires_at');
+
+            return $maxMediaExpiresAt;
+        };
+
+        // Filter out any messages whose per-user countdowns have both expired for this viewer
+        $rawMessages = $rawMessages->filter(function (Message $m) use ($sessionId, $viewer, $resolveView, $resolveSenderExpiresAt, $resolveSenderMediaExpiresAt): bool {
+            $isSender = ($m->sender_session_id === $sessionId) || ($viewer && $m->user_id === $viewer->id);
+            $hasText = ! empty($m->content);
+            $hasMedia = ! empty($m->attachment_path);
+
+            $textExpired = false;
+            $mediaExpired = false;
+
+            if ($hasText && ! empty($m->ttl_seconds)) {
+                if ($isSender) {
+                    $sExp = $resolveSenderExpiresAt($m);
+                    if ($sExp && $sExp <= now()) {
+                        if ($m->expires_at === null) {
+                            $m->update(['expires_at' => now()->subSecond()]);
+                        }
+                        $textExpired = true;
+                    }
+                } else {
+                    $userView = $resolveView($m);
+                    if ($userView && $userView->expires_at && $userView->expires_at <= now()) {
+                        $textExpired = true;
+                    }
+                }
+            } elseif ($hasText && empty($m->ttl_seconds) && $m->expires_at && $m->expires_at <= now()) {
+                $textExpired = true;
+            }
+
+            if ($hasMedia && ! empty($m->media_ttl_seconds)) {
+                if ($isSender) {
+                    $sMediaExp = $resolveSenderMediaExpiresAt($m);
+                    if ($sMediaExp && $sMediaExp <= now()) {
+                        if ($m->media_expires_at === null) {
+                            $m->update(['media_expires_at' => now()->subSecond()]);
+                        }
+                        $mediaExpired = true;
+                    }
+                } else {
+                    $userView = $resolveView($m);
+                    if ($userView && $userView->media_expires_at && $userView->media_expires_at <= now()) {
+                        $mediaExpired = true;
+                    }
+                }
+            } elseif ($hasMedia && empty($m->media_ttl_seconds) && $m->media_expires_at && $m->media_expires_at <= now()) {
+                $mediaExpired = true;
+            }
+
+            if ($hasText && $hasMedia) {
+                return ! ($textExpired && $mediaExpired);
+            }
+            if ($hasText) {
+                return ! $textExpired;
+            }
+            if ($hasMedia) {
+                return ! $mediaExpired;
             }
 
             return true;
@@ -310,7 +387,7 @@ class MessageController extends Controller
             ? User::whereIn('name', $unlinkedAuthors)->get()->keyBy('name')
             : collect();
 
-        $messages = $rawMessages->map(function (Message $message) use ($sessionId, $viewer, $usersByName, $targetLang, $resolveView, $resolveSenderExpiresAt): array {
+        $messages = $rawMessages->map(function (Message $message) use ($sessionId, $viewer, $usersByName, $targetLang, $resolveView, $resolveSenderExpiresAt, $resolveSenderMediaExpiresAt): array {
             $flag = $message->country_code
                 ? $this->geoLocationService->countryCodeToFlag($message->country_code)
                 : '🌐';
@@ -333,9 +410,31 @@ class MessageController extends Controller
             $msgFlag = ($isLocationHidden && ! $canViewPrivate) ? '🔒' : $flag;
             $msgIp = ($canViewPrivate || ! $isLocationHidden) ? $message->ip_address : '***.***.***.***';
 
+            $isSender = ($message->sender_session_id === $sessionId) || ($viewer && $message->user_id === $viewer->id);
+
+            $effectiveExpiresAt = $isSender
+                ? $resolveSenderExpiresAt($message)
+                : ($resolveView($message)?->expires_at ?? $message->expires_at);
+
+            $effectiveMediaExpiresAt = $isSender
+                ? $resolveSenderMediaExpiresAt($message)
+                : ($resolveView($message)?->media_expires_at ?? $message->media_expires_at);
+
+            $textBurned = false;
+            if (! empty($message->content) && $effectiveExpiresAt && $effectiveExpiresAt <= now()) {
+                $textBurned = true;
+            }
+
+            $mediaBurned = false;
+            if (! empty($message->attachment_path) && $effectiveMediaExpiresAt && $effectiveMediaExpiresAt <= now()) {
+                $mediaBurned = true;
+            }
+
+            $messageContent = $textBurned ? null : $message->content;
+
             $autoTranslatedText = null;
-            if (! empty($message->content)) {
-                $trimmed = trim($message->content);
+            if (! empty($messageContent)) {
+                $trimmed = trim($messageContent);
                 $cacheKey = 'trans_'.md5($trimmed.'_'.$targetLang);
                 $cached = Cache::get($cacheKey);
                 if (is_array($cached) && ! empty($cached['success'])) {
@@ -352,11 +451,6 @@ class MessageController extends Controller
                 ];
             }
 
-            $isSender = ($message->sender_session_id === $sessionId) || ($viewer && $message->user_id === $viewer->id);
-            $effectiveExpiresAt = $isSender
-                ? $resolveSenderExpiresAt($message)
-                : ($resolveView($message)?->expires_at ?? $message->expires_at);
-
             return [
                 'id' => $message->id,
                 'sender_name' => $message->sender_name,
@@ -369,14 +463,16 @@ class MessageController extends Controller
                 'sender_bio' => $senderBio,
                 'sender_birthday' => $senderBirthday,
                 'sender_avatar_url' => $senderAvatarUrl,
-                'content' => $message->content,
+                'content' => $messageContent,
+                'text_burned' => $textBurned,
                 'auto_translated_text' => $autoTranslatedText,
                 'auto_translated_lang' => $targetLang,
-                'attachment_url' => $message->attachment_url,
-                'attachment_name' => $message->attachment_name,
-                'attachment_type' => $message->attachment_type,
-                'attachment_mime' => $message->attachment_mime,
-                'formatted_size' => $message->formatted_size,
+                'attachment_url' => $mediaBurned ? null : $message->attachment_url,
+                'attachment_name' => $mediaBurned ? null : $message->attachment_name,
+                'attachment_type' => $mediaBurned ? null : $message->attachment_type,
+                'attachment_mime' => $mediaBurned ? null : $message->attachment_mime,
+                'formatted_size' => $mediaBurned ? null : $message->formatted_size,
+                'media_burned' => $mediaBurned,
                 'ip_address' => $msgIp,
                 'country' => $msgCountry,
                 'city' => $msgCity,
@@ -386,6 +482,8 @@ class MessageController extends Controller
                 'reactions' => $message->reactionsSummary($sessionId, $viewer?->id),
                 'ttl_seconds' => $message->ttl_seconds,
                 'expires_at' => $effectiveExpiresAt?->toIso8601String(),
+                'media_ttl_seconds' => $message->media_ttl_seconds,
+                'media_expires_at' => $effectiveMediaExpiresAt?->toIso8601String(),
                 'created_at_human' => $message->created_at?->diffForHumans() ?? 'Just now',
                 'created_at_time' => $message->created_at?->format('H:i:s') ?? '',
             ];
@@ -450,6 +548,7 @@ class MessageController extends Controller
             'attachment' => ['nullable', 'file', 'max:51200'],
             'reply_to_id' => ['nullable', 'integer', 'exists:messages,id'],
             'ttl_seconds' => ['nullable', 'integer', 'min:5', 'max:604800'],
+            'media_ttl_seconds' => ['nullable', 'integer', 'min:5', 'max:604800'],
         ]);
 
         if (empty($validated['content']) && ! $request->hasFile('attachment')) {
@@ -486,6 +585,10 @@ class MessageController extends Controller
             ? (int) $validated['ttl_seconds']
             : null;
 
+        $mediaTtlSeconds = ! empty($validated['media_ttl_seconds'])
+            ? (int) $validated['media_ttl_seconds']
+            : null;
+
         $message = Message::create([
             'room_id' => $room->id,
             'reply_to_id' => $validated['reply_to_id'] ?? null,
@@ -507,17 +610,21 @@ class MessageController extends Controller
             'longitude' => $jitteredGps['lon'],
             'ttl_seconds' => $ttlSeconds,
             'expires_at' => null,
+            'media_ttl_seconds' => $mediaTtlSeconds,
+            'media_expires_at' => null,
             'is_burn_read' => false,
         ]);
 
         if (! empty($message->content)) {
-            try {
-                foreach (['en', 'ru', 'fr', 'it'] as $loc) {
-                    $this->translationService->translate($message->content, $loc);
+            defer(function () use ($message) {
+                try {
+                    foreach (['en', 'ru', 'fr', 'it'] as $loc) {
+                        $this->translationService->translate($message->content, $loc);
+                    }
+                } catch (\Throwable $e) {
+                    // Pre-warm failure does not block message transmission
                 }
-            } catch (\Throwable $e) {
-                // Pre-warm failure does not block message transmission
-            }
+            });
         }
 
         $flag = $message->country_code
@@ -550,6 +657,8 @@ class MessageController extends Controller
                 'sender_bio' => $user?->bio,
                 'sender_birthday' => $user?->birthday?->format('Y-m-d'),
                 'content' => $message->content,
+                'text_burned' => false,
+                'media_burned' => false,
                 'attachment_url' => $message->attachment_url,
                 'attachment_name' => $message->attachment_name,
                 'attachment_type' => $message->attachment_type,
@@ -563,6 +672,8 @@ class MessageController extends Controller
                 'reactions' => [],
                 'ttl_seconds' => $message->ttl_seconds,
                 'expires_at' => $message->expires_at?->toIso8601String(),
+                'media_ttl_seconds' => $message->media_ttl_seconds,
+                'media_expires_at' => $message->media_expires_at?->toIso8601String(),
                 'created_at_human' => 'Just now',
                 'created_at_time' => $message->created_at->format('H:i:s'),
             ],
@@ -695,6 +806,27 @@ class MessageController extends Controller
         $message = Message::where('room_id', $room->id)->find($messageId);
         if (! $message || ! $message->attachment_path) {
             abort(404, 'Attachment not found');
+        }
+
+        $sessionId = $request->session()->getId();
+        $viewer = Auth::user();
+        $isSender = ($message->sender_session_id === $sessionId) || ($viewer && $message->user_id === $viewer->id);
+
+        if (! $isSender) {
+            $userView = MessageUserView::where('message_id', $message->id)
+                ->where(function ($q) use ($sessionId, $viewer) {
+                    if ($viewer) {
+                        $q->where('user_id', $viewer->id);
+                    } else {
+                        $q->where('session_id', $sessionId);
+                    }
+                })->first();
+
+            if ($userView && $userView->media_expires_at && $userView->media_expires_at <= now()) {
+                abort(410, 'Media attachment has expired and burned.');
+            }
+        } elseif ($message->media_expires_at && $message->media_expires_at <= now()) {
+            abort(410, 'Media attachment has expired and burned.');
         }
 
         $disk = 'local';

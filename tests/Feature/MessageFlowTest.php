@@ -200,3 +200,128 @@ test('message transmission succeeds and dispatches notifications without throwin
 
     Mail::assertQueued(NewMessageNotification::class);
 });
+
+test('a user can send message with independent text and media ttl timers', function () {
+    Storage::fake('local');
+
+    $room = Room::create([
+        'code' => 'DUAL-TTL-1',
+        'passcode_hash' => Hash::make('secret'),
+        'status' => 'active',
+    ]);
+
+    $file = UploadedFile::fake()->image('intel.png', 200, 200);
+
+    $response = $this->withSession([
+        "room_clearance_{$room->id}" => true,
+        "room_alias_{$room->id}" => 'Agent47',
+    ])->postJson(route('messages.store', ['room' => 'DUAL-TTL-1']), [
+        'content' => 'Classified blueprint details.',
+        'attachment' => $file,
+        'ttl_seconds' => 30,
+        'media_ttl_seconds' => 10,
+    ]);
+
+    $response->assertStatus(200);
+    $response->assertJsonPath('success', true);
+    $response->assertJsonPath('message.ttl_seconds', 30);
+    $response->assertJsonPath('message.media_ttl_seconds', 10);
+    $response->assertJsonPath('message.text_burned', false);
+    $response->assertJsonPath('message.media_burned', false);
+
+    $message = Message::where('room_id', $room->id)->first();
+    expect($message->ttl_seconds)->toBe(30);
+    expect($message->media_ttl_seconds)->toBe(10);
+});
+
+test('media burns independently while text remains readable when media ttl expires', function () {
+    $watcher = User::factory()->create(['name' => 'MediaWatcher']);
+
+    $room = Room::create([
+        'code' => 'BURN-MEDIA',
+        'passcode_hash' => Hash::make('secret'),
+        'status' => 'active',
+    ]);
+
+    $message = Message::create([
+        'room_id' => $room->id,
+        'sender_name' => 'Sender',
+        'sender_session_id' => 'sender_session_xyz',
+        'content' => 'Mission text persists.',
+        'attachment_path' => 'attachments/test_image.jpg',
+        'attachment_name' => 'intel.jpg',
+        'attachment_type' => 'image',
+        'attachment_mime' => 'image/jpeg',
+        'attachment_size' => 1024,
+        'ttl_seconds' => 3600, // 1 hour text
+        'media_ttl_seconds' => 10, // 10s media
+    ]);
+
+    // First view initializes viewer's countdowns
+    $this->actingAs($watcher)->withSession([
+        "room_clearance_{$room->id}" => true,
+        "room_alias_{$room->id}" => 'Viewer',
+    ])->getJson(route('messages.index', ['room' => 'BURN-MEDIA']));
+
+    // Fast-forward past media TTL but before text TTL
+    $this->travel(15)->seconds();
+
+    $response = $this->actingAs($watcher)->withSession([
+        "room_clearance_{$room->id}" => true,
+        "room_alias_{$room->id}" => 'Viewer',
+    ])->getJson(route('messages.index', ['room' => 'BURN-MEDIA']));
+
+    $response->assertStatus(200);
+    $messages = $response->json('messages');
+    expect(count($messages))->toBe(1);
+    expect($messages[0]['content'])->toBe('Mission text persists.');
+    expect($messages[0]['text_burned'])->toBeFalse();
+    expect($messages[0]['media_burned'])->toBeTrue();
+    expect($messages[0]['attachment_url'])->toBeNull();
+});
+
+test('text burns independently while media remains accessible when text ttl expires', function () {
+    $watcher = User::factory()->create(['name' => 'TextWatcher']);
+
+    $room = Room::create([
+        'code' => 'BURN-TEXT',
+        'passcode_hash' => Hash::make('secret'),
+        'status' => 'active',
+    ]);
+
+    $message = Message::create([
+        'room_id' => $room->id,
+        'sender_name' => 'Sender',
+        'sender_session_id' => 'sender_session_xyz',
+        'content' => 'Ephemeral text note.',
+        'attachment_path' => 'attachments/test_intel.jpg',
+        'attachment_name' => 'intel.jpg',
+        'attachment_type' => 'image',
+        'attachment_mime' => 'image/jpeg',
+        'attachment_size' => 1024,
+        'ttl_seconds' => 10, // 10s text
+        'media_ttl_seconds' => 3600, // 1 hour media
+    ]);
+
+    // First view initializes countdown
+    $this->actingAs($watcher)->withSession([
+        "room_clearance_{$room->id}" => true,
+        "room_alias_{$room->id}" => 'Viewer',
+    ])->getJson(route('messages.index', ['room' => 'BURN-TEXT']));
+
+    // Fast-forward past text TTL
+    $this->travel(15)->seconds();
+
+    $response = $this->actingAs($watcher)->withSession([
+        "room_clearance_{$room->id}" => true,
+        "room_alias_{$room->id}" => 'Viewer',
+    ])->getJson(route('messages.index', ['room' => 'BURN-TEXT']));
+
+    $response->assertStatus(200);
+    $messages = $response->json('messages');
+    expect(count($messages))->toBe(1);
+    expect($messages[0]['content'])->toBeNull();
+    expect($messages[0]['text_burned'])->toBeTrue();
+    expect($messages[0]['media_burned'])->toBeFalse();
+    expect($messages[0]['attachment_name'])->toBe('intel.jpg');
+});

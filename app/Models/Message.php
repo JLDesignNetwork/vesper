@@ -37,6 +37,8 @@ class Message extends Model
         'is_burn_read',
         'ttl_seconds',
         'expires_at',
+        'media_ttl_seconds',
+        'media_expires_at',
     ];
 
     /**
@@ -62,6 +64,8 @@ class Message extends Model
             'is_burn_read' => 'boolean',
             'ttl_seconds' => 'integer',
             'expires_at' => 'datetime',
+            'media_ttl_seconds' => 'integer',
+            'media_expires_at' => 'datetime',
             'latitude' => 'float',
             'longitude' => 'float',
             'attachment_size' => 'integer',

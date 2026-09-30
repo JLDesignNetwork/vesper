@@ -66,9 +66,83 @@
             font-size: 11px !important;
             font-family: 'JetBrains Mono', monospace !important;
         }
+
+        /* Themes & Color Palettes */
+        body.theme-neon {
+            background-color: #080612 !important;
+        }
+        body.theme-neon header {
+            background-color: rgba(13, 10, 26, 0.85) !important;
+            border-color: rgba(147, 51, 234, 0.25) !important;
+        }
+        body.theme-neon .bubble-self {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.9) 0%, rgba(147, 51, 234, 0.9) 100%) !important;
+            border-color: rgba(6, 182, 212, 0.4) !important;
+        }
+
+        body.theme-stealth {
+            background-color: #0b0f17 !important;
+        }
+        body.theme-stealth header {
+            background-color: rgba(15, 23, 42, 0.85) !important;
+            border-color: rgba(71, 85, 105, 0.3) !important;
+        }
+        body.theme-stealth .bubble-self {
+            background: linear-gradient(135deg, rgba(71, 85, 105, 0.9) 0%, rgba(30, 41, 59, 0.95) 100%) !important;
+            border-color: rgba(148, 163, 184, 0.3) !important;
+        }
+
+        body.theme-amber {
+            background-color: #100b05 !important;
+        }
+        body.theme-amber header {
+            background-color: rgba(28, 19, 8, 0.85) !important;
+            border-color: rgba(217, 119, 6, 0.25) !important;
+        }
+        body.theme-amber .bubble-self {
+            background: linear-gradient(135deg, rgba(217, 119, 6, 0.9) 0%, rgba(180, 83, 9, 0.95) 100%) !important;
+            border-color: rgba(245, 158, 11, 0.4) !important;
+        }
+
+        body.theme-matrix {
+            background-color: #020502 !important;
+        }
+        body.theme-matrix header {
+            background-color: rgba(2, 10, 2, 0.85) !important;
+            border-color: rgba(34, 197, 94, 0.25) !important;
+        }
+        body.theme-matrix .bubble-self {
+            background: linear-gradient(135deg, rgba(21, 128, 61, 0.9) 0%, rgba(22, 101, 52, 0.95) 100%) !important;
+            border-color: rgba(34, 197, 94, 0.4) !important;
+        }
+
+        /* Chat Background Patterns */
+        .bg-pattern-grid {
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px) !important;
+            background-size: 28px 28px !important;
+        }
+        .bg-pattern-dots {
+            background-image: radial-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px) !important;
+            background-size: 18px 18px !important;
+        }
+        .bg-pattern-carbon {
+            background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.03) 2px, transparent 2px, transparent 8px) !important;
+        }
+        .bg-pattern-stars {
+            background-image: radial-gradient(1px 1px at 20px 30px, #ffffff, rgba(0,0,0,0)),
+                              radial-gradient(1.5px 1.5px at 70px 80px, rgba(16,185,129,0.7), rgba(0,0,0,0)),
+                              radial-gradient(1px 1px at 140px 40px, #ffffff, rgba(0,0,0,0)),
+                              radial-gradient(2px 2px at 200px 140px, rgba(56,189,248,0.6), rgba(0,0,0,0)) !important;
+            background-size: 220px 220px !important;
+        }
+
+        .pb-safe {
+            padding-bottom: env(safe-area-inset-bottom, 16px);
+        }
     </style>
 </head>
-<body class="bg-[#07090e] text-slate-100 h-[100dvh] flex flex-col font-sans antialiased overflow-hidden select-none">
+<body id="vesper-body" class="bg-[#07090e] text-slate-100 h-[100dvh] flex flex-col font-sans antialiased overflow-hidden select-none">
 
     <!-- Top Navigation / Channel Control Bar -->
     <header class="h-16 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between shrink-0 z-20">
@@ -158,6 +232,19 @@
             >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </button>
+
+            <!-- Theme / Appearance Modal Toggle -->
+            <button
+                type="button"
+                id="theme-toggle-btn"
+                onclick="openThemeModal()"
+                class="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-emerald-400 transition-colors cursor-pointer"
+                title="{{ __('Themes & Appearance') }}"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4 4 4 0 014-4c.7 0 1.37.18 1.95.5l1.63-2.45A6.97 6.97 0 0110 8c0-3.86 3.14-7 7-7a7 7 0 017 7c0 1.93-.78 3.68-2.05 4.95l-2.45 1.63c.32.58.5 1.25.5 1.95a4 4 0 01-4 4 4 4 0 01-4-4c0-.7.18-1.37.5-1.95l-2.45-1.63A6.97 6.97 0 018 15a4 4 0 01-1 6z" />
                 </svg>
             </button>
 
@@ -253,25 +340,30 @@
             </div>
 
             <!-- Message Stream Area -->
-            <div id="message-stream" class="flex-1 overflow-y-auto chat-scroll p-4 sm:p-6 space-y-4 select-text">
-                <!-- Welcome Banner -->
-                <div class="max-w-md mx-auto text-center py-6 px-4 rounded-xl bg-slate-900/40 border border-slate-800/80 font-mono text-xs text-slate-400 space-y-2">
-                    <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-400 mb-1">
-                        🔒
-                    </div>
-                    <p class="text-white font-semibold tracking-wider uppercase">{{ __('SECURE GHOSTWIRE STREAM INITIALIZED') }}</p>
-                    <p class="text-[11px] text-slate-400 leading-relaxed">
-                        {{ __('End-to-end verified communication via Ghostwire Protocol. Transmit text messages, encrypted photos, and streaming video.') }}
-                    </p>
-                    <div class="pt-2 flex items-center justify-center gap-3 text-[10px] text-slate-500">
-                        <span>{{ __('Your Alias') }}: <strong class="text-emerald-400">{{ $alias }}</strong></span>
-                        <span>•</span>
-                        <span>{{ __('IP Node') }}: <strong class="text-slate-300">{{ $clientIp }}</strong></span>
-                    </div>
-                </div>
+            <div id="message-stream" class="flex-1 overflow-y-auto chat-scroll p-4 sm:p-6 space-y-4 select-text relative">
+                <!-- User Custom Chat Background Layer -->
+                <div id="chat-bg-layer" class="pointer-events-none absolute inset-0 z-0 bg-cover bg-center transition-all duration-300 opacity-20"></div>
 
-                <!-- Messages will be dynamically rendered here -->
-                <div id="messages-list" class="space-y-4"></div>
+                <div class="relative z-10 space-y-4">
+                    <!-- Welcome Banner -->
+                    <div class="max-w-md mx-auto text-center py-6 px-4 rounded-xl bg-slate-900/40 border border-slate-800/80 font-mono text-xs text-slate-400 space-y-2">
+                        <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-400 mb-1">
+                            🔒
+                        </div>
+                        <p class="text-white font-semibold tracking-wider uppercase">{{ __('SECURE GHOSTWIRE STREAM INITIALIZED') }}</p>
+                        <p class="text-[11px] text-slate-400 leading-relaxed">
+                            {{ __('End-to-end verified communication via Ghostwire Protocol. Transmit text messages, encrypted photos, and streaming video.') }}
+                        </p>
+                        <div class="pt-2 flex items-center justify-center gap-3 text-[10px] text-slate-500">
+                            <span>{{ __('Your Alias') }}: <strong class="text-emerald-400">{{ $alias }}</strong></span>
+                            <span>•</span>
+                            <span>{{ __('IP Node') }}: <strong class="text-slate-300">{{ $clientIp }}</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Messages will be dynamically rendered here -->
+                    <div id="messages-list" class="space-y-4"></div>
+                </div>
             </div>
 
             <!-- Pre-send Attachment Chip (if file selected) -->
@@ -357,48 +449,56 @@
                         </svg>
                     </button>
 
-                    <!-- TTL / Self-Destruct Timer Dropdown -->
+                    <!-- Dual TTL / Self-Destruct Timer Dropdown -->
                     <div class="relative shrink-0">
                         <button
                             type="button"
                             id="ttl-btn"
                             onclick="toggleTtlMenu()"
                             class="relative p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-amber-400 transition-colors flex items-center justify-center cursor-pointer"
-                            title="{{ __('Self-Destruct Timer') }}"
+                            title="{{ __('Self-Destruct Timers') }}"
                         >
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span id="ttl-indicator" class="hidden absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full border-2 border-slate-950"></span>
+                            <span id="ttl-indicator-text" class="hidden absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full border-2 border-slate-950" title="{{ __('Text Timer Active') }}"></span>
+                            <span id="ttl-indicator-media" class="hidden absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-cyan-400 rounded-full border-2 border-slate-950" title="{{ __('Media Timer Active') }}"></span>
                         </button>
-                        <!-- TTL Menu -->
-                        <div id="ttl-menu" class="hidden absolute bottom-full mb-2 left-0 w-36 bg-slate-900 border border-slate-800 rounded-xl p-1 shadow-xl font-mono text-xs z-30 space-y-0.5">
-                            <div class="px-2 py-1 text-[10px] text-slate-500 uppercase font-bold">{{ __('Auto-Destruct') }}</div>
-                            <button type="button" onclick="setTtl(0, 'Off')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-between cursor-pointer">
-                                <span>{{ __('Off') }}</span>
-                                <span id="ttl-check-0" class="text-emerald-400 text-xs">✓</span>
-                            </button>
-                            <button type="button" onclick="setTtl(30, '30s')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-between cursor-pointer">
-                                <span>30 {{ __('sec') }}</span>
-                                <span id="ttl-check-30" class="text-emerald-400 text-xs hidden">✓</span>
-                            </button>
-                            <button type="button" onclick="setTtl(300, '5m')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-between cursor-pointer">
-                                <span>5 {{ __('min') }}</span>
-                                <span id="ttl-check-300" class="text-emerald-400 text-xs hidden">✓</span>
-                            </button>
-                            <button type="button" onclick="setTtl(3600, '1h')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-between cursor-pointer">
-                                <span>1 {{ __('hour') }}</span>
-                                <span id="ttl-check-3600" class="text-emerald-400 text-xs hidden">✓</span>
-                            </button>
-                            <button type="button" onclick="setTtl(86400, '24h')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-between cursor-pointer">
-                                <span>24 {{ __('hours') }}</span>
-                                <span id="ttl-check-86400" class="text-emerald-400 text-xs hidden">✓</span>
-                            </button>
+                        <!-- Dual TTL Menu -->
+                        <div id="ttl-menu" class="hidden absolute bottom-full mb-2 left-0 w-64 bg-slate-900 border border-slate-800 rounded-2xl p-2.5 shadow-2xl font-mono text-xs z-30 space-y-2.5">
+                            <!-- Text TTL Section -->
+                            <div>
+                                <div class="px-1.5 py-0.5 text-[10px] text-amber-400 uppercase font-bold flex items-center justify-between">
+                                    <span>📝 {{ __('Text Self-Destruct') }}</span>
+                                    <span id="text-ttl-badge" class="text-[9px] text-slate-400">Off</span>
+                                </div>
+                                <div class="grid grid-cols-5 gap-1 mt-1">
+                                    <button type="button" onclick="setDualTtl('text', 0, 'Off')" class="ttl-text-btn px-1.5 py-1 text-center rounded-lg bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold border border-emerald-500/40" data-val="0">Off</button>
+                                    <button type="button" onclick="setDualTtl('text', 30, '30s')" class="ttl-text-btn px-1.5 py-1 text-center rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-transparent" data-val="30">30s</button>
+                                    <button type="button" onclick="setDualTtl('text', 300, '5m')" class="ttl-text-btn px-1.5 py-1 text-center rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-transparent" data-val="300">5m</button>
+                                    <button type="button" onclick="setDualTtl('text', 3600, '1h')" class="ttl-text-btn px-1.5 py-1 text-center rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-transparent" data-val="3600">1h</button>
+                                    <button type="button" onclick="setDualTtl('text', 86400, '24h')" class="ttl-text-btn px-1.5 py-1 text-center rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-transparent" data-val="86400">24h</button>
+                                </div>
+                            </div>
+                            <!-- Media TTL Section -->
+                            <div class="pt-2 border-t border-slate-800/80">
+                                <div class="px-1.5 py-0.5 text-[10px] text-cyan-400 uppercase font-bold flex items-center justify-between">
+                                    <span>📷 {{ __('Media Self-Destruct') }}</span>
+                                    <span id="media-ttl-badge" class="text-[9px] text-slate-400">Off</span>
+                                </div>
+                                <div class="grid grid-cols-5 gap-1 mt-1">
+                                    <button type="button" onclick="setDualTtl('media', 0, 'Off')" class="ttl-media-btn px-1.5 py-1 text-center rounded-lg bg-cyan-500/20 text-cyan-300 text-[10px] font-semibold border border-cyan-500/40" data-val="0">Off</button>
+                                    <button type="button" onclick="setDualTtl('media', 30, '30s')" class="ttl-media-btn px-1.5 py-1 text-center rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-transparent" data-val="30">30s</button>
+                                    <button type="button" onclick="setDualTtl('media', 300, '5m')" class="ttl-media-btn px-1.5 py-1 text-center rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-transparent" data-val="300">5m</button>
+                                    <button type="button" onclick="setDualTtl('media', 3600, '1h')" class="ttl-media-btn px-1.5 py-1 text-center rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-transparent" data-val="3600">1h</button>
+                                    <button type="button" onclick="setDualTtl('media', 86400, '24h')" class="ttl-media-btn px-1.5 py-1 text-center rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-transparent" data-val="86400">24h</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Text Message Input -->
-                    <div class="flex-1 min-w-0 relative">
+                    <div class="flex-1 min-w-0 relative flex items-center">
                         <textarea
                             id="message-input"
                             name="content"
@@ -407,7 +507,21 @@
                             class="w-full bg-slate-900/90 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 resize-none max-h-32 min-h-[42px] transition-colors leading-relaxed chat-scroll"
                             onkeydown="handleTextareaKey(event)"
                             oninput="autoResizeTextarea(this)"
+                            onclick="handleInputTap(event)"
+                            onfocus="handleInputTap(event)"
                         ></textarea>
+
+                        <!-- Mobile Expand Action Button -->
+                        <button
+                            type="button"
+                            onclick="openMobileInputModal()"
+                            class="sm:hidden absolute right-2 p-1.5 rounded-lg bg-slate-800/90 text-slate-400 hover:text-emerald-400 border border-slate-700/60"
+                            title="{{ __('Expand Message Canvas') }}"
+                        >
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                            </svg>
+                        </button>
                     </div>
 
                     <!-- Send Button -->
@@ -495,6 +609,270 @@
             </div>
         </aside>
         @endif
+    </div>
+
+    <!-- Theme & Custom Appearance Modal -->
+    <div id="theme-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-3 sm:p-4 font-mono select-none" onclick="closeThemeModal()">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+                <div class="flex items-center gap-2">
+                    <span class="text-base">🎨</span>
+                    <h3 class="font-bold text-xs sm:text-sm text-white tracking-wider uppercase">{{ __('Interface & Theme Customization') }}</h3>
+                </div>
+                <button type="button" onclick="closeThemeModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors">✕</button>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="p-4 sm:p-6 space-y-5 overflow-y-auto modal-scroll text-xs">
+                <!-- Theme Choices -->
+                <div>
+                    <label class="block text-slate-400 uppercase font-bold text-[10px] tracking-wider mb-2.5">{{ __('Color Palette Theme') }}</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5" id="theme-options-grid">
+                        <!-- Vesper Onyx -->
+                        <button type="button" onclick="selectTheme('vesper')" class="theme-card p-3 rounded-xl border text-left transition-all cursor-pointer bg-slate-950/80 border-emerald-500/50" data-theme-id="vesper">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="font-bold text-emerald-400">Vesper</span>
+                                <span class="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></span>
+                            </div>
+                            <div class="text-[10px] text-slate-400">Obsidian & Emerald</div>
+                        </button>
+                        <!-- Cyberpunk Neon -->
+                        <button type="button" onclick="selectTheme('neon')" class="theme-card p-3 rounded-xl border text-left transition-all cursor-pointer bg-slate-950/80 border-slate-800 hover:border-cyan-500/50" data-theme-id="neon">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="font-bold text-cyan-400">Neon</span>
+                                <span class="w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_8px_#06b6d4]"></span>
+                            </div>
+                            <div class="text-[10px] text-slate-400">Void & Cyber Cyan</div>
+                        </button>
+                        <!-- Tactical Stealth -->
+                        <button type="button" onclick="selectTheme('stealth')" class="theme-card p-3 rounded-xl border text-left transition-all cursor-pointer bg-slate-950/80 border-slate-800 hover:border-slate-500/50" data-theme-id="stealth">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="font-bold text-slate-300">Stealth</span>
+                                <span class="w-3 h-3 rounded-full bg-slate-400 shadow-[0_0_8px_#94a3b8]"></span>
+                            </div>
+                            <div class="text-[10px] text-slate-400">Steel & Frost Blue</div>
+                        </button>
+                        <!-- Solar Amber -->
+                        <button type="button" onclick="selectTheme('amber')" class="theme-card p-3 rounded-xl border text-left transition-all cursor-pointer bg-slate-950/80 border-slate-800 hover:border-amber-500/50" data-theme-id="amber">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="font-bold text-amber-400">Solar</span>
+                                <span class="w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_#f59e0b]"></span>
+                            </div>
+                            <div class="text-[10px] text-slate-400">Bronze & Gold</div>
+                        </button>
+                        <!-- Matrix Terminal -->
+                        <button type="button" onclick="selectTheme('matrix')" class="theme-card p-3 rounded-xl border text-left transition-all cursor-pointer bg-slate-950/80 border-slate-800 hover:border-green-500/50" data-theme-id="matrix">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="font-bold text-green-400">Matrix</span>
+                                <span class="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></span>
+                            </div>
+                            <div class="text-[10px] text-slate-400">OLED & CRT Green</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Chat Window Background Presets -->
+                <div>
+                    <label class="block text-slate-400 uppercase font-bold text-[10px] tracking-wider mb-2.5">{{ __('Chat Window Background (Your View Only)') }}</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="bg-presets-grid">
+                        <button type="button" onclick="selectChatBg('none')" class="bg-card p-2.5 rounded-xl border border-emerald-500/50 bg-slate-950/80 text-left cursor-pointer" data-bg-id="none">
+                            <div class="font-semibold text-white text-[11px]">Solid Default</div>
+                            <div class="text-[10px] text-slate-500">Minimal dark</div>
+                        </button>
+                        <button type="button" onclick="selectChatBg('grid')" class="bg-card p-2.5 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-950/80 text-left cursor-pointer" data-bg-id="grid">
+                            <div class="font-semibold text-white text-[11px]">Tactical Grid</div>
+                            <div class="text-[10px] text-slate-500">Radar mesh</div>
+                        </button>
+                        <button type="button" onclick="selectChatBg('dots')" class="bg-card p-2.5 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-950/80 text-left cursor-pointer" data-bg-id="dots">
+                            <div class="font-semibold text-white text-[11px]">Dot Matrix</div>
+                            <div class="text-[10px] text-slate-500">Micro grid</div>
+                        </button>
+                        <button type="button" onclick="selectChatBg('carbon')" class="bg-card p-2.5 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-950/80 text-left cursor-pointer" data-bg-id="carbon">
+                            <div class="font-semibold text-white text-[11px]">Carbon Fiber</div>
+                            <div class="text-[10px] text-slate-500">Kevlar diagonal</div>
+                        </button>
+                        <button type="button" onclick="selectChatBg('stars')" class="bg-card p-2.5 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-950/80 text-left cursor-pointer" data-bg-id="stars">
+                            <div class="font-semibold text-white text-[11px]">Nebula / Stars</div>
+                            <div class="text-[10px] text-slate-500">Cosmic field</div>
+                        </button>
+                        <button type="button" onclick="selectChatBg('custom')" class="bg-card p-2.5 rounded-xl border border-slate-800 hover:border-slate-700 bg-slate-950/80 text-left cursor-pointer" data-bg-id="custom">
+                            <div class="font-semibold text-white text-[11px]">Custom Image</div>
+                            <div class="text-[10px] text-slate-500">Direct URL</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Custom Background Image Input Group -->
+                <div id="custom-bg-input-group" class="hidden space-y-2">
+                    <label class="block text-slate-400 text-[11px] font-semibold">{{ __('Custom Background Image URL') }}</label>
+                    <div class="flex gap-2">
+                        <input
+                            type="url"
+                            id="custom-bg-url"
+                            placeholder="https://..."
+                            class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:border-emerald-500 font-sans"
+                            oninput="previewCustomBgUrl(this.value)"
+                        />
+                        <button type="button" onclick="applyCustomBgUrl()" class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs">{{ __('Apply') }}</button>
+                    </div>
+                </div>
+
+                <!-- Background Opacity Slider -->
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="text-slate-400 text-[11px] font-semibold">{{ __('Background Opacity') }}</label>
+                        <span id="bg-opacity-label" class="text-emerald-400 font-bold text-xs">20%</span>
+                    </div>
+                    <input
+                        type="range"
+                        id="bg-opacity-slider"
+                        min="5"
+                        max="60"
+                        value="20"
+                        class="w-full accent-emerald-500 cursor-pointer"
+                        oninput="setChatBgOpacity(this.value)"
+                    />
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-3.5 sm:p-4 border-t border-slate-800 flex items-center justify-between bg-slate-950/50">
+                <button type="button" onclick="resetThemeDefaults()" class="px-3 py-1.5 rounded-lg border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white transition-colors text-xs">{{ __('Reset Defaults') }}</button>
+                <button type="button" onclick="closeThemeModal()" class="px-4 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs">{{ __('Done') }}</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Full-Screen Input Modal (Mobile-First Build Methodology) -->
+    <div id="mobile-input-modal" class="fixed inset-0 z-50 bg-slate-950/98 backdrop-blur-2xl hidden flex-col p-3 sm:p-4 pb-safe select-text font-sans">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between py-2 border-b border-slate-800/80 shrink-0 font-mono text-xs">
+            <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="font-bold text-emerald-400 tracking-wider uppercase text-[11px]">{{ __('TRANSMIT ENCRYPTED MESSAGE') }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span id="mobile-char-count" class="text-[10px] text-slate-500">0 / 10000</span>
+                <button
+                    type="button"
+                    onclick="closeMobileInputModal(false)"
+                    class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white text-xs transition-colors flex items-center gap-1 cursor-pointer"
+                    title="{{ __('Minimize Modal') }}"
+                >
+                    <span>{{ __('Minimize') }}</span>
+                    <span class="text-xs">▼</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Active Quoted Reply Preview inside Mobile Modal -->
+        <div id="mobile-reply-preview" class="hidden my-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-emerald-500/30 flex items-center justify-between font-mono text-xs text-slate-300 shrink-0">
+            <div class="flex items-center gap-2 min-w-0">
+                <span class="text-emerald-400 font-bold">↩</span>
+                <span class="text-slate-400 text-[11px]">{{ __('Replying to') }}</span>
+                <strong id="mobile-reply-sender-name" class="text-emerald-300 truncate"></strong>
+            </div>
+            <button type="button" onclick="cancelReply()" class="p-1 text-slate-400 hover:text-rose-400 rounded transition-colors">✕</button>
+        </div>
+
+        <!-- Active Attachment Chip inside Mobile Modal -->
+        <div id="mobile-attachment-preview" class="hidden my-2 px-3 py-2 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between font-mono text-xs text-slate-300 shrink-0">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <span class="text-emerald-400 text-base">📎</span>
+                <div class="min-w-0">
+                    <div id="mobile-attachment-name" class="truncate font-semibold text-white text-xs">file.jpg</div>
+                    <div id="mobile-attachment-size" class="text-[10px] text-slate-400">0 KB</div>
+                </div>
+            </div>
+            <button type="button" onclick="clearSelectedAttachment()" class="p-1 rounded text-slate-400 hover:text-rose-400">✕</button>
+        </div>
+
+        <!-- Large Mobile Textarea -->
+        <div class="flex-1 min-h-[140px] my-2 relative flex flex-col">
+            <textarea
+                id="mobile-input-textarea"
+                rows="6"
+                placeholder="{{ __('Transmit encrypted message... Write freely with full mobile workspace.') }}"
+                class="w-full flex-1 bg-slate-900/80 border border-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-2xl p-4 text-base text-white placeholder-slate-500 resize-none transition-colors leading-relaxed chat-scroll font-sans"
+                oninput="handleMobileInputText(this)"
+            ></textarea>
+        </div>
+
+        <!-- Split TTL Timers Control Bar inside Mobile Modal -->
+        <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 mb-2 font-mono text-xs space-y-2 shrink-0">
+            <!-- Text TTL Row -->
+            <div class="flex items-center justify-between gap-1.5">
+                <div class="flex items-center gap-1 text-slate-400 text-[11px] shrink-0">
+                    <span>📝</span>
+                    <span>{{ __('Text TTL') }}:</span>
+                </div>
+                <div class="flex items-center gap-1 overflow-x-auto modal-scroll">
+                    <button type="button" onclick="setDualTtl('text', 0, 'Off')" class="mobile-ttl-text-btn px-2 py-1 rounded-lg text-[10px] font-semibold border bg-emerald-500/20 text-emerald-300 border-emerald-500/40" data-ttl-val="0">Off</button>
+                    <button type="button" onclick="setDualTtl('text', 30, '30s')" class="mobile-ttl-text-btn px-2 py-1 rounded-lg text-[10px] font-semibold border bg-slate-800 text-slate-300 border-transparent" data-ttl-val="30">30s</button>
+                    <button type="button" onclick="setDualTtl('text', 300, '5m')" class="mobile-ttl-text-btn px-2 py-1 rounded-lg text-[10px] font-semibold border bg-slate-800 text-slate-300 border-transparent" data-ttl-val="300">5m</button>
+                    <button type="button" onclick="setDualTtl('text', 3600, '1h')" class="mobile-ttl-text-btn px-2 py-1 rounded-lg text-[10px] font-semibold border bg-slate-800 text-slate-300 border-transparent" data-ttl-val="3600">1h</button>
+                    <button type="button" onclick="setDualTtl('text', 86400, '24h')" class="mobile-ttl-text-btn px-2 py-1 rounded-lg text-[10px] font-semibold border bg-slate-800 text-slate-300 border-transparent" data-ttl-val="86400">24h</button>
+                </div>
+            </div>
+            <!-- Media TTL Row -->
+            <div class="flex items-center justify-between gap-1.5 pt-1.5 border-t border-slate-800/60">
+                <div class="flex items-center gap-1 text-slate-400 text-[11px] shrink-0">
+                    <span>📷</span>
+                    <span>{{ __('Media TTL') }}:</span>
+                </div>
+                <div class="flex items-center gap-1 overflow-x-auto modal-scroll">
+                    <button type="button" onclick="setDualTtl('media', 0, 'Off')" class="mobile-ttl-media-btn px-2 py-1 rounded-lg text-[10px] font-semibold border bg-cyan-500/20 text-cyan-300 border-cyan-500/40" data-ttl-val="0">Off</button>
+                    <button type="button" onclick="setDualTtl('media', 30, '30s')" class="mobile-ttl-media-btn px-2 py-1 rounded-lg text-[10px] font-semibold border bg-slate-800 text-slate-300 border-transparent" data-ttl-val="30">30s</button>
+                    <button type="button" onclick="setDualTtl('media', 300, '5m')" class="mobile-ttl-media-btn px-2 py-1 rounded-lg text-[10px] font-semibold border bg-slate-800 text-slate-300 border-transparent" data-ttl-val="300">5m</button>
+                    <button type="button" onclick="setDualTtl('media', 3600, '1h')" class="mobile-ttl-media-btn px-2 py-1 rounded-lg text-[10px] font-semibold border bg-slate-800 text-slate-300 border-transparent" data-ttl-val="3600">1h</button>
+                    <button type="button" onclick="setDualTtl('media', 86400, '24h')" class="mobile-ttl-media-btn px-2 py-1 rounded-lg text-[10px] font-semibold border bg-slate-800 text-slate-300 border-transparent" data-ttl-val="86400">24h</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Action Toolbar & Transmit Button -->
+        <div class="flex items-center gap-2 pt-1 shrink-0 font-mono">
+            <label
+                for="file-input-mobile"
+                class="p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-emerald-400 flex items-center justify-center shrink-0 cursor-pointer"
+                title="{{ __('Attach File') }}"
+            >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+                <input
+                    type="file"
+                    id="file-input-mobile"
+                    class="hidden"
+                    accept="image/*,video/*,audio/*,application/pdf"
+                    onchange="handleFileSelected(this)"
+                >
+            </label>
+
+            <button
+                type="button"
+                onclick="toggleAudioRecording(); closeMobileInputModal(false);"
+                class="p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-rose-400 flex items-center justify-center shrink-0"
+                title="{{ __('Record Voice') }}"
+            >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+            </button>
+
+            <button
+                type="button"
+                id="mobile-send-btn"
+                onclick="submitFromMobileModal()"
+                class="flex-1 py-3 px-5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 font-bold font-mono text-sm tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(16,185,129,0.35)] flex items-center justify-center gap-2 cursor-pointer"
+            >
+                <span>{{ __('TRANSMIT') }}</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+            </button>
+        </div>
     </div>
 
     <!-- In-Room Search Modal (Ctrl+K) -->
@@ -1279,6 +1657,12 @@
         // Tactical Suite State
         let replyingTo = null;
         let selectedTtl = 0;
+        let selectedTextTtl = 0;
+        let selectedMediaTtl = 0;
+        let currentTheme = 'vesper';
+        let currentChatBg = 'none';
+        let currentChatBgUrl = '';
+        let currentChatBgOpacity = 20;
         let activeReactionMsgId = null;
         let mediaRecorder = null;
         let audioChunks = [];
@@ -1379,14 +1763,49 @@
                             loadedMessages.set(msg.id, msg);
                             if (document.getElementById(`msg-${msg.id}`)) {
                                 updateMessageReactions(msg.id, msg.reactions);
+
+                                if (msg.text_burned) {
+                                    const textEl = document.getElementById(`msg-text-${msg.id}`);
+                                    if (textEl && !document.getElementById(`text-burned-${msg.id}`)) {
+                                        textEl.outerHTML = `<div id="text-burned-${msg.id}" class="italic text-slate-500 font-mono text-xs py-1">[🔒 Message text incinerated]</div>`;
+                                        const transEl = document.getElementById(`msg-trans-${msg.id}`);
+                                        if (transEl) transEl.remove();
+                                        const textPill = document.getElementById(`ttl-text-pill-${msg.id}`);
+                                        if (textPill) textPill.remove();
+                                    }
+                                }
+
+                                if (msg.media_burned) {
+                                    const mediaWrap = document.getElementById(`media-wrap-${msg.id}`);
+                                    const mediaBox = mediaWrap ? (mediaWrap.closest('.group\\/media') || mediaWrap.parentElement) : null;
+                                    if (mediaBox && !document.getElementById(`media-burned-${msg.id}`)) {
+                                        mediaBox.outerHTML = `<div id="media-burned-${msg.id}" class="italic text-slate-500 font-mono text-xs py-1">[🔒 Media attachment incinerated]</div>`;
+                                        const mediaPill = document.getElementById(`ttl-media-pill-${msg.id}`);
+                                        if (mediaPill) mediaPill.remove();
+                                    }
+                                }
+
                                 if (msg.expires_at) {
-                                    const pill = document.getElementById(`ttl-pill-${msg.id}`);
+                                    const pill = document.getElementById(`ttl-text-pill-${msg.id}`);
                                     if (pill && !pill.classList.contains('ttl-countdown')) {
-                                        pill.className = 'ttl-countdown text-amber-400 font-mono text-[10px] flex items-center gap-1 bg-amber-950/50 px-1.5 py-0.5 rounded border border-amber-500/30 mr-auto';
+                                        pill.className = 'ttl-countdown text-amber-400 font-mono text-[10px] flex items-center gap-1 bg-amber-950/50 px-1.5 py-0.5 rounded border border-amber-500/30';
                                         pill.dataset.expires = msg.expires_at;
-                                        pill.innerHTML = `<span class="text-[9px]">⏳</span><span class="ttl-val">...</span>`;
+                                        pill.dataset.ttlType = 'text';
+                                        pill.innerHTML = `<span class="text-[9px]">💬 ⏳</span><span class="ttl-val">...</span>`;
                                     } else if (pill && pill.dataset.expires !== msg.expires_at) {
                                         pill.dataset.expires = msg.expires_at;
+                                    }
+                                }
+
+                                if (msg.media_expires_at) {
+                                    const pill = document.getElementById(`ttl-media-pill-${msg.id}`);
+                                    if (pill && !pill.classList.contains('ttl-countdown')) {
+                                        pill.className = 'ttl-countdown text-orange-400 font-mono text-[10px] flex items-center gap-1 bg-orange-950/50 px-1.5 py-0.5 rounded border border-orange-500/30';
+                                        pill.dataset.expires = msg.media_expires_at;
+                                        pill.dataset.ttlType = 'media';
+                                        pill.innerHTML = `<span class="text-[9px]">📎 ⏳</span><span class="ttl-val">...</span>`;
+                                    } else if (pill && pill.dataset.expires !== msg.media_expires_at) {
+                                        pill.dataset.expires = msg.media_expires_at;
                                     }
                                 }
                             } else {
@@ -1576,12 +1995,20 @@
             }
 
             // Render Attachment
-            if (msg.attachment_url) {
+            if (msg.media_burned) {
+                bubbleContent += `
+                    <div id="media-burned-${msg.id}" class="mb-2 italic text-slate-400 font-mono text-xs py-1 px-2 rounded-lg bg-black/40 border border-slate-700/50 flex items-center gap-1.5">
+                        <span class="text-amber-400">🔒</span>
+                        <span>[Media attachment incinerated]</span>
+                    </div>
+                `;
+            } else if (msg.attachment_url) {
                 const mediaUrl = normalizeAttachmentUrl(msg.attachment_url);
                 const mediaName = msg.attachment_name || 'attachment';
                 const dlUrl = mediaUrl + (mediaUrl.includes('?') ? '&' : '?') + 'download=1';
                 const isRevealed = revealedMediaSet.has(msg.id);
 
+                bubbleContent += `<div id="msg-media-${msg.id}">`;
                 if (msg.attachment_type === 'image') {
                     bubbleContent += `
                         <div class="mb-2 relative rounded-xl overflow-hidden border border-white/10 bg-black/40 group/media">
@@ -1665,10 +2092,18 @@
                         </a>
                     `;
                 }
+                bubbleContent += `</div>`;
             }
 
             // Text Content + Automatic Translation Box
-            if (msg.content) {
+            if (msg.text_burned) {
+                bubbleContent += `
+                    <div id="text-burned-${msg.id}" class="italic text-slate-400 font-mono text-xs py-1 px-2 rounded-lg bg-black/40 border border-slate-700/50 flex items-center gap-1.5">
+                        <span class="text-amber-400">🔒</span>
+                        <span>[Message text incinerated]</span>
+                    </div>
+                `;
+            } else if (msg.content) {
                 const isAutoTranslated = Boolean(msg.auto_translated_text && msg.auto_translated_lang);
                 const currentLang = isAutoTranslated ? msg.auto_translated_lang : '';
                 const currentFlag = FLAG_MAP[currentLang] || '🌐';
@@ -1687,24 +2122,42 @@
                 `;
             }
 
-            // Message Footer: Countdown timer, Timestamp & Delivery Status
-            let ttlBadgeMarkup = '';
-            if (msg.expires_at) {
-                ttlBadgeMarkup = `<span class="ttl-countdown text-amber-400 font-mono text-[10px] flex items-center gap-1 bg-amber-950/50 px-1.5 py-0.5 rounded border border-amber-500/30 mr-auto" data-expires="${escapeHtml(msg.expires_at)}" id="ttl-pill-${msg.id}"><span class="text-[9px]">⏳</span><span class="ttl-val">...</span></span>`;
-            } else if (msg.ttl_seconds) {
-                const ttlSec = parseInt(msg.ttl_seconds, 10);
-                const m = Math.floor(ttlSec / 60);
-                const s = ttlSec % 60;
-                const formattedTtl = m > 0 ? `${m}m ${s ? s + 's' : ''}` : `${s}s`;
-                ttlBadgeMarkup = `<span class="ttl-pending text-amber-400/80 font-mono text-[10px] flex items-center gap-1 bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-500/20 mr-auto" id="ttl-pill-${msg.id}" title="Timer activates individually for each recipient when viewed"><span class="text-[9px]">⏳</span><span>${formattedTtl} per recipient</span></span>`;
+            // Message Footer: Countdown timers, Timestamp & Delivery Status
+            let textTtlMarkup = '';
+            if (!msg.text_burned && msg.content) {
+                if (msg.expires_at) {
+                    textTtlMarkup = `<span class="ttl-countdown text-amber-400 font-mono text-[10px] flex items-center gap-1 bg-amber-950/50 px-1.5 py-0.5 rounded border border-amber-500/30" data-expires="${escapeHtml(msg.expires_at)}" data-ttl-type="text" id="ttl-text-pill-${msg.id}"><span class="text-[9px]">💬 ⏳</span><span class="ttl-val">...</span></span>`;
+                } else if (msg.ttl_seconds) {
+                    const ttlSec = parseInt(msg.ttl_seconds, 10);
+                    const m = Math.floor(ttlSec / 60);
+                    const s = ttlSec % 60;
+                    const formattedTtl = m > 0 ? `${m}m ${s ? s + 's' : ''}` : `${s}s`;
+                    textTtlMarkup = `<span class="ttl-pending text-amber-400/80 font-mono text-[10px] flex items-center gap-1 bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-500/20" id="ttl-text-pill-${msg.id}" title="Text self-destructs individually per recipient"><span class="text-[9px]">💬 ⏳</span><span>${formattedTtl}</span></span>`;
+                }
+            }
+
+            let mediaTtlMarkup = '';
+            if (!msg.media_burned && (msg.attachment_url || msg.attachment_name)) {
+                if (msg.media_expires_at) {
+                    mediaTtlMarkup = `<span class="ttl-countdown text-orange-400 font-mono text-[10px] flex items-center gap-1 bg-orange-950/50 px-1.5 py-0.5 rounded border border-orange-500/30" data-expires="${escapeHtml(msg.media_expires_at)}" data-ttl-type="media" id="ttl-media-pill-${msg.id}"><span class="text-[9px]">📎 ⏳</span><span class="ttl-val">...</span></span>`;
+                } else if (msg.media_ttl_seconds) {
+                    const ttlSec = parseInt(msg.media_ttl_seconds, 10);
+                    const m = Math.floor(ttlSec / 60);
+                    const s = ttlSec % 60;
+                    const formattedTtl = m > 0 ? `${m}m ${s ? s + 's' : ''}` : `${s}s`;
+                    mediaTtlMarkup = `<span class="ttl-pending text-orange-400/80 font-mono text-[10px] flex items-center gap-1 bg-orange-950/30 px-1.5 py-0.5 rounded border border-orange-500/20" id="ttl-media-pill-${msg.id}" title="Media self-destructs individually per recipient"><span class="text-[9px]">📎 ⏳</span><span>${formattedTtl}</span></span>`;
+                }
             }
 
             bubbleContent += `
-                <div class="flex items-center justify-between gap-2 mt-2 pt-1.5 text-[10px] font-mono opacity-85 border-t border-white/10 text-slate-400">
-                    ${ttlBadgeMarkup}
+                <div class="flex flex-wrap items-center justify-between gap-1.5 mt-2 pt-1.5 text-[10px] font-mono opacity-85 border-t border-white/10 text-slate-400">
+                    <div class="flex items-center gap-1.5 flex-wrap mr-auto">
+                        ${textTtlMarkup}
+                        ${mediaTtlMarkup}
+                    </div>
                     <div class="flex items-center gap-1 ml-auto">
-                        <span>${msg.created_at_time}</span>
-                        ${isSelf ? '<svg class="w-3 h-3 text-emerald-300 inline ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7m-4 4l4 4" /></svg>' : ''}
+                        ${msg.is_optimistic ? '<span class="text-[10px] text-emerald-300 animate-pulse flex items-center gap-1">📡 Transmitting...</span>' : `<span>${msg.created_at_time || ''}</span>`}
+                        ${isSelf && !msg.is_optimistic ? '<svg class="w-3 h-3 text-emerald-300 inline ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7m-4 4l4 4" /></svg>' : ''}
                     </div>
                 </div>
             `;
@@ -2058,31 +2511,319 @@
             } catch (_) {}
         }
 
-        // TTL / Auto-Destruct Handlers
+        // Theme & Custom Appearance Management
+        function openThemeModal() {
+            document.getElementById('theme-modal').classList.remove('hidden');
+            syncThemeModalUI();
+        }
+
+        function closeThemeModal() {
+            document.getElementById('theme-modal').classList.add('hidden');
+        }
+
+        function selectTheme(themeId) {
+            currentTheme = themeId;
+            applyThemeClass(themeId);
+            saveThemeSettings();
+            syncThemeModalUI();
+        }
+
+        function applyThemeClass(themeId) {
+            const body = document.getElementById('vesper-body') || document.body;
+            body.classList.remove('theme-neon', 'theme-stealth', 'theme-amber', 'theme-matrix');
+            if (themeId !== 'vesper') {
+                body.classList.add(`theme-${themeId}`);
+            }
+        }
+
+        function selectChatBg(bgId) {
+            currentChatBg = bgId;
+            const customGroup = document.getElementById('custom-bg-input-group');
+            if (bgId === 'custom') {
+                customGroup.classList.remove('hidden');
+            } else {
+                customGroup.classList.add('hidden');
+            }
+            applyChatBg();
+            saveThemeSettings();
+            syncThemeModalUI();
+        }
+
+        function setChatBgOpacity(val) {
+            currentChatBgOpacity = parseInt(val, 10);
+            document.getElementById('bg-opacity-label').textContent = `${currentChatBgOpacity}%`;
+            applyChatBg();
+            saveThemeSettings();
+        }
+
+        function previewCustomBgUrl(url) {
+            currentChatBgUrl = url.trim();
+        }
+
+        function applyCustomBgUrl() {
+            const input = document.getElementById('custom-bg-url');
+            if (input && input.value.trim()) {
+                currentChatBgUrl = input.value.trim();
+                currentChatBg = 'custom';
+                applyChatBg();
+                saveThemeSettings();
+                syncThemeModalUI();
+            }
+        }
+
+        function applyChatBg() {
+            const bgLayer = document.getElementById('chat-bg-layer');
+            if (!bgLayer) return;
+
+            bgLayer.className = 'pointer-events-none absolute inset-0 z-0 bg-cover bg-center transition-all duration-300';
+            bgLayer.style.backgroundImage = '';
+            bgLayer.style.opacity = (currentChatBgOpacity / 100).toString();
+
+            if (currentChatBg === 'grid') {
+                bgLayer.classList.add('bg-pattern-grid');
+            } else if (currentChatBg === 'dots') {
+                bgLayer.classList.add('bg-pattern-dots');
+            } else if (currentChatBg === 'carbon') {
+                bgLayer.classList.add('bg-pattern-carbon');
+            } else if (currentChatBg === 'stars') {
+                bgLayer.classList.add('bg-pattern-stars');
+            } else if (currentChatBg === 'custom' && currentChatBgUrl) {
+                bgLayer.style.backgroundImage = `url("${currentChatBgUrl}")`;
+            }
+        }
+
+        function resetThemeDefaults() {
+            currentTheme = 'vesper';
+            currentChatBg = 'none';
+            currentChatBgUrl = '';
+            currentChatBgOpacity = 20;
+            applyThemeClass(currentTheme);
+            applyChatBg();
+            saveThemeSettings();
+            syncThemeModalUI();
+        }
+
+        function saveThemeSettings() {
+            try {
+                localStorage.setItem('vesper_theme_settings', JSON.stringify({
+                    theme: currentTheme,
+                    bg: currentChatBg,
+                    bg_url: currentChatBgUrl,
+                    opacity: currentChatBgOpacity
+                }));
+            } catch (_) {}
+        }
+
+        function loadThemeSettings() {
+            try {
+                const raw = localStorage.getItem('vesper_theme_settings');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    currentTheme = parsed.theme || 'vesper';
+                    currentChatBg = parsed.bg || 'none';
+                    currentChatBgUrl = parsed.bg_url || '';
+                    currentChatBgOpacity = parsed.opacity !== undefined ? parsed.opacity : 20;
+                }
+            } catch (_) {}
+            applyThemeClass(currentTheme);
+            applyChatBg();
+        }
+
+        function syncThemeModalUI() {
+            document.querySelectorAll('#theme-options-grid .theme-card').forEach(btn => {
+                const tid = btn.dataset.themeId;
+                if (tid === currentTheme) {
+                    btn.classList.add('border-emerald-500/80', 'bg-slate-900');
+                    btn.classList.remove('border-slate-800');
+                } else {
+                    btn.classList.remove('border-emerald-500/80', 'bg-slate-900');
+                    btn.classList.add('border-slate-800');
+                }
+            });
+
+            document.querySelectorAll('#bg-presets-grid .bg-card').forEach(btn => {
+                const bid = btn.dataset.bgId;
+                if (bid === currentChatBg) {
+                    btn.classList.add('border-emerald-500/80', 'bg-slate-900');
+                    btn.classList.remove('border-slate-800');
+                } else {
+                    btn.classList.remove('border-emerald-500/80', 'bg-slate-900');
+                    btn.classList.add('border-slate-800');
+                }
+            });
+
+            const slider = document.getElementById('bg-opacity-slider');
+            if (slider) slider.value = currentChatBgOpacity;
+            const opLabel = document.getElementById('bg-opacity-label');
+            if (opLabel) opLabel.textContent = `${currentChatBgOpacity}%`;
+            const customUrlInput = document.getElementById('custom-bg-url');
+            if (customUrlInput) customUrlInput.value = currentChatBgUrl;
+            const customGroup = document.getElementById('custom-bg-input-group');
+            if (customGroup) customGroup.classList.toggle('hidden', currentChatBg !== 'custom');
+        }
+
+        // Mobile Chat Input Modal Handlers (Mobile-First Build Methodology)
+        function isMobileViewport() {
+            return window.innerWidth < 640 || ('ontouchstart' in window && window.innerWidth < 768);
+        }
+
+        function handleInputTap(event) {
+            if (isMobileViewport()) {
+                event.preventDefault();
+                openMobileInputModal();
+            }
+        }
+
+        function openMobileInputModal() {
+            const modal = document.getElementById('mobile-input-modal');
+            const mainInput = document.getElementById('message-input');
+            const mobileTextarea = document.getElementById('mobile-input-textarea');
+
+            mobileTextarea.value = mainInput.value;
+            updateMobileCharCount();
+
+            const replyPreview = document.getElementById('mobile-reply-preview');
+            const replySender = document.getElementById('mobile-reply-sender-name');
+            if (replyingTo) {
+                replySender.textContent = replyingTo.sender_name;
+                replyPreview.classList.remove('hidden');
+            } else {
+                replyPreview.classList.add('hidden');
+            }
+
+            const attPreview = document.getElementById('mobile-attachment-preview');
+            const attName = document.getElementById('mobile-attachment-name');
+            const attSize = document.getElementById('mobile-attachment-size');
+            if (selectedFile) {
+                attName.textContent = selectedFile.name;
+                attSize.textContent = formatBytes(selectedFile.size);
+                attPreview.classList.remove('hidden');
+            } else {
+                attPreview.classList.add('hidden');
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.classList.add('overflow-hidden');
+
+            setTimeout(() => {
+                mobileTextarea.focus();
+            }, 50);
+        }
+
+        function closeMobileInputModal(syncToMain = true) {
+            const modal = document.getElementById('mobile-input-modal');
+            const mainInput = document.getElementById('message-input');
+            const mobileTextarea = document.getElementById('mobile-input-textarea');
+
+            if (syncToMain && mobileTextarea) {
+                mainInput.value = mobileTextarea.value;
+                autoResizeTextarea(mainInput);
+            }
+
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        function handleMobileInputText(textarea) {
+            updateMobileCharCount();
+            const mainInput = document.getElementById('message-input');
+            if (mainInput) mainInput.value = textarea.value;
+        }
+
+        function updateMobileCharCount() {
+            const mobileTextarea = document.getElementById('mobile-input-textarea');
+            const counter = document.getElementById('mobile-char-count');
+            if (mobileTextarea && counter) {
+                counter.textContent = `${mobileTextarea.value.length} / 10000`;
+            }
+        }
+
+        function submitFromMobileModal() {
+            const mobileTextarea = document.getElementById('mobile-input-textarea');
+            const mainInput = document.getElementById('message-input');
+            if (mobileTextarea) mainInput.value = mobileTextarea.value;
+
+            closeMobileInputModal(false);
+            sendMessage();
+        }
+
+        // Dual TTL Handlers (Text TTL & Media TTL)
         function toggleTtlMenu() {
             const menu = document.getElementById('ttl-menu');
             menu.classList.toggle('hidden');
         }
 
+        function setDualTtl(type, seconds, label) {
+            if (type === 'text') {
+                selectedTextTtl = seconds;
+                selectedTtl = seconds;
+                const badge = document.getElementById('text-ttl-badge');
+                if (badge) badge.textContent = label;
+
+                document.querySelectorAll('.ttl-text-btn').forEach(btn => {
+                    const v = parseInt(btn.dataset.val, 10);
+                    if (v === seconds) {
+                        btn.className = 'ttl-text-btn px-1.5 py-1 text-center rounded-lg bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold border border-emerald-500/40';
+                    } else {
+                        btn.className = 'ttl-text-btn px-1.5 py-1 text-center rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-transparent';
+                    }
+                });
+
+                document.querySelectorAll('.mobile-ttl-text-btn').forEach(btn => {
+                    const v = parseInt(btn.dataset.ttlVal, 10);
+                    if (v === seconds) {
+                        btn.className = 'mobile-ttl-text-btn px-2 py-1 rounded-lg text-[10px] font-semibold border bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+                    } else {
+                        btn.className = 'mobile-ttl-text-btn px-2 py-1 rounded-lg text-[10px] font-semibold border bg-slate-800 text-slate-300 border-transparent';
+                    }
+                });
+            } else {
+                selectedMediaTtl = seconds;
+                const badge = document.getElementById('media-ttl-badge');
+                if (badge) badge.textContent = label;
+
+                document.querySelectorAll('.ttl-media-btn').forEach(btn => {
+                    const v = parseInt(btn.dataset.val, 10);
+                    if (v === seconds) {
+                        btn.className = 'ttl-media-btn px-1.5 py-1 text-center rounded-lg bg-cyan-500/20 text-cyan-300 text-[10px] font-semibold border border-cyan-500/40';
+                    } else {
+                        btn.className = 'ttl-media-btn px-1.5 py-1 text-center rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-transparent';
+                    }
+                });
+
+                document.querySelectorAll('.mobile-ttl-media-btn').forEach(btn => {
+                    const v = parseInt(btn.dataset.ttlVal, 10);
+                    if (v === seconds) {
+                        btn.className = 'mobile-ttl-media-btn px-2 py-1 rounded-lg text-[10px] font-semibold border bg-cyan-500/20 text-cyan-300 border-cyan-500/40';
+                    } else {
+                        btn.className = 'mobile-ttl-media-btn px-2 py-1 rounded-lg text-[10px] font-semibold border bg-slate-800 text-slate-300 border-transparent';
+                    }
+                });
+            }
+
+            updateTtlButtonState();
+        }
+
         function setTtl(seconds, label) {
-            selectedTtl = seconds;
-            document.getElementById('ttl-menu').classList.add('hidden');
-            const ind = document.getElementById('ttl-indicator');
+            setDualTtl('text', seconds, label);
+        }
+
+        function updateTtlButtonState() {
+            const indText = document.getElementById('ttl-indicator-text');
+            const indMedia = document.getElementById('ttl-indicator-media');
             const btn = document.getElementById('ttl-btn');
 
-            [0, 30, 300, 3600, 86400].forEach(s => {
-                const el = document.getElementById(`ttl-check-${s}`);
-                if (el) el.classList.toggle('hidden', s !== seconds);
-            });
+            if (indText) indText.classList.toggle('hidden', selectedTextTtl <= 0);
+            if (indMedia) indMedia.classList.toggle('hidden', selectedMediaTtl <= 0);
 
-            if (seconds > 0) {
-                ind.classList.remove('hidden');
+            if (selectedTextTtl > 0 || selectedMediaTtl > 0) {
                 btn.classList.add('text-amber-400', 'border-amber-500/50');
-                btn.title = `Self-Destruct: ${label}`;
+                btn.title = `Self-Destruct: Text: ${selectedTextTtl ? selectedTextTtl + 's' : 'Off'}, Media: ${selectedMediaTtl ? selectedMediaTtl + 's' : 'Off'}`;
             } else {
-                ind.classList.add('hidden');
                 btn.classList.remove('text-amber-400', 'border-amber-500/50');
-                btn.title = 'Self-Destruct Timer';
+                btn.title = 'Self-Destruct Timers';
             }
         }
 
@@ -2094,10 +2835,47 @@
                     if (!expiresIso) return;
                     const expiresAt = new Date(expiresIso).getTime();
                     const diffSec = Math.floor((expiresAt - now) / 1000);
+                    const ttlType = el.dataset.ttlType;
 
                     if (diffSec <= 0) {
                         const msgCard = el.closest('[id^="msg-"]');
-                        if (msgCard) {
+                        if (!msgCard) return;
+                        const msgId = msgCard.id.replace('msg-', '');
+
+                        if (ttlType === 'text') {
+                            el.remove();
+                            const textEl = document.getElementById(`msg-text-${msgId}`);
+                            const transEl = document.getElementById(`msg-trans-${msgId}`);
+                            if (transEl) transEl.remove();
+
+                            const mediaWrap = document.getElementById(`media-wrap-${msgId}`);
+                            if (mediaWrap && !document.getElementById(`media-burned-${msgId}`)) {
+                                if (textEl) {
+                                    textEl.outerHTML = `<div id="text-burned-${msgId}" class="italic text-slate-400 font-mono text-xs py-1 px-2 rounded-lg bg-black/40 border border-slate-700/50 flex items-center gap-1.5"><span class="text-amber-400">🔒</span><span>[Message text incinerated]</span></div>`;
+                                }
+                            } else {
+                                msgCard.style.transition = 'all 0.5s ease';
+                                msgCard.style.opacity = '0';
+                                msgCard.style.transform = 'scale(0.95)';
+                                setTimeout(() => msgCard.remove(), 500);
+                            }
+                        } else if (ttlType === 'media') {
+                            el.remove();
+                            const mediaWrap = document.getElementById(`media-wrap-${msgId}`);
+                            const mediaBox = mediaWrap ? (mediaWrap.closest('.group\\/media') || mediaWrap.parentElement) : null;
+
+                            const textEl = document.getElementById(`msg-text-${msgId}`);
+                            if (textEl && !document.getElementById(`text-burned-${msgId}`)) {
+                                if (mediaBox) {
+                                    mediaBox.outerHTML = `<div id="media-burned-${msgId}" class="mb-2 italic text-slate-400 font-mono text-xs py-1 px-2 rounded-lg bg-black/40 border border-slate-700/50 flex items-center gap-1.5"><span class="text-amber-400">🔒</span><span>[Media attachment incinerated]</span></div>`;
+                                }
+                            } else {
+                                msgCard.style.transition = 'all 0.5s ease';
+                                msgCard.style.opacity = '0';
+                                msgCard.style.transform = 'scale(0.95)';
+                                setTimeout(() => msgCard.remove(), 500);
+                            }
+                        } else {
                             msgCard.style.transition = 'all 0.5s ease';
                             msgCard.style.opacity = '0';
                             msgCard.style.transform = 'scale(0.95)';
@@ -2211,15 +2989,64 @@
             if (replyingTo && replyingTo.id) {
                 formData.append('reply_to_id', replyingTo.id);
             }
-            if (selectedTtl > 0) {
-                formData.append('ttl_seconds', selectedTtl);
+            if (selectedTextTtl > 0) {
+                formData.append('ttl_seconds', selectedTextTtl);
+            }
+            if (selectedMediaTtl > 0) {
+                formData.append('media_ttl_seconds', selectedMediaTtl);
             }
 
-            // Immediately clear inputs to prevent double clicks and double submissions
+            // Create temporary optimistic message for 0ms perceptual latency
+            const tempId = 'temp-' + Date.now();
+            const optimisticFile = selectedFile;
+            const optimisticContent = content;
+            const optimisticMsg = {
+                id: tempId,
+                is_optimistic: true,
+                sender_name: CURRENT_USER_NAME || 'You',
+                is_self: true,
+                is_admin: IS_ADMIN,
+                sender_role: 'operative',
+                content: content || null,
+                text_burned: false,
+                media_burned: false,
+                attachment_url: optimisticFile ? URL.createObjectURL(optimisticFile) : null,
+                attachment_name: optimisticFile ? optimisticFile.name : null,
+                attachment_type: optimisticFile ? (
+                    optimisticFile.type.startsWith('image/') ? 'image' :
+                    optimisticFile.type.startsWith('video/') ? 'video' :
+                    optimisticFile.type.startsWith('audio/') ? 'audio' : 'file'
+                ) : null,
+                formatted_size: optimisticFile ? formatBytes(optimisticFile.size) : null,
+                ttl_seconds: selectedTextTtl || null,
+                media_ttl_seconds: selectedMediaTtl || null,
+                expires_at: null,
+                media_expires_at: null,
+                created_at_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                reply_to: replyingTo ? {
+                    id: replyingTo.id,
+                    sender_name: replyingTo.sender_name,
+                    snippet: replyingTo.snippet
+                } : null
+            };
+
+            appendMessage(optimisticMsg);
+            playChime('send');
+            scrollToBottom();
+
+            // Clear inputs immediately
             textInput.value = '';
             textInput.style.height = 'auto';
             clearSelectedAttachment();
             cancelReply();
+
+            // Clear mobile modal input if open and close it
+            const mobileInput = document.getElementById('mobile-modal-input');
+            if (mobileInput) {
+                mobileInput.value = '';
+                handleMobileInputText();
+            }
+            closeMobileInputModal();
 
             try {
                 const res = await fetch(`/c/${encodeURIComponent(ROOM_CODE)}/messages`, {
@@ -2234,21 +3061,34 @@
                 if (res.ok) {
                     const data = await res.json();
                     if (data.message) {
+                        const tempEl = document.getElementById(`msg-${tempId}`);
+                        if (tempEl) tempEl.remove();
+                        loadedMessages.delete(tempId);
+
                         appendMessage(data.message);
                         lastMessageId = Math.max(lastMessageId, data.message.id);
-                        playChime('send');
                         scrollToBottom();
+
+                        // Immediate fast sync for participant channel state
+                        setTimeout(fetchMessages, 300);
                     }
                 } else {
-                    // Restore message content on failure
-                    textInput.value = content;
+                    const tempEl = document.getElementById(`msg-${tempId}`);
+                    if (tempEl) tempEl.remove();
+                    loadedMessages.delete(tempId);
+
+                    textInput.value = optimisticContent;
                     autoResizeTextarea(textInput);
                     const errData = await res.json().catch(() => ({}));
                     alert(errData.error || errData.message || 'Failed to transmit message.');
                 }
             } catch (err) {
                 console.error('Send error:', err);
-                textInput.value = content;
+                const tempEl = document.getElementById(`msg-${tempId}`);
+                if (tempEl) tempEl.remove();
+                loadedMessages.delete(tempId);
+
+                textInput.value = optimisticContent;
                 autoResizeTextarea(textInput);
                 alert('Transmission interrupted. Check connection.');
             } finally {
@@ -3426,6 +4266,7 @@
         fetchMessages();
         startPolling(ACTIVE_POLL_INTERVAL);
         initTtlCountdownLoop();
+        loadThemeSettings();
     </script>
 
     <!-- Room Toast Notification Container -->
