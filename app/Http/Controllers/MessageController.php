@@ -454,7 +454,7 @@ class MessageController extends Controller
             return [
                 'id' => $message->id,
                 'sender_name' => $message->sender_name,
-                'is_self' => $message->sender_session_id === $sessionId,
+                'is_self' => (bool) $isSender,
                 'is_admin' => (bool) $message->is_admin,
                 'sender_role' => $senderRole,
                 'sender_age' => $senderAge,

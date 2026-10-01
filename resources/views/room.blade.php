@@ -82,8 +82,8 @@
             --theme-bubble-self-bg: linear-gradient(135deg, rgba(5, 150, 105, 0.95) 0%, rgba(15, 118, 110, 0.95) 100%);
             --theme-bubble-self-border: rgba(52, 211, 153, 0.45);
             --theme-bubble-self-text: #ffffff;
-            --theme-bubble-peer-bg: rgba(15, 23, 42, 0.92);
-            --theme-bubble-peer-border: rgba(51, 65, 85, 0.7);
+            --theme-bubble-peer-bg: rgba(15, 23, 42, 0.82);
+            --theme-bubble-peer-border: rgba(16, 185, 129, 0.25);
             --theme-bubble-peer-text: #f1f5f9;
             --theme-input-border-focus: #10b981;
         }
@@ -102,8 +102,8 @@
             --theme-bubble-self-bg: linear-gradient(135deg, rgba(8, 145, 178, 0.95) 0%, rgba(126, 34, 206, 0.95) 100%);
             --theme-bubble-self-border: rgba(6, 182, 212, 0.6);
             --theme-bubble-self-text: #ffffff;
-            --theme-bubble-peer-bg: rgba(24, 16, 46, 0.92);
-            --theme-bubble-peer-border: rgba(126, 34, 206, 0.5);
+            --theme-bubble-peer-bg: rgba(24, 16, 46, 0.82);
+            --theme-bubble-peer-border: rgba(168, 85, 247, 0.45);
             --theme-bubble-peer-text: #f8fafc;
             --theme-input-border-focus: #06b6d4;
         }
@@ -122,8 +122,8 @@
             --theme-bubble-self-bg: linear-gradient(135deg, rgba(51, 65, 85, 0.95) 0%, rgba(30, 41, 59, 0.98) 100%);
             --theme-bubble-self-border: rgba(148, 163, 184, 0.5);
             --theme-bubble-self-text: #ffffff;
-            --theme-bubble-peer-bg: rgba(17, 24, 39, 0.92);
-            --theme-bubble-peer-border: rgba(51, 65, 85, 0.7);
+            --theme-bubble-peer-bg: rgba(17, 24, 39, 0.82);
+            --theme-bubble-peer-border: rgba(100, 116, 139, 0.45);
             --theme-bubble-peer-text: #e2e8f0;
             --theme-input-border-focus: #60a5fa;
         }
@@ -142,8 +142,8 @@
             --theme-bubble-self-bg: linear-gradient(135deg, rgba(217, 119, 6, 0.95) 0%, rgba(180, 83, 9, 0.95) 100%);
             --theme-bubble-self-border: rgba(245, 158, 11, 0.6);
             --theme-bubble-self-text: #ffffff;
-            --theme-bubble-peer-bg: rgba(36, 24, 12, 0.92);
-            --theme-bubble-peer-border: rgba(146, 64, 14, 0.5);
+            --theme-bubble-peer-bg: rgba(36, 24, 12, 0.82);
+            --theme-bubble-peer-border: rgba(245, 158, 11, 0.45);
             --theme-bubble-peer-text: #fef3c7;
             --theme-input-border-focus: #f59e0b;
         }
@@ -162,8 +162,8 @@
             --theme-bubble-self-bg: linear-gradient(135deg, rgba(21, 128, 61, 0.95) 0%, rgba(20, 83, 45, 0.98) 100%);
             --theme-bubble-self-border: rgba(74, 222, 128, 0.6);
             --theme-bubble-self-text: #ffffff;
-            --theme-bubble-peer-bg: rgba(4, 20, 6, 0.92);
-            --theme-bubble-peer-border: rgba(22, 101, 52, 0.6);
+            --theme-bubble-peer-bg: rgba(4, 20, 6, 0.82);
+            --theme-bubble-peer-border: rgba(34, 197, 94, 0.45);
             --theme-bubble-peer-text: #dcfce7;
             --theme-input-border-focus: #22c55e;
         }
@@ -191,11 +191,15 @@
             background: var(--theme-bubble-self-bg) !important;
             border-color: var(--theme-bubble-self-border) !important;
             color: var(--theme-bubble-self-text) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
         }
         .bubble-peer {
             background-color: var(--theme-bubble-peer-bg) !important;
             border-color: var(--theme-bubble-peer-border) !important;
             color: var(--theme-bubble-peer-text) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
         }
         .theme-author-self {
             color: var(--theme-accent) !important;
@@ -438,10 +442,33 @@
         </div>
 
         <!-- Chat Stream Panel -->
-        <div id="chat-stream-panel" class="flex-1 flex flex-col min-w-0 relative">
+        <div id="chat-stream-panel" class="flex-1 flex flex-col min-w-0 relative overflow-hidden">
+
+            <!-- User Custom Chat Background Layer (Fixed wallpaper behind message stream) -->
+            <div id="chat-bg-layer" class="pointer-events-none absolute inset-0 z-0 bg-cover bg-center transition-all duration-300"></div>
+            <script>
+                (function() {
+                    try {
+                        var raw = localStorage.getItem('vesper_theme_settings');
+                        if (raw) {
+                            var p = JSON.parse(raw);
+                            var layer = document.getElementById('chat-bg-layer');
+                            if (layer) {
+                                var op = p.opacity !== undefined ? p.opacity : 30;
+                                layer.style.opacity = (op / 100).toString();
+                                if (p.bg === 'grid') layer.classList.add('bg-pattern-grid');
+                                else if (p.bg === 'dots') layer.classList.add('bg-pattern-dots');
+                                else if (p.bg === 'carbon') layer.classList.add('bg-pattern-carbon');
+                                else if (p.bg === 'stars') layer.classList.add('bg-pattern-stars');
+                                else if (p.bg === 'custom' && p.bg_url) layer.style.backgroundImage = 'url("' + p.bg_url + '")';
+                            }
+                        }
+                    } catch (_) {}
+                })();
+            </script>
 
             <!-- Pinned Channel Briefing Banner -->
-            <div id="pinned-briefing-banner" class="hidden px-4 py-2.5 bg-gradient-to-r from-amber-950/60 via-slate-900/90 to-amber-950/60 border-b border-amber-500/30 backdrop-blur-md flex items-center justify-between text-xs font-mono text-amber-200 z-10 shrink-0">
+            <div id="pinned-briefing-banner" class="hidden px-4 py-2.5 bg-gradient-to-r from-amber-950/60 via-slate-900/90 to-amber-950/60 border-b border-amber-500/30 backdrop-blur-md flex items-center justify-between text-xs font-mono text-amber-200 z-20 shrink-0">
                 <div class="flex items-center gap-2.5 min-w-0 cursor-pointer flex-1" onclick="jumpToPinnedMessage()">
                     <span class="p-1 rounded bg-amber-500/20 text-amber-400 shrink-0 text-xs">📌</span>
                     <div class="min-w-0 truncate">
@@ -457,11 +484,8 @@
             </div>
 
             <!-- Message Stream Area -->
-            <div id="message-stream" class="flex-1 overflow-y-auto chat-scroll p-4 sm:p-6 space-y-4 select-text relative">
-                <!-- User Custom Chat Background Layer -->
-                <div id="chat-bg-layer" class="pointer-events-none absolute inset-0 z-0 bg-cover bg-center transition-all duration-300 opacity-20"></div>
-
-                <div class="relative z-10 space-y-4">
+            <div id="message-stream" class="flex-1 overflow-y-auto chat-scroll p-4 sm:p-6 space-y-4 select-text relative z-10 bg-transparent">
+                <div class="space-y-4">
                     <!-- Welcome Banner -->
                     <div class="max-w-md mx-auto text-center py-6 px-4 rounded-xl bg-slate-900/40 border border-slate-800/80 font-mono text-xs text-slate-400 space-y-2">
                         <div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-400 mb-1">
