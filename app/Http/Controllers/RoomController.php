@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\ChannelAccessService;
 use App\Services\GeoLocationService;
 use App\Services\RankService;
+use App\Services\UserTagService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -367,12 +368,19 @@ class RoomController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
+        $tag = app(UserTagService::class)->normalize((string) $request->query('tag', ''));
         $name = trim((string) $request->query('name', ''));
-        if ($name === '') {
+
+        if ($tag !== '') {
+            // A highlighted @tag opens the card only for members of this channel.
+            $user = $room->members()->where('users.tag', $tag)->first()
+                ?? ($room->creator?->tag === $tag ? $room->creator : null);
+            $name = $tag;
+        } elseif ($name !== '') {
+            $user = User::where('name', $name)->first();
+        } else {
             return response()->json(['found' => false]);
         }
-
-        $user = User::where('name', $name)->first();
 
         if (! $user) {
             return response()->json([
@@ -386,6 +394,7 @@ class RoomController extends Controller
         return response()->json([
             'found' => true,
             'name' => $user->name,
+            'tag' => $user->tag,
             'avatar_url' => $user->avatarUrl(),
             'age' => $user->ageForViewer($viewer),
             'birthday' => $user->birthdayForViewer($viewer),

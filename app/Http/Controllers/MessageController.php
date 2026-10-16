@@ -14,6 +14,7 @@ use App\Services\GeoLocationService;
 use App\Services\LanguageService;
 use App\Services\MediaStorageService;
 use App\Services\TranslationService;
+use App\Services\UserTagService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -33,7 +34,8 @@ class MessageController extends Controller
     public function __construct(
         public GeoLocationService $geoLocationService,
         public MediaStorageService $mediaStorageService,
-        public TranslationService $translationService
+        public TranslationService $translationService,
+        public UserTagService $userTags
     ) {}
 
     /**
@@ -525,6 +527,10 @@ class MessageController extends Controller
             ] : null,
             'active_count' => $activeOperatives->count(),
             'active_operatives' => $activeOperatives,
+            'mention_tags' => $this->userTags->memberTagsMentionedIn(
+                $room,
+                collect($messages)->flatMap(fn (array $message): array => [$message['content'] ?? null, $message['auto_translated_text'] ?? null])
+            ),
         ]);
     }
 
@@ -646,6 +652,7 @@ class MessageController extends Controller
 
         return response()->json([
             'success' => true,
+            'mention_tags' => $this->userTags->memberTagsMentionedIn($room, [$message->content]),
             'message' => [
                 'id' => $message->id,
                 'sender_name' => $message->sender_name,

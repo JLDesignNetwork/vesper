@@ -106,3 +106,12 @@ Backlog items live in [`backlog.json`](backlog.json).
 - Admin I keeps PIN-free entry to every channel (the audited override from Q1).
 - New UI strings fall back to English until Phase 7 translates them.
 
+## Phase 3 implementation notes (2026-10-16)
+
+- Tags: `^[a-z][a-z0-9_]{2,29}$`, generated from the name (ASCII-folded, `_2`/`_3` suffixes on collision, reserved words such as `admin` avoided), editable in the profile.
+- Mention highlighting is decided at read time: a `@tag` is highlighted when that member is currently an active member or the creator of the channel. No `message_mentions` table (deviation from the original plan).
+- Highlighted tags open the member card, looked up by tag among channel members only.
+- DOMPurify 3.2.6 sanitizes every formatted message. It is bundled through Vite; the first message batch waits for `DOMContentLoaded` so it is never rendered unsanitized or as plain text by accident.
+- Found and fixed two stored XSS bugs in the room page (`MSG-ISSUE-01`, `MSG-ISSUE-02`).
+- Composer autocomplete is not built (`MSG-IDEA-01`).
+

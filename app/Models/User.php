@@ -6,6 +6,7 @@ use App\Enums\Rank;
 use App\Mail\PrimaryEmailVerification;
 use App\Services\GeoLocationService;
 use App\Services\LanguageService;
+use App\Services\UserTagService;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 
-#[Fillable(['name', 'email', 'password', 'birthday', 'gender', 'location', 'latitude', 'longitude', 'city', 'country', 'country_code', 'location_synced_at', 'hide_age', 'hide_birthday', 'hide_location', 'hide_bio', 'bio', 'email_notifications', 'avatar_path', 'preferred_locale', 'two_factor_secret', 'two_factor_confirmed_at', 'two_factor_recovery_codes', 'recovery_email', 'recovery_email_verified_at', 'recovery_token', 'recovery_token_expires_at'])]
+#[Fillable(['name', 'tag', 'email', 'password', 'birthday', 'gender', 'location', 'latitude', 'longitude', 'city', 'country', 'country_code', 'location_synced_at', 'hide_age', 'hide_birthday', 'hide_location', 'hide_bio', 'bio', 'email_notifications', 'avatar_path', 'preferred_locale', 'two_factor_secret', 'two_factor_confirmed_at', 'two_factor_recovery_codes', 'recovery_email', 'recovery_email_verified_at', 'recovery_token', 'recovery_token_expires_at'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes', 'recovery_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -36,6 +37,18 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $attributes = [
         'rank' => 'user_two',
     ];
+
+    /**
+     * Give every new member a unique @tag generated from their name.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (User $user): void {
+            if (empty($user->tag)) {
+                $user->tag = app(UserTagService::class)->generateFor((string) $user->name);
+            }
+        });
+    }
 
     /**
      * The accessors to append to the model's array form.

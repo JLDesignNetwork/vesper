@@ -228,6 +228,26 @@
                                 >
                             </div>
                             <div>
+                                <label for="profile-tag" class="block font-medium text-slate-300 mb-1 font-mono">{{ __('Tag') }} <span class="text-rose-400">*</span></label>
+                                <div class="flex items-stretch rounded-xl bg-slate-950 border border-slate-800 focus-within:border-emerald-500/60">
+                                    <span class="px-3 flex items-center text-slate-500 font-mono" aria-hidden="true">@</span>
+                                    <input
+                                        id="profile-tag"
+                                        type="text"
+                                        name="tag"
+                                        required
+                                        minlength="3"
+                                        maxlength="30"
+                                        pattern="[a-z][a-z0-9_]{2,29}"
+                                        autocapitalize="none"
+                                        spellcheck="false"
+                                        value="{{ $user->tag }}"
+                                        class="flex-1 min-w-0 py-2 pr-3 bg-transparent text-slate-100 font-mono focus:outline-none"
+                                    >
+                                </div>
+                                <p class="text-[11px] text-slate-500 mt-1 font-mono">{{ __('Others mention you with @:tag. Lowercase letters, numbers and _, starting with a letter.', ['tag' => $user->tag]) }}</p>
+                            </div>
+                            <div>
                                 <label class="block font-medium text-slate-300 mb-1 font-mono">{{ __('Email Address') }} <span class="text-rose-400">*</span></label>
                                 <input
                                     type="email"
@@ -673,6 +693,23 @@
                     </div>
                 @endif
 
+                <!-- Member Search by Tag -->
+                <section class="rounded-2xl bg-slate-900/60 border border-slate-800 p-5 space-y-3" aria-labelledby="member-search-heading">
+                    <div>
+                        <h2 id="member-search-heading" class="text-sm font-semibold text-white tracking-tight">{{ __('Find Members') }}</h2>
+                        <p class="text-[11px] text-slate-400">{{ __('Search by @tag or name. Mention someone in a channel with their tag.') }}</p>
+                    </div>
+                    <label for="member-search-input" class="sr-only">{{ __('Search members') }}</label>
+                    <input
+                        id="member-search-input"
+                        type="search"
+                        autocomplete="off"
+                        placeholder="@tag {{ __('or name') }}"
+                        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none focus:border-emerald-500/60"
+                    >
+                    <ul id="member-search-results" class="divide-y divide-slate-800/70" aria-live="polite"></ul>
+                </section>
+
             </div>
         </div>
 
@@ -850,6 +887,44 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => syncPinField(document.getElementById('create-channel-type')));
+
+        // Member search: results are built with textContent only, never innerHTML.
+        (() => {
+            const input = document.getElementById('member-search-input');
+            const results = document.getElementById('member-search-results');
+            if (!input || !results) return;
+            let debounceTimer = null;
+            input.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(async () => {
+                    const query = input.value.trim();
+                    results.replaceChildren();
+                    if (query.replace(/^@/, '').length < 2) return;
+                    const res = await fetch(`{{ route('members.search') }}?q=${encodeURIComponent(query)}`, { headers: { 'Accept': 'application/json' } });
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    if (!data.members.length) {
+                        const empty = document.createElement('li');
+                        empty.className = 'py-2 text-xs text-slate-500';
+                        empty.textContent = @json(__('No members found.'));
+                        results.append(empty);
+                        return;
+                    }
+                    data.members.forEach(member => {
+                        const row = document.createElement('li');
+                        row.className = 'py-2 flex items-center justify-between gap-3 text-xs';
+                        const name = document.createElement('span');
+                        name.className = 'text-slate-200 truncate';
+                        name.textContent = member.name;
+                        const tag = document.createElement('span');
+                        tag.className = 'font-mono text-emerald-300 shrink-0';
+                        tag.textContent = '@' + member.tag;
+                        row.append(name, tag);
+                        results.append(row);
+                    });
+                }, 250);
+            });
+        })();
         @if($errors->hasAny(['title', 'type', 'pin', 'description']) && old('_method') !== 'PUT')
             document.addEventListener('DOMContentLoaded', () => openChannelModal('create-channel-modal'));
         @endif

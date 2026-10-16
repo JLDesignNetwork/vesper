@@ -84,11 +84,12 @@
   {
     "id": "MSG-TODO-01",
     "title": "Add user tags and server-confirmed mentions",
-    "status": "pending",
+    "status": "completed",
     "priority": "high-1",
     "existed_since": "2609.11.0-bs",
     "created_at": "2026-10-16T12:25:00+02:00",
-    "details": "Unique editable users.tag slug with reserved words, tag-based member search, message_mentions written on store for active channel members only, client highlighting via DOMPurify (dependency approved 2026-10-16). Phase 3."
+    "details": "Added users.tag (unique, generated from the name on creation and backfilled by migration, editable in the profile with format/reserved/unique validation), UserTagService, member search by tag prefix or name (GET /members/search, public fields only, signed in, throttled) with a profile search panel, and in-channel mentions: messages.index and messages.store return mention_tags = mentioned tags of active members or the creator; the room page highlights only those, outside links and code, as buttons that open the member card (member-profile?tag=, members only). Deviation from plan: highlighting is decided at read time from current membership instead of a message_mentions table written on send, which matches 'highlighted if the tagged user is part of that channel' and needs no table. Formatted messages now pass through DOMPurify 3.2.6 (bundled via resources/js/app.js; lockfile recorded with --lockfile-only and node_modules/dompurify linked to the pnpm global store per the zero-local policy). Covered by UserTagsTest; client formatter logic checked under Node (no browser available).",
+    "protected": "open"
   },
   {
     "id": "MSG-TODO-02",
@@ -219,5 +220,47 @@
     "created_at": "2026-10-16T17:30:00+02:00",
     "details": "Fixed: ChannelInvitationNotification passed the link as invitation_url, which EmailTemplateService does not use for the button URL, so the 'Enter Secure Channel' button pointed to #. It now also passes channel_url. Covered by ChannelManagementTest.",
     "protected": "open"
+  },
+  {
+    "id": "MSG-ISSUE-01",
+    "title": "Stored XSS through links in chat messages",
+    "status": "completed",
+    "severity": "critical",
+    "priority": "critical-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T19:00:00+02:00",
+    "details": "Fixed: escapeHtml did not escape quotes and the auto-link regex allowed \" inside URLs, so a message such as https://x.y/\"onmouseover=\"alert(1)\"z produced an <a> with an event handler, letting any channel member run script in other members' browsers. escapeHtml now escapes quotes and formatted messages pass through DOMPurify with a tag/attribute allowlist; the code-copy button moved from an inline onclick to a delegated handler. Verified by running the real formatter under Node.",
+    "protected": "open"
+  },
+  {
+    "id": "MSG-ISSUE-02",
+    "title": "Member card rendered a member's location as HTML",
+    "status": "completed",
+    "severity": "high",
+    "priority": "critical-2",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T19:00:00+02:00",
+    "details": "Fixed: the in-channel member card set innerHTML from the member's free-text location, allowing stored XSS through the profile location field. The location is now escaped.",
+    "protected": "open"
+  },
+  {
+    "id": "AUTH-ISSUE-05",
+    "title": "Changing the primary email kept it marked verified",
+    "status": "completed",
+    "severity": "medium",
+    "priority": "high-1",
+    "existed_since": "2610 Phase 1",
+    "created_at": "2026-10-16T19:00:00+02:00",
+    "details": "Fixed: ProfileController::update now clears email_verified_at and sends a new verification link when the email changes, and recomputes ranks of channels the member belongs to. Covered by UserTagsTest.",
+    "protected": "open"
+  },
+  {
+    "id": "MSG-IDEA-01",
+    "title": "@tag autocomplete in the message composer",
+    "status": "pending",
+    "priority": "low-1",
+    "existed_since": "2610 Phase 3",
+    "created_at": "2026-10-16T19:00:00+02:00",
+    "details": "Suggest channel members while typing @ in the composer (desktop input and mobile modal). Not built in Phase 3; members can find tags on member cards and with the profile member search."
   }
 ]

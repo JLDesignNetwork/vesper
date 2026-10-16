@@ -9,6 +9,7 @@ use App\Http\Controllers\ChannelHubController;
 use App\Http\Controllers\ChannelInviteController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\IntelController;
+use App\Http\Controllers\MemberSearchController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoomController;
@@ -54,6 +55,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/channels/redeem', [ChannelHubController::class, 'redeemCode'])->name('channels.redeem')->middleware('throttle:5,1');
     Route::post('/channels', [ChannelController::class, 'store'])->name('channels.store');
     Route::put('/channels/{room}/settings', [ChannelController::class, 'update'])->name('channels.update');
+    Route::get('/members/search', [MemberSearchController::class, 'index'])->name('members.search')->middleware('throttle:30,1');
 
     // WebAuthn registration
     Route::get('/webauthn/register/options', [WebAuthnController::class, 'optionsRegister'])->name('webauthn.register.options');

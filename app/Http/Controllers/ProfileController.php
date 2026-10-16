@@ -7,6 +7,8 @@ use App\Enums\Rank;
 use App\Models\AccessLog;
 use App\Services\GeoLocationService;
 use App\Services\LanguageService;
+use App\Services\RankService;
+use App\Services\UserTagService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -63,8 +65,13 @@ class ProfileController extends Controller
             abort(401, 'Unauthorized.');
         }
 
+        if ($request->has('tag')) {
+            $request->merge(['tag' => app(UserTagService::class)->normalize((string) $request->input('tag'))]);
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:50'],
+            'tag' => ['sometimes', 'required', 'string', 'regex:'.UserTagService::PATTERN, Rule::notIn(UserTagService::RESERVED), Rule::unique('users', 'tag')->ignore($user->id)],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'birthday' => ['nullable', 'date', 'before:today'],
             'gender' => ['nullable', 'string', 'max:30'],
@@ -85,7 +92,18 @@ class ProfileController extends Controller
         $oldLocation = $user->location;
 
         $user->name = trim($validated['name']);
-        $user->email = strtolower(trim($validated['email']));
+
+        if (array_key_exists('tag', $validated)) {
+            $user->tag = $validated['tag'];
+        }
+
+        $newEmail = strtolower(trim($validated['email']));
+        $emailChanged = $newEmail !== strtolower((string) $user->email);
+        $user->email = $newEmail;
+
+        if ($emailChanged) {
+            $user->email_verified_at = null;
+        }
         $user->birthday = ! empty($validated['birthday']) ? $validated['birthday'] : null;
         $user->gender = ! empty($validated['gender']) ? trim($validated['gender']) : null;
         $user->location = ! empty($validated['location']) ? trim($validated['location']) : null;
@@ -137,6 +155,11 @@ class ProfileController extends Controller
 
         $user->save();
 
+        if ($emailChanged) {
+            $user->sendEmailVerificationNotification();
+            app(RankService::class)->recomputeCreatorsOfChannelsJoinedBy($user);
+        }
+
         // Synchronize room alias if currently inside a room
         if (! empty($validated['room_id'])) {
             $request->session()->put("room_alias_{$validated['room_id']}", $user->name);
@@ -149,6 +172,7 @@ class ProfileController extends Controller
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,
+                    'tag' => $user->tag,
                     'email' => $user->email,
                     'birthday' => $user->birthday?->format('Y-m-d'),
                     'age' => $user->age(),

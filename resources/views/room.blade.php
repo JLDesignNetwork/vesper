@@ -1747,6 +1747,12 @@
         const CURRENT_USER_NAME = @json(Auth::user()?->name);
         const FLAG_MAP = @json(collect(\App\Services\LanguageService::supported())->mapWithKeys(fn($l, $k) => [$k => $l['flag']]));
 
+        // @tags the server confirmed belong to members of this channel. Only these are highlighted.
+        const CONFIRMED_MENTION_TAGS = new Set();
+        function rememberMentionTags(tags) {
+            (tags || []).forEach(tag => CONFIRMED_MENTION_TAGS.add(String(tag).toLowerCase()));
+        }
+
         // Client localization strings
         const I18N = {
             active: "{{ __('Active') }}",
@@ -1899,6 +1905,7 @@
 
                 if (res.ok) {
                     const data = await res.json();
+                    rememberMentionTags(data.mention_tags);
 
                     if (data.pinned_message !== undefined) {
                         updatePinnedBriefing(data.pinned_message);
@@ -1992,7 +1999,7 @@
                 return `<div class="my-2 rounded-xl overflow-hidden border border-slate-700/70 bg-slate-950 font-mono text-xs">
                     <div class="px-3 py-1.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
                         <span class="uppercase tracking-wider font-semibold text-emerald-400">${lang || 'CODE'}</span>
-                        <button type="button" onclick="copyCodeBlock('${blockId}', this)" class="text-[10px] hover:text-white px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 flex items-center gap-1 transition-colors cursor-pointer">
+                        <button type="button" data-copy-code="${blockId}" class="text-[10px] hover:text-white px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 flex items-center gap-1 transition-colors cursor-pointer">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                             <span>${I18N.copyCode}</span>
                         </button>
@@ -2016,8 +2023,52 @@
             // Safe Auto-links: http/https
             escaped = escaped.replace(/(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-cyan-400 underline hover:text-cyan-300 break-all">$1</a>');
 
-            return escaped;
+            return sanitizeMessageHtml(linkMentions(escaped), rawText);
         }
+
+        // Highlight @tags of channel members as buttons that open the member card.
+        // Text inside links and code is left alone; unconfirmed tags stay plain text.
+        function linkMentions(html) {
+            if (!CONFIRMED_MENTION_TAGS.size) return html;
+            let skipDepth = 0;
+            return html.split(/(<[^>]+>)/g).map(part => {
+                if (part.startsWith('<')) {
+                    if (/^<(a|code|pre)\b/i.test(part)) skipDepth++;
+                    else if (/^<\/(a|code|pre)>/i.test(part)) skipDepth = Math.max(0, skipDepth - 1);
+                    return part;
+                }
+                if (skipDepth) return part;
+                return part.replace(/(^|[^A-Za-z0-9_@.])@([A-Za-z][A-Za-z0-9_]{2,29})(?![A-Za-z0-9_])/g, (match, before, tag) => {
+                    const lowerTag = tag.toLowerCase();
+                    if (!CONFIRMED_MENTION_TAGS.has(lowerTag)) return match;
+                    return `${before}<button type="button" data-mention-tag="${lowerTag}" class="vesper-mention px-1 rounded bg-emerald-500/15 text-emerald-300 font-semibold hover:bg-emerald-500/25 cursor-pointer">@${tag}</button>`;
+                });
+            }).join('');
+        }
+
+        // Defense in depth: formatted messages pass through DOMPurify before reaching the DOM.
+        // If DOMPurify has not loaded, show the message as plain escaped text instead.
+        const MESSAGE_HTML_POLICY = {
+            ALLOWED_TAGS: ['a', 'br', 'button', 'code', 'del', 'div', 'em', 'path', 'pre', 'span', 'strong', 'svg'],
+            ALLOWED_ATTR: ['class', 'd', 'data-copy-code', 'data-mention-tag', 'fill', 'href', 'id', 'rel', 'stroke', 'stroke-linecap', 'stroke-linejoin', 'stroke-width', 'target', 'type', 'viewBox'],
+            ALLOW_DATA_ATTR: false,
+        };
+        function sanitizeMessageHtml(html, rawText) {
+            if (!window.DOMPurify) return escapeHtml(rawText);
+            return window.DOMPurify.sanitize(html, MESSAGE_HTML_POLICY);
+        }
+
+        document.addEventListener('click', (event) => {
+            const copyButton = event.target.closest('[data-copy-code]');
+            if (copyButton) {
+                copyCodeBlock(copyButton.dataset.copyCode, copyButton);
+                return;
+            }
+            const mention = event.target.closest('[data-mention-tag]');
+            if (mention) {
+                openMemberCard({ tag: mention.dataset.mentionTag, name: '@' + mention.dataset.mentionTag });
+            }
+        });
 
         function copyCodeBlock(id, btn) {
             const codeEl = document.getElementById(id);
@@ -3207,6 +3258,7 @@
 
                 if (res.ok) {
                     const data = await res.json();
+                    rememberMentionTags(data.mention_tags);
                     if (data.message) {
                         const tempEl = document.getElementById(`msg-${tempId}`);
                         if (tempEl) tempEl.remove();
@@ -3268,7 +3320,7 @@
             if (!str) return '';
             const div = document.createElement('div');
             div.textContent = str;
-            return div.innerHTML;
+            return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
         // File Selection & Drag-and-drop
@@ -3972,12 +4024,13 @@
             // Live fetch to guarantee fresh profile image & details from database
             if (member.name) {
                 try {
-                    const res = await fetch(`/c/${encodeURIComponent(ROOM_CODE)}/member-profile?name=${encodeURIComponent(member.name)}`, {
+                    const res = await fetch(`/c/${encodeURIComponent(ROOM_CODE)}/member-profile?${member.tag ? 'tag=' + encodeURIComponent(member.tag) : 'name=' + encodeURIComponent(member.name)}`, {
                         headers: { 'Accept': 'application/json' }
                     });
                     if (res.ok) {
                         const live = await res.json();
                         if (live.found) {
+                            document.getElementById('card-name').textContent = live.tag ? `${live.name} · @${live.tag}` : live.name;
                             if (live.avatar_url) {
                                 member.avatar_url = live.avatar_url;
                                 setCardAvatar(live.avatar_url);
@@ -4020,7 +4073,7 @@
                             const locEl = document.getElementById('card-location');
                             if (live.location) {
                                 let extra = (isPrivileged && live.privacy?.location_hidden) ? ' <span class="text-[9px] text-amber-300 font-mono">(Private)</span>' : '';
-                                locEl.innerHTML = `${live.location}${extra}`;
+                                locEl.innerHTML = `${escapeHtml(live.location)}${extra}`;
                             } else if (live.privacy?.location_hidden) {
                                 locEl.innerHTML = '<span class="text-slate-500 italic text-[11px]">[Classified]</span>';
                             } else {
@@ -4436,7 +4489,13 @@
             }
         });
 
-        fetchMessages();
+        // The Vite bundle (DOMPurify) runs before DOMContentLoaded, so wait for it before
+        // rendering the first batch instead of falling back to plain text.
+        if (window.DOMPurify) {
+            fetchMessages();
+        } else {
+            document.addEventListener('DOMContentLoaded', fetchMessages, { once: true });
+        }
         startPolling(ACTIVE_POLL_INTERVAL);
         initTtlCountdownLoop();
         loadThemeSettings();

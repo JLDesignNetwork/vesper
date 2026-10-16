@@ -9,6 +9,8 @@ This project adheres to the **JLDN Generational Versioning Schema (GVS)** (`[YYM
 ## [Unreleased]
 
 ### Added
+- **User Tags (Phase 3)**: every member has a unique, editable `@tag`. Members can be found by tag or name from the profile (`/members/search`).
+- **Mentions**: `@tag` mentions of channel members are highlighted and open the member card; tags of non-members stay plain text.
 - **Channel Types (Phase 2)**: `rooms.type` with `prs`, `prf`, `pus`, `puf`, `pra`, `pra-2` (`App\Enums\ChannelType`). Existing rooms become private secured (`prs`). The `pra` (Admin I/II, passkey only) and `pra-2` (all admins) system channels are seeded and cannot be archived, deleted or purged.
 - **Member-Created Channels**: members create channels from their profile and edit them in a creator-only settings modal (`ChannelController`). Admin I can also create admin channels.
 - **Public Channel Directory** at `/directory`, browsable signed out with limited details and searchable.
@@ -27,6 +29,9 @@ This project adheres to the **JLDN Generational Versioning Schema (GVS)** (`[YYM
 - The in-channel network map (`/c/{room}/radar`) is restricted to Admin I.
 
 ### Security
+- Fixed stored XSS in chat messages: a crafted link could add an event handler to the rendered `<a>`. Messages are now sanitized with DOMPurify and quotes are escaped.
+- Fixed stored XSS in the member card through the profile location field.
+- Changing the primary email now clears its verification and sends a new link.
 - Channel PINs are stored only as hashes. The plaintext `pin` column is dropped (existing PINs are hashed during migration and keep working); PINs are no longer shown in the admin console or included in invitation emails.
 - Fixed an account takeover in the OAuth callback: a forged Apple `id_token` in the callback URL could sign in as any user. The callback now requires a configured provider and the single-use OAuth state, and Apple identities come only from Apple's token endpoint with `aud`/`iss` checked.
 
