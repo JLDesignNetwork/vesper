@@ -13,7 +13,7 @@ cleanup: manual
 > **Project:** Vesper (Laravel 13 / PHP 8.4 / Blade + vanilla JS)
 > **Generation Epoch:** `2610`
 > **Author:** Jeff Langdon (JL Design Network)
-> **Status:** Active — Channels Refactor Channels Refactor Phases 1–8 complete; release `2610.0.0-bs` prepared (tag and GitHub Release pending owner approval)
+> **Status:** Active — Channels Refactor Phases 1–8 complete; release `2610.0.0-bs` prepared (tag and GitHub Release pending owner approval)
 
 ---
 
