@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Rank;
 use App\Models\Room;
 use App\Models\User;
 use App\Services\LanguageService;
@@ -12,11 +13,11 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
 test('zero discovery guard redirects authenticated non-members away from unjoined channels', function () {
-    $member = User::create([
+    $member = User::forceCreate([
         'name' => 'OperativeSam',
         'email' => 'sam@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     $room = Room::create([
@@ -40,11 +41,11 @@ test('arabic locale triggers native rtl direction attribute', function () {
     expect(LanguageService::getDirection('en'))->toBe('ltr');
     expect(LanguageService::getDirection('uz'))->toBe('ltr');
 
-    $member = User::create([
+    $member = User::forceCreate([
         'name' => 'ArabicUser',
         'email' => 'ar@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
         'preferred_locale' => 'ar',
     ]);
 
@@ -116,11 +117,11 @@ test('batch translation endpoint translates multiple message items in a single r
         '*api.mymemory.translated.net*' => Http::response(['responseData' => ['translatedText' => 'Salom Dunyo']], 200),
     ]);
 
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'BatchAdmin',
         'email' => 'batch@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
     $room = Room::create([
@@ -150,11 +151,11 @@ test('batch translation endpoint translates multiple message items in a single r
 });
 
 test('channel redemption endpoint enforces rate limiting after rapid requests', function () {
-    $member = User::create([
+    $member = User::forceCreate([
         'name' => 'RateLimitUser',
         'email' => 'rate@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     // Send 5 requests (allowed)

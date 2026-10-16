@@ -10,7 +10,8 @@ use Symfony\Component\HttpFoundation\Response;
 class EnsureAdmin
 {
     /**
-     * Handle an incoming request.
+     * Allow only users who pass the accessAdminPanel gate (Admin I until Phase 7 adds
+     * the geolocation-free Admin II view). Everyone else is sent to their profile.
      *
      * @param  Closure(Request): (Response)  $next
      */
@@ -20,7 +21,7 @@ class EnsureAdmin
             return redirect()->route('login');
         }
 
-        if (! Auth::user()->isAdmin()) {
+        if (Auth::user()->cannot('accessAdminPanel')) {
             return redirect()->route('profile.show');
         }
 

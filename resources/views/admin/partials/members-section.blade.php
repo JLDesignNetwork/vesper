@@ -47,10 +47,10 @@
                                 <div class="min-w-0">
                                     <div class="font-semibold text-white flex items-center gap-2">
                                         <span class="truncate">{{ $regUser->name }}</span>
-                                        @if($regUser->isAdmin())
-                                            <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shrink-0">{{ __('ADMIN') }}</span>
+                                        @if($regUser->rank->isAdminRank())
+                                            <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shrink-0 uppercase">{{ __($regUser->rank->label()) }}</span>
                                         @else
-                                            <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-800 border border-slate-700 text-slate-400 shrink-0">{{ __('MEMBER') }}</span>
+                                            <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-800 border border-slate-700 text-slate-400 shrink-0 uppercase">{{ __($regUser->rank->label()) }}</span>
                                         @endif
                                     </div>
                                     <div class="flex items-center gap-1.5 text-[11px] font-mono text-slate-400 mt-0.5">
@@ -212,6 +212,24 @@
                                         {{ __('Edit') }}
                                     </button>
                                 @else
+                                    @can('manageAdminTwo', $regUser)
+                                        @if($regUser->hasRank(\App\Enums\Rank::AdminTwo))
+                                            <form method="POST" action="{{ route('admin.users.admin-two.revoke', ['id' => $regUser->id]) }}" class="inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition-colors text-[11px] cursor-pointer">
+                                                    {{ __('Revoke Admin II') }}
+                                                </button>
+                                            </form>
+                                        @else
+                                            <form method="POST" action="{{ route('admin.users.admin-two.appoint', ['id' => $regUser->id]) }}" class="inline">
+                                                @csrf
+                                                <button type="submit" class="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition-colors text-[11px] cursor-pointer">
+                                                    {{ __('Appoint Admin II') }}
+                                                </button>
+                                            </form>
+                                        @endif
+                                    @endcan
                                     <form method="POST" action="{{ route('admin.users.destroy', ['id' => $regUser->id]) }}" class="inline" onsubmit="return confirm('{{ __('Permanently delete this member account?') }}')">
                                         @csrf
                                         @method('DELETE')

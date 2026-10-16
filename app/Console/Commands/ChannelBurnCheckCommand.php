@@ -2,9 +2,11 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\Rank;
 use App\Mail\ChannelBurnWarningNotification;
 use App\Models\Room;
 use App\Models\User;
+use App\Services\RankService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -44,6 +46,7 @@ class ChannelBurnCheckCommand extends Command
             try {
                 $room->purgeAllMedia();
                 $room->update(['status' => 'destroyed']);
+                app(RankService::class)->recomputeCreatorOf($room);
                 $incineratedCount++;
                 Log::info("Vesper Protocol: Channel [{$room->code}] expired and media was incinerated.");
             } catch (\Throwable $e) {
@@ -77,7 +80,7 @@ class ChannelBurnCheckCommand extends Command
                 ->get();
 
             if ($room->notify_admin) {
-                $admins = User::where('role', 'admin')
+                $admins = User::where('rank', Rank::AdminOne)
                     ->whereNotNull('email')
                     ->where('email', '!=', '')
                     ->get();

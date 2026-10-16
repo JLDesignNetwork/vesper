@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Rank;
 use App\Mail\MemberWelcomeNotification;
 use App\Models\User;
 use App\Services\LanguageService;
@@ -68,7 +69,6 @@ class AuthController extends Controller
             'name' => trim($validated['name']),
             'email' => strtolower(trim($validated['email'])),
             'password' => Hash::make($validated['password']),
-            'role' => 'member',
             'preferred_locale' => $preferredLocale,
             'location' => ! empty($validated['location']) ? trim($validated['location']) : null,
             'bio' => ! empty($validated['bio']) ? trim($validated['bio']) : null,
@@ -80,6 +80,8 @@ class AuthController extends Controller
         } catch (\Throwable $e) {
             Log::warning("Failed to dispatch welcome notification to new member: {$e->getMessage()}");
         }
+
+        $user->sendEmailVerificationNotification();
 
         Auth::login($user, true);
         $request->session()->regenerate();
@@ -110,9 +112,10 @@ class AuthController extends Controller
                 'name' => trim($validated['name']),
                 'email' => strtolower(trim($validated['email'])),
                 'password' => Hash::make($validated['password']),
-                'role' => 'admin',
                 'preferred_locale' => $locale,
             ]);
+            $user->forceFill(['rank' => Rank::AdminOne])->save();
+            $user->sendEmailVerificationNotification();
 
             try {
                 Mail::to($user->email)->send(new MemberWelcomeNotification($user));

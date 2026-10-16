@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AuditAction;
 use App\Models\AccessLog;
+use App\Models\AdminAuditLog;
 use App\Models\Message;
 use App\Models\Room;
 use App\Models\User;
 use App\Services\GeoLocationService;
 use App\Services\LanguageService;
+use App\Services\RankService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -176,7 +179,6 @@ class RoomController extends Controller
                 'name' => trim($validated['name']),
                 'email' => strtolower(trim($validated['email'])),
                 'password' => Hash::make($validated['password']),
-                'role' => 'member',
                 'birthday' => ! empty($validated['birthday']) ? $validated['birthday'] : null,
                 'gender' => ! empty($validated['gender']) ? trim($validated['gender']) : null,
                 'location' => ! empty($validated['location']) ? trim($validated['location']) : null,
@@ -185,13 +187,14 @@ class RoomController extends Controller
                 'email_notifications' => $request->boolean('email_notifications'),
             ]);
 
+            $member->sendEmailVerificationNotification();
+
             Auth::login($member, true);
             $request->session()->regenerate();
             $effectiveLocale = $member->preferred_locale;
             $request->session()->put('locale', $effectiveLocale);
             app()->setLocale($effectiveLocale);
             $alias = $member->name;
-            $isAdmin = false;
         } elseif ($mode === 'login') {
             $validated = $request->validate([
                 'login' => ['required', 'string'],
@@ -213,21 +216,17 @@ class RoomController extends Controller
             $request->session()->put('locale', $effectiveLocale);
             app()->setLocale($effectiveLocale);
             $alias = $user->name;
-            $isAdmin = $user->isAdmin();
         } elseif (Auth::check()) {
             $user = Auth::user();
             $alias = $user->name;
-            $isAdmin = $user->isAdmin();
         } else {
             $alias = trim((string) $request->input('alias', '')) ?: 'Guest_'.strtoupper(Str::random(4));
-            $isAdmin = false;
         }
 
         $sessionId = $request->session()->getId();
 
         $request->session()->put("room_clearance_{$room->id}", true);
         $request->session()->put("room_alias_{$room->id}", $alias);
-        $request->session()->put("room_is_admin_{$room->id}", $isAdmin);
         $request->session()->put("room_is_duress_{$room->id}", $isDuress);
 
         $geo = $this->geoLocationService->locate($clientIp);
@@ -290,43 +289,40 @@ class RoomController extends Controller
 
         $hasClearance = $request->session()->get("room_clearance_{$room->id}", false);
 
-        $isAdmin = false;
-
         if (Auth::check()) {
             $currentUser = Auth::user();
-            if ($currentUser->isAdmin()) {
+            $isMember = $room->isMember($currentUser);
+
+            if ($currentUser->can('overrideAccess', $room)) {
                 $request->session()->put("room_clearance_{$room->id}", true);
                 $request->session()->put("room_alias_{$room->id}", $currentUser->name);
-                $request->session()->put("room_is_admin_{$room->id}", true);
                 $hasClearance = true;
-                $isAdmin = true;
-            } elseif ($room->isMember($currentUser)) {
+
+                if (! $isMember) {
+                    AdminAuditLog::record(AuditAction::ChannelAccessOverride, actor: $currentUser, room: $room);
+                }
+            } elseif ($isMember) {
                 if ($currentUser->canUsePinlessEntry()) {
                     $request->session()->put("room_clearance_{$room->id}", true);
                     $request->session()->put("room_alias_{$room->id}", $currentUser->name);
-                    $request->session()->put("room_is_admin_{$room->id}", false);
                     $hasClearance = true;
                     $room->touchMemberAccess($currentUser);
                 } elseif ($hasClearance) {
                     $request->session()->put("room_alias_{$room->id}", $currentUser->name);
-                    $request->session()->put("room_is_admin_{$room->id}", false);
                 }
             } elseif ($hasClearance) {
                 $request->session()->put("room_alias_{$room->id}", $currentUser->name);
-                $request->session()->put("room_is_admin_{$room->id}", false);
             } else {
                 return redirect()->route('profile.show')
                     ->withErrors(['code' => __('Channel not found.')]);
             }
-        } else {
-            $isAdmin = (bool) $request->session()->get("room_is_admin_{$room->id}", false);
         }
 
         if (! $hasClearance) {
             return view('channel_entry', [
                 'targetRoomCode' => $room->code,
                 'roomTitle' => $room->title,
-                'authMember' => (Auth::check() && Auth::user()->isMember()) ? Auth::user() : null,
+                'authMember' => Auth::user(),
             ]);
         }
 
@@ -369,7 +365,10 @@ class RoomController extends Controller
         return view('room', [
             'room' => $room,
             'alias' => $alias,
-            'isAdmin' => $isAdmin,
+            'isAdmin' => (bool) $user?->displaysAsAdmin(),
+            'canPinMessages' => (bool) $user?->can('pinMessages', $room),
+            'canViewRadar' => (bool) $user?->can('viewGeolocation'),
+            'canDestroyChannel' => (bool) $user?->can('destroy', $room),
             'sessionId' => $sessionId,
             'clientIp' => $clientIp,
             'userPreferredLocale' => $userPreferredLocale,
@@ -392,6 +391,11 @@ class RoomController extends Controller
         if (! $hasClearance) {
             abort(403, 'Unauthorized. Clearance credentials required to execute self-destruct.');
         }
+
+        if (! $request->user()?->can('destroy', $room)) {
+            abort(403, 'Unauthorized. Only the channel creator or Admin I can purge this channel.');
+        }
+
         $room->purgeAllMedia();
         $room->messages()->delete();
         $room->accessLogs()->delete();
@@ -399,14 +403,10 @@ class RoomController extends Controller
 
         $request->session()->forget("room_clearance_{$room->id}");
         $request->session()->forget("room_alias_{$room->id}");
-        $request->session()->forget("room_is_admin_{$room->id}");
 
-        if (Auth::check()) {
-            return redirect()->route('admin.dashboard')
-                ->with('status', 'Channel and all associated media have been permanently purged.');
-        }
+        app(RankService::class)->recomputeCreatorOf($room);
 
-        return redirect()->route('portal')
+        return redirect()->to($request->user()->homeRoute())
             ->with('status', 'Channel and all associated media have been permanently purged.');
     }
 
@@ -465,8 +465,8 @@ class RoomController extends Controller
             'location' => $user->locationForViewer($viewer),
             'bio' => $user->bioForViewer($viewer),
             'is_self' => ($viewer && $viewer->id === $user->id),
-            'is_admin' => ($viewer && $viewer->isAdmin()),
-            'preferred_locale' => ($viewer && ($viewer->isAdmin() || $viewer->id === $user->id)) ? $user->preferred_locale : null,
+            'is_admin' => (bool) $viewer?->can('viewHiddenFields', $user),
+            'preferred_locale' => $user->hiddenFieldsVisibleTo($viewer) ? $user->preferred_locale : null,
             'effective_locale' => $user->effectiveLocale(),
             'location_locale' => $user->resolveLocationLocale(),
             'privacy' => [
@@ -494,10 +494,7 @@ class RoomController extends Controller
             return response()->json(['error' => 'Clearance required'], 403);
         }
 
-        $user = Auth::user();
-        $isAdmin = (bool) $request->session()->get("room_is_admin_{$room->id}", false) || ($user && $user->isAdmin());
-
-        if (! $isAdmin && (! $user || $room->created_by_user_id !== $user->id)) {
+        if (! $request->user()?->can('pinMessages', $room)) {
             return response()->json(['error' => 'Unauthorized. Only channel owners or admins can pin messages.'], 403);
         }
 

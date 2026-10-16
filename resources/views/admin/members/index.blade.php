@@ -25,12 +25,12 @@
             <div class="px-3.5 py-2 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center gap-2">
                 <span class="text-emerald-400">🛡️</span>
                 <span class="text-slate-400">{{ __('Admins:') }}</span>
-                <strong class="text-white">{{ $adminCount ?? $registeredUsers->where('role', 'admin')->count() }}</strong>
+                <strong class="text-white">{{ $adminCount }}</strong>
             </div>
             <div class="px-3.5 py-2 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center gap-2">
                 <span class="text-cyan-400">👤</span>
                 <span class="text-slate-400">{{ __('Members:') }}</span>
-                <strong class="text-white">{{ $memberCount ?? $registeredUsers->where('role', 'member')->count() }}</strong>
+                <strong class="text-white">{{ $memberCount }}</strong>
             </div>
             <div class="px-3.5 py-2 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center gap-2">
                 <span class="text-purple-400">📍</span>

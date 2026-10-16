@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Rank;
 use App\Models\AccessLog;
 use App\Models\Room;
 use App\Models\User;
@@ -51,7 +52,7 @@ test('radar endpoint returns active operative tracking details', function () {
         'last_seen_at' => now(),
     ]);
 
-    $response = $this->withSession([
+    $response = $this->actingAs(User::factory()->adminOne()->create())->withSession([
         "room_clearance_{$room->id}" => true,
     ])->getJson(route('intel.radar', ['room' => 'RADAR-01']));
 
@@ -62,6 +63,36 @@ test('radar endpoint returns active operative tracking details', function () {
     $response->assertJsonPath('operatives.0.ip_address', '203.0.113.19');
     $response->assertJsonPath('operatives.0.flag', '🇨🇭');
 });
+
+test('the radar endpoint refuses everyone except admin one', function (?Rank $rank) {
+    $room = Room::create([
+        'code' => 'RADAR-02',
+        'passcode_hash' => Hash::make('secret'),
+        'status' => 'active',
+    ]);
+    AccessLog::create([
+        'room_id' => $room->id,
+        'session_id' => 'agent_sess_2',
+        'alias' => 'Valkyrie',
+        'ip_address' => '203.0.113.19',
+        'latitude' => 47.3769,
+        'longitude' => 8.5417,
+        'last_seen_at' => now(),
+    ]);
+
+    $request = $rank ? $this->actingAs(User::factory()->rank($rank)->create()) : $this;
+    $response = $request->withSession(["room_clearance_{$room->id}" => true])
+        ->getJson(route('intel.radar', ['room' => 'RADAR-02']));
+
+    $response->assertForbidden()
+        ->assertJsonMissingPath('operatives')
+        ->assertDontSee('203.0.113.19');
+})->with([
+    'Admin II' => [Rank::AdminTwo],
+    'Admin III' => [Rank::AdminThree],
+    'User II' => [Rank::UserTwo],
+    'guest with clearance' => [null],
+]);
 
 test('a user can sync their high precision browser GPS coordinates', function () {
     $room = Room::create([
@@ -84,11 +115,11 @@ test('a user can sync their high precision browser GPS coordinates', function ()
 });
 
 test('gps sync persists coordinates to authenticated user model and access logs', function () {
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'AgentGPS',
         'email' => 'agentgps@vesper.test',
         'password' => Hash::make('password'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     $room = Room::create([
@@ -125,11 +156,11 @@ test('gps sync persists coordinates to authenticated user model and access logs'
 });
 
 test('admin can synchronize gps via admin.gps endpoint', function () {
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'AdminCommander',
         'email' => 'admin_gps@vesper.test',
         'password' => Hash::make('password'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
     $response = $this->actingAs($admin)
@@ -154,11 +185,11 @@ test('admin can synchronize gps via admin.gps endpoint', function () {
 });
 
 test('user with saved gps retains coordinates on subsequent room visits instead of ip fallback', function () {
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'PersistentGPS',
         'email' => 'persistent@vesper.test',
         'password' => Hash::make('password'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
         'latitude' => 48.8566,
         'longitude' => 2.3522,
         'city' => 'Paris',
@@ -190,11 +221,11 @@ test('user with saved gps retains coordinates on subsequent room visits instead 
 });
 
 test('user can synchronize gps via profile.gps endpoint', function () {
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'ProfileGPSUser',
         'email' => 'profilegps@vesper.test',
         'password' => Hash::make('password'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     $response = $this->actingAs($user)

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Rank;
 use App\Mail\EmergencyAccountRecovery;
 use App\Mail\RecoveryEmailVerification;
 use App\Models\SocialAccount;
@@ -191,10 +192,10 @@ test('user with 2FA enabled is intercepted during login and redirected to challe
     $twoFactorService = app(TwoFactorService::class);
     $secret = $twoFactorService->generateSecretKey();
 
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'GuardedAgent',
         'email' => 'guarded@vesper.test',
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
         'password' => Hash::make('agent-password'),
         'two_factor_secret' => Crypt::encryptString($secret),
         'two_factor_confirmed_at' => now(),
@@ -223,10 +224,10 @@ test('user can complete 2FA challenge using TOTP code', function () {
     $twoFactorService = app(TwoFactorService::class);
     $secret = $twoFactorService->generateSecretKey();
 
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'TotpSolver',
         'email' => 'solver@vesper.test',
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
         'password' => Hash::make('password123'),
         'two_factor_secret' => Crypt::encryptString($secret),
         'two_factor_confirmed_at' => now(),
@@ -252,10 +253,10 @@ test('user can complete 2FA challenge using single-use emergency recovery code',
     $secret = $twoFactorService->generateSecretKey();
 
     $rawCode = 'EMERG-1234-5678';
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'EmergencyBypassAgent',
         'email' => 'bypass@vesper.test',
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
         'password' => Hash::make('password123'),
         'two_factor_secret' => Crypt::encryptString($secret),
         'two_factor_confirmed_at' => now(),
@@ -391,13 +392,13 @@ test('emergency password reset updates user password and clears token', function
     Mail::fake();
 
     $token = Str::random(64);
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'PasswordResetAgent',
         'email' => 'reset-me@vesper.test',
         'password' => Hash::make('outdated-secret'),
         'recovery_token' => hash('sha256', $token),
         'recovery_token_expires_at' => now()->addMinutes(30),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
     // View reset form
@@ -462,10 +463,10 @@ test('google oauth callback links account and logs in existing user', function (
         'services.google.redirect' => 'https://vesper.test/auth/google/callback',
     ]);
 
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'OAuthExistingUser',
         'email' => 'oauth@gmail.com',
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
         'password' => Hash::make('password123'),
     ]);
 

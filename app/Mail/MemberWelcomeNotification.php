@@ -27,6 +27,7 @@ class MemberWelcomeNotification extends Mailable implements ShouldQueue
             'member_name' => $this->user->name,
             'operative_name' => $this->user->name,
             'email' => $this->user->email,
+            'role' => __($this->user->rank->publicLabel()),
             'callsign' => $this->user->name,
             'channels_url' => route('channels.index'),
             'login_url' => route('login'),

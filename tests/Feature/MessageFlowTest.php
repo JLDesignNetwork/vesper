@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Rank;
 use App\Mail\NewMessageNotification;
 use App\Models\Message;
 use App\Models\Room;
@@ -145,18 +146,18 @@ test('live polling returns new messages since after_id', function () {
 });
 
 test('message transmission succeeds and dispatches notifications without throwing errors', function () {
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'NotifyAdmin',
         'email' => 'admin_notify@example.com',
         'password' => Hash::make('secret'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
-    $member = User::create([
+    $member = User::forceCreate([
         'name' => 'NotifyMember',
         'email' => 'member_notify@example.com',
         'password' => Hash::make('secret'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
         'email_notifications' => true,
     ]);
 
@@ -177,11 +178,11 @@ test('message transmission succeeds and dispatches notifications without throwin
         'content' => 'Initial message',
     ]);
 
-    $sender = User::create([
+    $sender = User::forceCreate([
         'name' => 'SenderUser',
         'email' => 'sender@example.com',
         'password' => Hash::make('secret'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     Mail::fake();

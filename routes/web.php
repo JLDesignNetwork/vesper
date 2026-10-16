@@ -6,6 +6,7 @@ use App\Http\Controllers\AdminEmailController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ChannelHubController;
 use App\Http\Controllers\ChannelInviteController;
+use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\IntelController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\ProfileController;
@@ -60,7 +61,13 @@ Route::middleware('auth')->group(function () {
 
     // Recovery Email Setting
     Route::post('/recovery/email', [AccountRecoveryController::class, 'updateEmail'])->name('recovery.email.update');
+
+    // Primary Email Verification (resend)
+    Route::post('/email/verification-notification', [EmailVerificationController::class, 'send'])->name('verification.send')->middleware('throttle:3,10');
 });
+
+// Primary Email Verification (signed link, works without an active session)
+Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])->name('verification.verify')->middleware('throttle:10,1');
 
 // Two-Factor Challenge Gate
 Route::get('/two-factor/challenge', [TwoFactorController::class, 'showChallenge'])->name('2fa.challenge');
@@ -122,6 +129,8 @@ Route::middleware(['auth', EnsureAdmin::class])->prefix('admin')->group(function
     Route::post('/channels/{id}/invite', [AdminController::class, 'createInvite'])->name('admin.channels.invite');
     Route::delete('/channels/{id}', [AdminController::class, 'destroyChannel'])->name('admin.channels.destroy');
     Route::delete('/users/{id}', [AdminController::class, 'destroyUser'])->name('admin.users.destroy');
+    Route::post('/users/{id}/admin-two', [AdminController::class, 'appointAdminTwo'])->name('admin.users.admin-two.appoint');
+    Route::delete('/users/{id}/admin-two', [AdminController::class, 'revokeAdminTwo'])->name('admin.users.admin-two.revoke');
 });
 
 // Channel Invitation Links (Acceptance flow)

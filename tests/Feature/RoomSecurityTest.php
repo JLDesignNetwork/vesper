@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Rank;
 use App\Models\Message;
 use App\Models\Room;
 use App\Models\User;
@@ -14,11 +15,11 @@ test('portal page loads with discreet authentication portal', function () {
 });
 
 test('admin can create a private room from the dashboard', function () {
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'Commander',
         'email' => 'commander@vesper.test',
         'password' => Hash::make('pass'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
     $response = $this->actingAs($admin)->post(route('admin.channels.store'), [
@@ -85,10 +86,13 @@ test('verifying with an incorrect passcode is rejected', function () {
 test('emergency nuke action purges the room, all messages, and storage directory', function () {
     Storage::fake('public');
 
+    $creator = User::factory()->create();
+
     $room = Room::create([
         'code' => 'NUKE-TARGET',
         'passcode_hash' => Hash::make('password'),
         'status' => 'active',
+        'created_by_user_id' => $creator->id,
     ]);
 
     // Create a dummy message with attachment
@@ -102,22 +106,23 @@ test('emergency nuke action purges the room, all messages, and storage directory
         'attachment_path' => "attachments/{$room->id}/classified.jpg",
     ]);
 
-    // Execute nuke with active session clearance
-    $response = $this->withSession(["room_clearance_{$room->id}" => true])
+    // Execute nuke as the channel creator with active session clearance
+    $response = $this->actingAs($creator)
+        ->withSession(["room_clearance_{$room->id}" => true])
         ->post(route('rooms.nuke', ['room' => 'NUKE-TARGET']));
 
-    $response->assertRedirect(route('portal'));
+    $response->assertRedirect(route('profile.show'));
     expect(Room::where('code', 'NUKE-TARGET')->first())->toBeNull();
     expect(Message::where('room_id', $room->id)->count())->toBe(0);
     Storage::disk('public')->assertMissing("attachments/{$room->id}/classified.jpg");
 });
 
 test('authenticated admin user can directly access room and view interface without error', function () {
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'Commander',
         'email' => 'commander@vesper.test',
         'password' => Hash::make('password'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
     $room = Room::create([
@@ -133,18 +138,18 @@ test('authenticated admin user can directly access room and view interface witho
 });
 
 test('network map is only visible to admin role and completely hidden for regular members', function () {
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'GeneralAdmin',
         'email' => 'general@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
-    $member = User::create([
+    $member = User::forceCreate([
         'name' => 'GrantMember',
         'email' => 'grant@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     $room = Room::create([
@@ -166,4 +171,46 @@ test('network map is only visible to admin role and completely hidden for regula
     $memberResponse->assertStatus(200);
     $memberResponse->assertDontSee('NETWORK MAP');
     $memberResponse->assertDontSee('id="radar-drawer"', false);
+});
+
+function purgeableChannel(): Room
+{
+    $room = Room::create([
+        'code' => 'NUKE-GUARD',
+        'passcode_hash' => Hash::make('password'),
+        'status' => 'active',
+        'created_by_user_id' => User::factory()->create()->id,
+    ]);
+    Message::create(['room_id' => $room->id, 'sender_name' => 'Agent', 'sender_session_id' => 's', 'content' => 'Keep me']);
+
+    return $room;
+}
+
+test('a channel cannot be purged by anyone but its creator or admin one', function (Closure $makeActor) {
+    $room = purgeableChannel();
+    $actor = $makeActor();
+
+    $request = $actor ? $this->actingAs($actor) : $this;
+    $request->withSession(["room_clearance_{$room->id}" => true])
+        ->post(route('rooms.nuke', ['room' => 'NUKE-GUARD']))
+        ->assertForbidden();
+
+    expect(Room::find($room->id))->not->toBeNull();
+    expect(Message::where('room_id', $room->id)->count())->toBe(1);
+})->with([
+    'Admin II who did not create it' => [fn () => User::factory()->adminTwo()->create()],
+    'a member with clearance' => [fn () => User::factory()->create()],
+    'a guest with clearance' => [fn () => null],
+]);
+
+test('admin one can purge a channel they did not create', function () {
+    $room = purgeableChannel();
+
+    $this->actingAs(User::factory()->adminOne()->create())
+        ->withSession(["room_clearance_{$room->id}" => true])
+        ->post(route('rooms.nuke', ['room' => 'NUKE-GUARD']))
+        ->assertRedirect(route('admin.dashboard'));
+
+    expect(Room::find($room->id))->toBeNull();
+    expect(Message::where('room_id', $room->id)->count())->toBe(0);
 });

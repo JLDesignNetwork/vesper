@@ -8,6 +8,27 @@ This project adheres to the **JLDN Generational Versioning Schema (GVS)** (`[YYM
 
 ## [Unreleased]
 
+### Added
+- **Five-Rank Hierarchy**: replaced the `admin`/`member` role with ranks Admin I, Admin II, Admin III, User I and User II (`App\Enums\Rank`). Admin III, User I and User II are computed from qualifying channels (active, unexpired, a message in the last 10 days, 10+ verified members not counting the creator) by `RankService`, nightly via `vesper:recompute-ranks` and immediately on membership or channel status changes. Public views show only "Admin" (Admin I/II) or "Member".
+- **Admin II Appointment**: Admin I can appoint and revoke Admin II from the members panel. Appointment requires a verified email, a verified recovery email or 2FA, and an enrolled passkey, and lists whatever is missing. Admin II cannot remove their last passkey.
+- **Primary Email Verification**: signed 24-hour verification links on registration, resend from the profile banner, and provider-confirmed verification for Google and Apple sign-ins.
+- **Admin Audit Log**: records rank changes, Admin II appointments and revocations, and Admin I entering channels they are not a member of. Admin I reads all entries; Admin II reads moderation entries only.
+
+### Changed
+- All privilege checks moved to `UserPolicy`, `RoomPolicy` and the `accessAdminPanel` / `viewGeolocation` gates. Hidden profile fields are visible only to the member and Admin I. The admin console is Admin I only until the Admin II view lands.
+- Purging a channel is restricted to its creator and Admin I.
+- The in-channel network map (`/c/{room}/radar`) is restricted to Admin I.
+
+### Security
+- Fixed an account takeover in the OAuth callback: a forged Apple `id_token` in the callback URL could sign in as any user. The callback now requires a configured provider and the single-use OAuth state, and Apple identities come only from Apple's token endpoint with `aud`/`iss` checked.
+
+### Fixed
+- Recovery-email verification and welcome emails no longer print unfilled `{{recovery_email}}`, `{{expiry_time}}` and `{{role}}` placeholders.
+- New accounts now carry their default rank immediately after creation instead of only after a reload.
+
+### Migration
+- Run `php artisan migrate` then `php artisan vesper:recompute-ranks`. Existing admins become Admin I; everyone else starts as User II.
+
 ## [2609.11.0-bs] - 2026-09-30
 
 ### Added

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Rank;
 use App\Models\Room;
 use App\Models\User;
 use App\Services\GeoLocationService;
@@ -69,11 +70,11 @@ test('user model resolves location locale and prefers user setting when configur
 });
 
 test('application locale adapts to registered location on request', function () {
-    $frenchUser = User::create([
+    $frenchUser = User::forceCreate([
         'name' => 'Pierre',
         'email' => 'pierre@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
         'country_code' => 'FR',
         'country' => 'France',
         'location' => 'Paris, France',
@@ -88,11 +89,11 @@ test('application locale adapts to registered location on request', function () 
 });
 
 test('user preferred language setting strictly overrides registered location on request', function () {
-    $russianUserInRome = User::create([
+    $russianUserInRome = User::forceCreate([
         'name' => 'Dmitry',
         'email' => 'dmitry@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
         'country_code' => 'IT',
         'country' => 'Italy',
         'location' => 'Rome, Italy',
@@ -184,11 +185,11 @@ test('user registers account and immediately sets preferred language', function 
 });
 
 test('every room automatically serves pre-translated messages in the user preferred language with options to switch', function () {
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'Elena Petrova',
         'email' => 'elena@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
         'preferred_locale' => 'ru',
     ]);
 

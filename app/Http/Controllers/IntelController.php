@@ -35,6 +35,10 @@ class IntelController extends Controller
             return response()->json(['error' => 'Clearance required'], 403);
         }
 
+        if (! $request->user()?->can('viewGeolocation')) {
+            return response()->json(['error' => 'The network map is restricted to Admin I.'], 403);
+        }
+
         $activeThreshold = now()->subMinutes(10);
         $viewer = Auth::user();
 
@@ -52,7 +56,7 @@ class IntelController extends Controller
         $operatives = $logs->map(function (AccessLog $log) use ($viewer, $usersByAlias): array {
             $user = $log->user ?: ($log->alias ? ($usersByAlias[$log->alias] ?? null) : null);
             $isLocationHidden = (bool) ($user?->hide_location);
-            $canViewPrivate = ($viewer && $viewer->isAdmin()) || ($viewer && $user && $viewer->id === $user->id);
+            $canViewPrivate = (bool) $user?->hiddenFieldsVisibleTo($viewer);
 
             // If location is hidden, coordinates are NEVER published to in-channel maps
             if ($isLocationHidden) {
@@ -117,7 +121,7 @@ class IntelController extends Controller
         $recentEntries = $recentLogs->map(function (AccessLog $log) use ($viewer, $recentUsersByAlias): array {
             $user = $log->user ?: ($log->alias ? ($recentUsersByAlias[$log->alias] ?? null) : null);
             $isLocationHidden = (bool) ($user?->hide_location);
-            $canViewPrivate = ($viewer && $viewer->isAdmin()) || ($viewer && $user && $viewer->id === $user->id);
+            $canViewPrivate = (bool) $user?->hiddenFieldsVisibleTo($viewer);
 
             if ($isLocationHidden && ! $canViewPrivate) {
                 $city = null;

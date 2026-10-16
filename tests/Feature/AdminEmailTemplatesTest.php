@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Rank;
 use App\Mail\EmergencyAccountRecovery;
 use App\Models\EmailTemplate;
 use App\Models\User;
@@ -11,19 +12,19 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 
 beforeEach(function () {
-    $this->admin = User::create([
+    $this->admin = User::forceCreate([
         'name' => 'CommanderJeff',
         'email' => 'admin@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
         'preferred_locale' => 'en',
     ]);
 
-    $this->operative = User::create([
+    $this->operative = User::forceCreate([
         'name' => 'Agent007',
         'email' => 'agent@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'user',
+        'rank' => Rank::UserTwo,
         'preferred_locale' => 'en',
     ]);
 });

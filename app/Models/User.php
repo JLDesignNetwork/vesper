@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\Rank;
+use App\Mail\PrimaryEmailVerification;
 use App\Services\GeoLocationService;
 use App\Services\LanguageService;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,13 +16,26 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 
-#[Fillable(['name', 'email', 'password', 'role', 'birthday', 'gender', 'location', 'latitude', 'longitude', 'city', 'country', 'country_code', 'location_synced_at', 'hide_age', 'hide_birthday', 'hide_location', 'hide_bio', 'bio', 'email_notifications', 'avatar_path', 'preferred_locale', 'two_factor_secret', 'two_factor_confirmed_at', 'two_factor_recovery_codes', 'recovery_email', 'recovery_email_verified_at', 'recovery_token', 'recovery_token_expires_at'])]
+#[Fillable(['name', 'email', 'password', 'birthday', 'gender', 'location', 'latitude', 'longitude', 'city', 'country', 'country_code', 'location_synced_at', 'hide_age', 'hide_birthday', 'hide_location', 'hide_bio', 'bio', 'email_notifications', 'avatar_path', 'preferred_locale', 'two_factor_secret', 'two_factor_confirmed_at', 'two_factor_recovery_codes', 'recovery_email', 'recovery_email_verified_at', 'recovery_token', 'recovery_token_expires_at'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes', 'recovery_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    /**
+     * Default attribute values, mirrored from the database so a freshly created
+     * model has a rank before it is reloaded.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'rank' => 'user_two',
+    ];
 
     /**
      * The accessors to append to the model's array form.
@@ -45,6 +60,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'rank' => Rank::class,
+            'rank_computed_at' => 'datetime',
             'birthday' => 'date',
             'latitude' => 'float',
             'longitude' => 'float',
@@ -133,27 +150,55 @@ class User extends Authenticatable
     }
 
     /**
-     * Determine if this user is the platform administrator.
+     * Determine if this user holds the given rank.
      */
-    public function isAdmin(): bool
+    public function hasRank(Rank $rank): bool
     {
-        return $this->role === 'admin';
+        return $this->rank === $rank;
     }
 
     /**
-     * Determine if this user is a regular chat member.
+     * Determine if this user is publicly shown as an Admin (Admin I or Admin II).
      */
-    public function isMember(): bool
+    public function displaysAsAdmin(): bool
     {
-        return $this->role === 'member';
+        return $this->rank->displaysAsAdmin();
     }
 
     /**
-     * Determine the user's primary post-login destination based on role.
+     * Determine the user's primary post-login destination based on rank.
      */
     public function homeRoute(): string
     {
-        return $this->isAdmin() ? route('admin.dashboard') : route('profile.show');
+        return $this->can('accessAdminPanel') ? route('admin.dashboard') : route('profile.show');
+    }
+
+    /**
+     * Determine whether the user meets the contact precondition for biometric setup:
+     * a verified primary email plus either a verified recovery email or confirmed 2FA.
+     */
+    public function meetsBiometricPrecondition(): bool
+    {
+        return $this->hasVerifiedEmail()
+            && ($this->hasVerifiedRecoveryEmail() || $this->hasTwoFactor());
+    }
+
+    /**
+     * Send a signed link that confirms ownership of the primary email address.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $verificationUrl = URL::temporarySignedRoute(
+            'verification.verify',
+            now()->addHours(24),
+            ['id' => $this->getKey(), 'hash' => sha1($this->getEmailForVerification())]
+        );
+
+        try {
+            Mail::to($this->email)->send(new PrimaryEmailVerification($this, $verificationUrl));
+        } catch (\Throwable $e) {
+            Log::warning("Failed to dispatch primary email verification to user {$this->id}: {$e->getMessage()}");
+        }
     }
 
     /**
@@ -174,8 +219,17 @@ class User extends Authenticatable
     }
 
     /**
+     * Determine whether a viewer may see the fields this user has chosen to hide.
+     * Only the user themself and Admin I may (see UserPolicy::viewHiddenFields).
+     */
+    public function hiddenFieldsVisibleTo(?User $viewer): bool
+    {
+        return $viewer !== null && $viewer->can('viewHiddenFields', $this);
+    }
+
+    /**
      * Get the birthday formatted according to privacy visibility rules.
-     * If viewer is admin or self, returns full 'Y-m-d'.
+     * If viewer is Admin I or self, returns full 'Y-m-d'.
      * If birthday is hidden, returns null.
      * If age is hidden, returns only Month & Day ('F j', e.g. "June 20").
      * Otherwise, returns full 'Y-m-d'.
@@ -186,7 +240,7 @@ class User extends Authenticatable
             return null;
         }
 
-        $canViewPrivate = ($viewer && $viewer->isAdmin()) || ($viewer && $viewer->id === $this->id);
+        $canViewPrivate = $this->hiddenFieldsVisibleTo($viewer);
 
         if ($canViewPrivate) {
             return $this->birthday->format('Y-m-d');
@@ -208,7 +262,7 @@ class User extends Authenticatable
      */
     public function ageForViewer(?User $viewer): ?int
     {
-        $canViewPrivate = ($viewer && $viewer->isAdmin()) || ($viewer && $viewer->id === $this->id);
+        $canViewPrivate = $this->hiddenFieldsVisibleTo($viewer);
 
         if ($canViewPrivate || ! $this->hide_age) {
             return $this->age();
@@ -222,7 +276,7 @@ class User extends Authenticatable
      */
     public function locationForViewer(?User $viewer): ?string
     {
-        $canViewPrivate = ($viewer && $viewer->isAdmin()) || ($viewer && $viewer->id === $this->id);
+        $canViewPrivate = $this->hiddenFieldsVisibleTo($viewer);
 
         return ($canViewPrivate || ! $this->hide_location) ? $this->location : null;
     }
@@ -232,7 +286,7 @@ class User extends Authenticatable
      */
     public function bioForViewer(?User $viewer): ?string
     {
-        $canViewPrivate = ($viewer && $viewer->isAdmin()) || ($viewer && $viewer->id === $this->id);
+        $canViewPrivate = $this->hiddenFieldsVisibleTo($viewer);
 
         return ($canViewPrivate || ! $this->hide_bio) ? $this->bio : null;
     }

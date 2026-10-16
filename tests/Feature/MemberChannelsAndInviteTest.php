@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Rank;
 use App\Models\ChannelInvitation;
 use App\Models\Room;
 use App\Models\User;
@@ -7,11 +8,11 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 
 test('admin is routed to admin dashboard on login', function () {
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'AdminCommander',
         'email' => 'admin@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
     $response = $this->post(route('login.post'), [
@@ -25,18 +26,18 @@ test('admin is routed to admin dashboard on login', function () {
 
 test('member is routed to operative channels hub on login', function () {
     // Create admin first so member is not the first user
-    User::create([
+    User::forceCreate([
         'name' => 'SystemAdmin',
         'email' => 'admin@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
-    $member = User::create([
+    $member = User::forceCreate([
         'name' => 'AgentShadow',
         'email' => 'shadow@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     $response = $this->post(route('login.post'), [
@@ -49,11 +50,11 @@ test('member is routed to operative channels hub on login', function () {
 });
 
 test('member cannot access admin dashboard and is redirected to member profile hub', function () {
-    $member = User::create([
+    $member = User::forceCreate([
         'name' => 'MemberRaven',
         'email' => 'raven@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     $response = $this->actingAs($member)->get(route('admin.dashboard'));
@@ -62,11 +63,11 @@ test('member cannot access admin dashboard and is redirected to member profile h
 });
 
 test('member profile hub enforces strict zero discovery and displays only enrolled channels', function () {
-    $member = User::create([
+    $member = User::forceCreate([
         'name' => 'MemberEcho',
         'email' => 'echo@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     $enrolledRoom = Room::create([
@@ -96,11 +97,11 @@ test('member profile hub enforces strict zero discovery and displays only enroll
 });
 
 test('enrolled member with active 2fa enters channel pinlessly', function () {
-    $member = User::create([
+    $member = User::forceCreate([
         'name' => 'OperativePhoenix',
         'email' => 'phoenix@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
         'two_factor_secret' => Crypt::encryptString('JBSWY3DPEHPK3PXP'),
         'two_factor_confirmed_at' => now(),
     ]);
@@ -127,11 +128,11 @@ test('enrolled member with active 2fa enters channel pinlessly', function () {
 });
 
 test('enrolled member without 2fa requires pin entry', function () {
-    $member = User::create([
+    $member = User::forceCreate([
         'name' => 'OperativeNova',
         'email' => 'nova@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
         // No 2FA or biometrics
     ]);
 
@@ -157,18 +158,18 @@ test('enrolled member without 2fa requires pin entry', function () {
 });
 
 test('operative can redeem alphanumeric invitation code to join a channel', function () {
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'AdminGhost',
         'email' => 'ghost@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
-    $member = User::create([
+    $member = User::forceCreate([
         'name' => 'OperativeRecruit',
         'email' => 'recruit@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     $room = Room::create([
@@ -195,18 +196,18 @@ test('operative can redeem alphanumeric invitation code to join a channel', func
 });
 
 test('member can accept invite via invite link token', function () {
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'AdminLinker',
         'email' => 'linker@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
-    $member = User::create([
+    $member = User::forceCreate([
         'name' => 'OperativeTango',
         'email' => 'tango@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     $room = Room::create([

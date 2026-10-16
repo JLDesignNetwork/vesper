@@ -27,8 +27,10 @@ class RecoveryEmailVerification extends Mailable
             'member_name' => $this->user->name,
             'operative_name' => $this->user->name,
             'email' => $this->user->email,
+            'recovery_email' => (string) $this->user->recovery_email,
             'verification_url' => $this->verificationUrl,
             'expires_in' => '24 hours',
+            'expiry_time' => '24 hours',
         ], $locale);
     }
 

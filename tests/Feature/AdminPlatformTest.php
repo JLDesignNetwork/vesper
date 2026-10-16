@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Rank;
 use App\Models\Room;
 use App\Models\User;
 use App\Services\TranslationService;
@@ -34,11 +35,11 @@ test('first visitor can set up the primary admin account', function () {
 });
 
 test('admin can log in with either username or email', function () {
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'AgentAdmin',
         'email' => 'agent@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
     // Test login with username
@@ -63,11 +64,11 @@ test('admin can log in with either username or email', function () {
 });
 
 test('admin can create private channels from the dashboard', function () {
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'Chief',
         'email' => 'chief@vesper.test',
         'password' => Hash::make('pass'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
     $response = $this->actingAs($admin)->post(route('admin.channels.store'), [
@@ -88,11 +89,11 @@ test('admin can create private channels from the dashboard', function () {
 });
 
 test('admin can toggle and purge channels from the dashboard', function () {
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'Director',
         'email' => 'director@vesper.test',
         'password' => Hash::make('pass'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
     $room = Room::create([
@@ -144,11 +145,11 @@ test('supports French and Italian localizations and translations', function () {
 });
 
 test('admin can access all dedicated admin subpages', function () {
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'GeneralVesper',
         'email' => 'general@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
     $this->actingAs($admin);
@@ -180,11 +181,11 @@ test('admin can access all dedicated admin subpages', function () {
 });
 
 test('non-admin member is blocked from dedicated admin subpages', function () {
-    $member = User::create([
+    $member = User::forceCreate([
         'name' => 'FootSoldier',
         'email' => 'soldier@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     $this->actingAs($member);
@@ -196,11 +197,11 @@ test('non-admin member is blocked from dedicated admin subpages', function () {
 });
 
 test('admin subpages render consistent localized vocabulary in Italian and French without mixed terms', function () {
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'ItalianCommander',
         'email' => 'italian.cmd@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
         'preferred_locale' => 'it',
     ]);
 

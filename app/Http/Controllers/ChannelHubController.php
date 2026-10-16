@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ChannelInvitation;
 use App\Models\Room;
+use App\Services\RankService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -11,6 +12,13 @@ use Illuminate\View\View;
 
 class ChannelHubController extends Controller
 {
+    /**
+     * Create a new controller instance.
+     */
+    public function __construct(
+        protected RankService $rankService
+    ) {}
+
     /**
      * Display the Operative Channels Hub for the authenticated member.
      * Strictly displays ONLY the channels this user belongs to (zero discovery).
@@ -67,7 +75,6 @@ class ChannelHubController extends Controller
         if ($user->canUsePinlessEntry()) {
             $request->session()->put("room_clearance_{$room->id}", true);
             $request->session()->put("room_alias_{$room->id}", $user->name);
-            $request->session()->put("room_is_admin_{$room->id}", $user->isAdmin());
 
             // Update last accessed timestamp
             DB::table('room_user')
@@ -115,6 +122,11 @@ class ChannelHubController extends Controller
                 'last_accessed_at' => now(),
                 'updated_at' => now(),
             ]);
+
+        $room = Room::find($roomId);
+        if ($room) {
+            $this->rankService->recomputeCreatorOf($room);
+        }
 
         return redirect()->route('profile.show')->with('status', __('Channel clearance accepted. You are now an active member.'));
     }

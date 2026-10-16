@@ -62,7 +62,7 @@ class AdminDashboardService
     public function getChannelsData(): array
     {
         $rooms = Room::withCount('messages')->with('creator:id,name')->latest()->get();
-        $registeredUsers = User::select('id', 'name', 'email', 'role')->get();
+        $registeredUsers = User::select('id', 'name', 'email', 'rank')->get();
 
         return [
             'rooms' => $rooms,
@@ -83,8 +83,8 @@ class AdminDashboardService
         return [
             'registeredUsers' => $registeredUsers,
             'totalUsers' => $registeredUsers->count(),
-            'adminCount' => $registeredUsers->where('role', 'admin')->count(),
-            'memberCount' => $registeredUsers->where('role', 'member')->count(),
+            'adminCount' => $registeredUsers->filter(fn (User $u): bool => $u->displaysAsAdmin())->count(),
+            'memberCount' => $registeredUsers->reject(fn (User $u): bool => $u->displaysAsAdmin())->count(),
             'gpsVerifiedCount' => $registeredUsers->filter(fn (User $u): bool => $u->hasGps())->count(),
         ];
     }
@@ -134,7 +134,7 @@ class AdminDashboardService
      */
     public function getRecentVisitors(int $limit = 50): Collection
     {
-        return AccessLog::with(['room:id,code,title', 'user:id,name,role,avatar_path'])
+        return AccessLog::with(['room:id,code,title', 'user:id,name,rank,avatar_path'])
             ->latest('last_seen_at')
             ->limit($limit)
             ->get()
@@ -148,7 +148,7 @@ class AdminDashboardService
                     'user_id' => $log->user_id,
                     'is_user' => (bool) $log->user_id,
                     'alias' => $log->user?->name ?: ($log->alias ?: 'Guest'),
-                    'role' => $log->user?->role,
+                    'role' => $log->user ? strtolower($log->user->rank->publicLabel()) : null,
                     'avatar_url' => $log->user?->avatarUrl(),
                     'ip_address' => $log->ip_address,
                     'country' => $log->country ?: 'Unknown',
@@ -181,7 +181,7 @@ class AdminDashboardService
                     'user_id' => $u->id,
                     'is_user' => true,
                     'alias' => $u->name,
-                    'role' => $u->role,
+                    'role' => strtolower($u->rank->publicLabel()),
                     'avatar_url' => $u->avatarUrl(),
                     'country' => $u->country ?: ($u->location ?: 'GPS Verified'),
                     'city' => $u->city ?: 'Geolocated Node',
@@ -189,8 +189,8 @@ class AdminDashboardService
                     'latitude' => (float) $u->latitude,
                     'longitude' => (float) $u->longitude,
                     'ip_address' => $u->latestIp() ?? 'Verified GPS Node',
-                    'room_code' => $u->isAdmin() ? 'Command HQ' : 'Member',
-                    'room_title' => $u->isAdmin() ? 'Admin Command' : 'Registered Member',
+                    'room_code' => $u->displaysAsAdmin() ? 'Command HQ' : 'Member',
+                    'room_title' => $u->displaysAsAdmin() ? 'Admin Command' : 'Registered Member',
                     'last_seen_human' => $u->location_synced_at?->diffForHumans() ?? 'Synced',
                 ];
             });

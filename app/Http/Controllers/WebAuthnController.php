@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Rank;
 use App\Models\WebAuthnCredential;
 use App\Services\WebAuthnService;
 use Illuminate\Http\JsonResponse;
@@ -116,9 +117,18 @@ class WebAuthnController extends Controller
      */
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $credential = WebAuthnCredential::where('user_id', $request->user()->id)
+        $user = $request->user();
+
+        $credential = WebAuthnCredential::where('user_id', $user->id)
             ->where('id', $id)
             ->firstOrFail();
+
+        if ($user->hasRank(Rank::AdminTwo) && $user->webauthnCredentials()->count() === 1) {
+            return response()->json([
+                'success' => false,
+                'message' => __('Admin II requires an enrolled biometric key. Register another key before removing this one.'),
+            ], 422);
+        }
 
         $credential->delete();
 

@@ -1,0 +1,198 @@
+[
+  {
+    "id": "ROOT-TODO-01",
+    "title": "Scaffolded .dev/ hub and Generation 2610 backlog",
+    "status": "completed",
+    "priority": "critical-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T12:25:00+02:00",
+    "protected": "open",
+    "details": "Created .dev/ROADMAP.md, .dev/2610/backlog.json, .dev/2610/ideas.json, and .dev/2610/channels-refactor-plan.md (plan v3, Document First steps 1-3 complete: plan, audit pass 1, owner decisions Q1-Q10 and A1-A3 recorded)."
+  },
+  {
+    "id": "AUTH-ISSUE-01",
+    "title": "Primary email address is never verified",
+    "status": "completed",
+    "severity": "high",
+    "priority": "critical-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T12:25:00+02:00",
+    "details": "Fixed via AUTH-TODO-01: User now implements MustVerifyEmail and verification links are sent. Previously users.email_verified_at was never set by application code, so rank counts (Q2) and the biometric precondition (Q5) could not be met. Audit finding AU-1.",
+    "protected": "open"
+  },
+  {
+    "id": "AUTH-TODO-01",
+    "title": "Add primary email verification",
+    "status": "completed",
+    "priority": "critical-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T12:25:00+02:00",
+    "details": "Added signed 24h primary email verification (EmailVerificationController, PrimaryEmailVerification mail, email_verification template) sent on registration and first-run setup, with throttled resend and a profile banner. Google/Apple sign-ins mark the email verified only when the provider confirms that exact address. Verifying recomputes the owners of the member's channels. Covered by EmailVerificationTest.",
+    "protected": "open"
+  },
+  {
+    "id": "RANK-TODO-01",
+    "title": "Introduce five-rank model and permission policies",
+    "status": "completed",
+    "priority": "critical-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T12:25:00+02:00",
+    "details": "Replaced users.role with users.rank (Rank enum, not mass-assignable). Added RankService (Q2 rules, creator excluded from member count), vesper:recompute-ranks scheduled daily 03:00, recomputes on addMember, invite acceptance, member deletion, email verification, channel archive/purge/nuke/expiry. Added UserPolicy, RoomPolicy and accessAdminPanel/viewGeolocation gates; reassigned all 24 isAdmin() call sites and removed isAdmin()/isMember(). Admin II appoint/revoke endpoints list missing prerequisites (AU-9); Admin II cannot delete their last passkey. Covered by RankServiceTest, RankPermissionsTest, AdminTwoAppointmentTest.",
+    "protected": "open"
+  },
+  {
+    "id": "RANK-TODO-02",
+    "title": "Add admin audit log with visibility scopes",
+    "status": "completed",
+    "priority": "critical-2",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T12:25:00+02:00",
+    "details": "Added admin_audit_logs with AuditAction/AuditVisibility enums and AdminAuditLog::record()/visibleTo(). Records rank changes, Admin II appointment/revocation, and Admin I channel access overrides. Admin I reads all; Admin II reads moderation entries only (AU-8). Reading UI deferred to Phase 7.",
+    "protected": "open"
+  },
+  {
+    "id": "CHAN-ISSUE-01",
+    "title": "Channel PINs are stored and compared in plaintext",
+    "status": "pending",
+    "severity": "high",
+    "priority": "critical-2",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T12:25:00+02:00",
+    "details": "Room::verifyPasscode compares $this->pin === $passcode and invite emails include the PIN. Hash PINs into passcode_hash, drop the plaintext column, and send invite links without PINs. Phase 2."
+  },
+  {
+    "id": "CHAN-TODO-01",
+    "title": "Add channel types, member channel creation, and unified entry gate",
+    "status": "pending",
+    "priority": "critical-2",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T12:25:00+02:00",
+    "details": "Add rooms.type (prs prf pus puf pra pra-2), member channel creation and creator settings modal, ChannelAccessService checked on every channel request (AU-3), public directory with limited signed-out fields (AU-4), Q10 clearance lifetime refreshed only by user actions (AU-2), Admin I audited override (Q1), and seeded undeletable pra / pra-2 system channels (Q8). Phase 2."
+  },
+  {
+    "id": "CHAN-TODO-02",
+    "title": "Retire guest mode and add guest restriction tests",
+    "status": "pending",
+    "priority": "critical-2",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T12:25:00+02:00",
+    "details": "Remove guest entry from RoomController::verify. Convert existing guest cases in GeoLocationTest, SecurityHardeningTest, RoomSecurityTest, PrivacySettingsTest to signed-in users without weakening assertions. Add GuestRestrictionsTest asserting every non-directory route refuses signed-out visitors and writes nothing (owner approval A2). Phase 2."
+  },
+  {
+    "id": "MSG-TODO-01",
+    "title": "Add user tags and server-confirmed mentions",
+    "status": "pending",
+    "priority": "high-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T12:25:00+02:00",
+    "details": "Unique editable users.tag slug with reserved words, tag-based member search, message_mentions written on store for active channel members only, client highlighting via DOMPurify (dependency approved 2026-10-16). Phase 3."
+  },
+  {
+    "id": "MSG-TODO-02",
+    "title": "Replace single pin with multi-message pinning",
+    "status": "pending",
+    "priority": "high-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T12:25:00+02:00",
+    "details": "Migrate rooms.pinned_message_id into message_pins (max 10 per room), exempt pinned messages from text TTL, media TTL, burn-after-reading, and per-user view expiry, collapsible pinned tray. Pin/unpin limited to channel creator and Admin I. Phase 4."
+  },
+  {
+    "id": "MOD-TODO-01",
+    "title": "Add blocking, kicking, and reporting",
+    "status": "pending",
+    "priority": "high-2",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T12:25:00+02:00",
+    "details": "user_blocks with bidirectional server-side filtering of messages, member lists, search, invites, and mentions. room_user kicked status enforced by invite links and codes. Block/Kick against admin ranks files a report with identical confirmation wording (Q3). Phase 5."
+  },
+  {
+    "id": "MOD-TODO-02",
+    "title": "Add ban vote system",
+    "status": "pending",
+    "priority": "high-2",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T12:25:00+02:00",
+    "details": "Ban cases with 72h window, strict majority of cast ballots, Admin I tie-break, Admin I alone when no Admin IIs, zero ballots = not banned, opener votes separately (AU-7). Subject muted read-only platform-wide (AU-6) and shown a general restriction notice (A3). Visible in every Admin I/II panel on open (Q6). Admin II bannable only by Admin I. Phase 6."
+  },
+  {
+    "id": "ADMN-TODO-01",
+    "title": "Build Admin I / II / III panels and channel profile modal",
+    "status": "pending",
+    "priority": "high-3",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T12:25:00+02:00",
+    "details": "Admin I full panel plus channel list; Admin II same partials with geolocation, IP, and access-log location excluded by policy (Q9); Admin III My Channels view scoped to own channels only (Q9, AU-5); rank-scoped channel profile modal; public rank labels Member/Admin only; strings in all 15 languages. Phase 7."
+  },
+  {
+    "id": "AUTH-TODO-02",
+    "title": "Enforce biometric and 2FA entry rules",
+    "status": "pending",
+    "priority": "high-3",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T12:25:00+02:00",
+    "details": "Biometric setup requires verified primary email plus verified recovery email or confirmed 2FA (Q5, A1). Passkey or TOTP replaces PIN on prs, pus, pra-2 with per-channel opt-out; pra is passkey-only (AU-10). Phase 8."
+  },
+  {
+    "id": "ROOT-TODO-02",
+    "title": "Run release gate audits and update documentation",
+    "status": "pending",
+    "priority": "medium-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T12:25:00+02:00",
+    "details": "Run jldn-audit-phase-logic and jldn-audit-phase-defense, hold Pest coverage at 80% or above, and update README, CHANGELOG, and GVS version in the same commit as the release. Phase 8."
+  },
+  {
+    "id": "AUTH-ISSUE-03",
+    "title": "OAuth callback allowed account takeover with a forged Apple id_token",
+    "status": "completed",
+    "severity": "critical",
+    "priority": "critical-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T14:30:00+02:00",
+    "details": "Fixed: the callback never validated the OAuth state, never checked the provider was configured, and trusted an unsigned Apple id_token from the request (readable from the GET query string, which has no CSRF protection). One link signed an attacker in as any user, including Admin I without 2FA. Now: provider must be configured, single-use state is required (hash_equals), Apple identity comes only from the id_token returned by Apple's token endpoint with aud/iss checked. Reproduced first, then covered by OAuthCallbackSecurityTest.",
+    "protected": "open"
+  },
+  {
+    "id": "AUTH-ISSUE-02",
+    "title": "Recovery and welcome emails printed unfilled placeholders",
+    "status": "completed",
+    "severity": "low",
+    "priority": "medium-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T14:30:00+02:00",
+    "details": "Fixed: RecoveryEmailVerification passed email/expires_in but its template uses {{recovery_email}}/{{expiry_time}}; MemberWelcomeNotification never passed {{role}}. Both now pass the template's variables (role uses the public rank label). Covered by EmailVerificationTest.",
+    "protected": "open"
+  },
+  {
+    "id": "AUTH-ISSUE-04",
+    "title": "Apple sign-in cannot complete its cross-site form_post callback",
+    "status": "pending",
+    "severity": "medium",
+    "priority": "high-2",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T14:30:00+02:00",
+    "details": "Apple returns via a cross-site POST (response_mode=form_post). The POST callback sits behind CSRF verification and the session cookie is SameSite=lax, so neither the CSRF token nor the stored OAuth state reaches the callback. Apple sign-in was already non-functional before AUTH-ISSUE-03 and remains so. Fix needs a CSRF exemption for the Apple callback plus a state store that survives a cross-site POST (e.g. a short-lived SameSite=None cookie)."
+  },
+  {
+    "id": "CHAN-ISSUE-02",
+    "title": "Any member with channel clearance can permanently destroy the channel",
+    "status": "completed",
+    "severity": "high",
+    "priority": "critical-2",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T14:30:00+02:00",
+    "details": "Fixed per owner decision (2026-10-16): only the channel creator and Admin I may purge a channel. Added RoomPolicy::destroy, enforced in RoomController::nuke (403 otherwise), and the purge button and modal render only for those users. RoomSecurityTest's nuke test now runs as the creator with all purge assertions kept; new tests prove Admin II, a member, and a guest with clearance are refused and nothing is deleted.",
+    "protected": "open"
+  },
+  {
+    "id": "CHAN-ISSUE-03",
+    "title": "Channel radar endpoint exposes peers' IP, ISP, user agent and GPS",
+    "status": "completed",
+    "severity": "high",
+    "priority": "critical-2",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T14:30:00+02:00",
+    "details": "Fixed per owner decision (2026-10-16): the channel radar is Admin I only. IntelController::radar now requires the viewGeolocation gate (403 otherwise), and the Network Map button renders only for Admin I (it previously showed for any rank displayed as Admin). GeoLocationTest's radar test runs as Admin I; PrivacySettingsTest's peer section now asserts the peer is refused and receives none of the IPs or names, and that Admin I sees both members. The peer masking assertions were replaced because peers can no longer reach the endpoint.",
+    "protected": "open"
+  }
+]

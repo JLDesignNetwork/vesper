@@ -66,7 +66,28 @@ class OAuthService
     }
 
     /**
+     * Confirm the callback answers a sign-in this browser started: the provider must be
+     * configured and the state must match the single-use value issued at redirect.
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function assertCallbackIsGenuine(string $provider, Request $request): void
+    {
+        if (! $this->isProviderConfigured($provider)) {
+            throw new \InvalidArgumentException(__(':provider authentication is currently unavailable.', ['provider' => ucfirst($provider)]));
+        }
+
+        $issuedState = $request->session()->pull("oauth_state_{$provider}");
+        $returnedState = $request->input('state');
+
+        if (! is_string($issuedState) || ! is_string($returnedState) || ! hash_equals($issuedState, $returnedState)) {
+            throw new \InvalidArgumentException(__('The sign-in request expired or did not come from this browser. Please try again.'));
+        }
+    }
+
+    /**
      * Handle the provider callback and resolve user identity data.
+     * Call assertCallbackIsGenuine() first.
      */
     public function resolveUserFromCallback(string $provider, Request $request): array
     {
@@ -103,34 +124,52 @@ class OAuthService
             return [
                 'provider_id' => (string) ($data['sub'] ?? ''),
                 'email' => strtolower($data['email'] ?? ''),
+                'email_verified' => filter_var($data['email_verified'] ?? false, FILTER_VALIDATE_BOOLEAN),
                 'name' => $data['name'] ?? $data['given_name'] ?? 'Google Member',
                 'avatar' => $data['picture'] ?? null,
             ];
         }
 
         if ($provider === 'apple') {
-            // Apple posts code or id_token
-            $idToken = $request->input('id_token');
             $code = $request->input('code');
 
-            if (empty($idToken) && empty($code)) {
+            if (empty($code) || ! is_string($code)) {
                 throw new \InvalidArgumentException(__('Apple authorization identity payload missing.'));
             }
 
-            // Decode JWT payload (middle segment)
-            $parts = explode('.', (string) $idToken);
-            $claims = [];
-            if (count($parts) >= 2) {
-                $claims = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true) ?: [];
+            // Never trust an id_token supplied in the request: anyone can forge one.
+            // Exchange the code with Apple and use only the id_token Apple returns over TLS.
+            $tokenResponse = Http::asForm()->post('https://appleid.apple.com/auth/token', [
+                'code' => $code,
+                'client_id' => config('services.apple.client_id'),
+                'client_secret' => config('services.apple.client_secret'),
+                'redirect_uri' => url(config('services.apple.redirect', '/auth/apple/callback')),
+                'grant_type' => 'authorization_code',
+            ]);
+
+            if (! $tokenResponse->successful() || ! is_string($tokenResponse->json('id_token'))) {
+                Log::error('Apple OAuth token exchange failed', ['status' => $tokenResponse->status()]);
+                throw new \RuntimeException(__('Failed to exchange authorization code with Apple.'));
+            }
+
+            $claims = $this->decodeJwtClaims($tokenResponse->json('id_token'));
+
+            if (($claims['aud'] ?? null) !== config('services.apple.client_id') || ($claims['iss'] ?? null) !== 'https://appleid.apple.com') {
+                throw new \RuntimeException(__('Apple returned an identity token issued for a different application.'));
             }
 
             $userParam = json_decode($request->input('user', '{}'), true) ?: [];
             $nameParts = array_filter([$userParam['name']['firstName'] ?? '', $userParam['name']['lastName'] ?? '']);
             $fullName = implode(' ', $nameParts) ?: 'Apple Member';
 
+            if (empty($claims['sub'])) {
+                throw new \RuntimeException(__('Apple returned an identity token without a subject.'));
+            }
+
             return [
-                'provider_id' => (string) ($claims['sub'] ?? Str::random(16)),
+                'provider_id' => (string) $claims['sub'],
                 'email' => strtolower($claims['email'] ?? ''),
+                'email_verified' => filter_var($claims['email_verified'] ?? false, FILTER_VALIDATE_BOOLEAN),
                 'name' => $fullName,
                 'avatar' => null,
             ];
@@ -140,9 +179,48 @@ class OAuthService
     }
 
     /**
-     * Find or provision user from resolved identity.
+     * Decode the claims of a JWT received directly from a provider's token endpoint.
+     * The signature is not checked, so only pass tokens obtained server-to-server over TLS.
+     *
+     * @return array<string, mixed>
+     */
+    protected function decodeJwtClaims(string $jwt): array
+    {
+        $parts = explode('.', $jwt);
+
+        if (count($parts) < 2) {
+            return [];
+        }
+
+        $claims = json_decode((string) base64_decode(strtr($parts[1], '-_', '+/')), true);
+
+        return is_array($claims) ? $claims : [];
+    }
+
+    /**
+     * Find or provision the user for a resolved identity, marking their primary email
+     * verified when the provider confirms that exact address.
      */
     public function linkOrAuthenticate(string $provider, array $identity, ?User $currentUser = null): User
+    {
+        $user = $this->findOrProvisionUser($provider, $identity, $currentUser);
+
+        $providerConfirmedEmail = ! empty($identity['email_verified'])
+            && ! empty($identity['email'])
+            && strtolower($identity['email']) === strtolower((string) $user->email);
+
+        if ($providerConfirmedEmail && ! $user->hasVerifiedEmail()) {
+            $user->markEmailAsVerified();
+            app(RankService::class)->recomputeCreatorsOfChannelsJoinedBy($user);
+        }
+
+        return $user;
+    }
+
+    /**
+     * Find or provision user from resolved identity.
+     */
+    protected function findOrProvisionUser(string $provider, array $identity, ?User $currentUser = null): User
     {
         $providerId = $identity['provider_id'];
         $email = $identity['email'] ?: null;
@@ -192,7 +270,6 @@ class OAuthService
             'name' => $identity['name'] ?: ucfirst($provider).' Member',
             'email' => $email ?: ($providerId.'@'.$provider.'.identity'),
             'password' => Hash::make(Str::random(32)),
-            'role' => 'member',
             'avatar_path' => $identity['avatar'] ?? null,
         ]);
 

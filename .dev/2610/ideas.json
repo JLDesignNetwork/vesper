@@ -1,0 +1,10 @@
+[
+  {
+    "id": "AUTH-IDEA-01",
+    "title": "Verified phone number as biometric precondition",
+    "status": "deferred",
+    "details": "Add a phone column, SMS verification flow, and accept 1 verified email + 1 verified phone as an alternative biometric precondition. Requires an SMS provider (e.g. Twilio, Vonage) as a new dependency with running costs.",
+    "resolution": "Deferred by owner decision Q5 (2026-10-16): no SMS cost for now. Recovery email or 2FA serve as the second factor instead.",
+    "created_at": "2026-10-16T12:25:00+02:00"
+  }
+]

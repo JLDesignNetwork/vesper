@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Rank;
 use App\Models\AccessLog;
 use App\Models\Message;
 use App\Models\Room;
@@ -7,11 +8,11 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
 test('member can update their privacy settings', function () {
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'AgentShadow',
         'email' => 'shadow@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
         'birthday' => '1995-06-20',
         'location' => 'Geneva, Switzerland',
         'bio' => 'Classified operative.',
@@ -39,11 +40,11 @@ test('member can update their privacy settings', function () {
 });
 
 test('member card endpoint hides age, birthday, location, and bio from other regular members', function () {
-    $privateUser = User::create([
+    $privateUser = User::forceCreate([
         'name' => 'AgentGhost',
         'email' => 'ghost@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
         'birthday' => '1992-04-10',
         'gender' => 'Male',
         'location' => 'Zurich, Switzerland',
@@ -54,11 +55,11 @@ test('member card endpoint hides age, birthday, location, and bio from other reg
         'hide_bio' => true,
     ]);
 
-    $otherUser = User::create([
+    $otherUser = User::forceCreate([
         'name' => 'AgentObserver',
         'email' => 'observer@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     $room = Room::create([
@@ -94,11 +95,11 @@ test('member card endpoint hides age, birthday, location, and bio from other reg
 });
 
 test('admin center and admin viewer can see all information regardless of user privacy settings', function () {
-    $privateUser = User::create([
+    $privateUser = User::forceCreate([
         'name' => 'AgentStealth',
         'email' => 'stealth@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
         'birthday' => '1990-08-15',
         'gender' => 'Female',
         'location' => 'Vienna, Austria',
@@ -134,11 +135,11 @@ test('admin center and admin viewer can see all information regardless of user p
         'last_seen_at' => now(),
     ]);
 
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'CommanderAdmin',
         'email' => 'admin@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
     // 1. Admin viewing member card in chat -> sees EVERYTHING
@@ -168,11 +169,11 @@ test('admin center and admin viewer can see all information regardless of user p
 });
 
 test('messages stream redacts hidden fields for regular members but reveals them for admin', function () {
-    $author = User::create([
+    $author = User::forceCreate([
         'name' => 'AgentCipher',
         'email' => 'cipher@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
         'birthday' => '1988-12-05',
         'location' => 'Berlin, Germany',
         'bio' => 'Cryptography lead.',
@@ -202,11 +203,11 @@ test('messages stream redacts hidden fields for regular members but reveals them
     ]);
 
     // Regular member reads stream
-    $peer = User::create([
+    $peer = User::forceCreate([
         'name' => 'AgentPeer',
         'email' => 'peer@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     $this->actingAs($peer);
@@ -222,11 +223,11 @@ test('messages stream redacts hidden fields for regular members but reveals them
     expect($peerMsg['sender_bio'])->toBeNull();
 
     // Admin reads stream
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'GeneralAdmin',
         'email' => 'general@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
     $this->actingAs($admin);
@@ -243,11 +244,11 @@ test('messages stream redacts hidden fields for regular members but reveals them
 });
 
 test('hiding age while allowing birthday conceals the birth year and shows only month and day to members', function () {
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'AgentChronos',
         'email' => 'chronos@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
         'birthday' => '1995-06-20',
         'gender' => 'Non-binary',
         'location' => 'Geneva, Switzerland',
@@ -256,18 +257,18 @@ test('hiding age while allowing birthday conceals the birth year and shows only 
         'hide_birthday' => false,
     ]);
 
-    $peer = User::create([
+    $peer = User::forceCreate([
         'name' => 'AgentWatcher',
         'email' => 'watcher@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'ChronosAdmin',
         'email' => 'chronos-admin@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
     $room = Room::create([
@@ -344,11 +345,11 @@ test('hiding age while allowing birthday conceals the birth year and shows only 
 });
 
 test('user hiding their location does not show up on the map inside any chat channel while admin section retains full visibility', function () {
-    $hiddenUser = User::create([
+    $hiddenUser = User::forceCreate([
         'name' => 'AgentMirage',
         'email' => 'mirage@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
         'city' => 'Zurich',
         'country' => 'Switzerland',
         'country_code' => 'CH',
@@ -359,11 +360,11 @@ test('user hiding their location does not show up on the map inside any chat cha
         'location_synced_at' => now(),
     ]);
 
-    $visibleUser = User::create([
+    $visibleUser = User::forceCreate([
         'name' => 'AgentBeacon',
         'email' => 'beacon@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
         'city' => 'Geneva',
         'country' => 'Switzerland',
         'country_code' => 'CH',
@@ -374,18 +375,18 @@ test('user hiding their location does not show up on the map inside any chat cha
         'location_synced_at' => now(),
     ]);
 
-    $observerPeer = User::create([
+    $observerPeer = User::forceCreate([
         'name' => 'AgentObserver2',
         'email' => 'observer2@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'CommandAdmin',
         'email' => 'command@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
     $room = Room::create([
@@ -430,41 +431,33 @@ test('user hiding their location does not show up on the map inside any chat cha
         'last_seen_at' => now(),
     ]);
 
-    // 1. Peer member calls radar in chat channel
+    // 1. Peer member cannot open the channel radar at all (owner decision: Admin I only)
     $this->actingAs($observerPeer);
-    $radarResponse = $this->withSession([
+    $peerRadar = $this->withSession([
         "room_clearance_{$room->id}" => true,
     ])->getJson(route('intel.radar', ['room' => $room->code]));
 
-    $radarResponse->assertStatus(200);
-    $operatives = collect($radarResponse->json('operatives'));
+    $peerRadar->assertForbidden();
+    $peerRadar->assertDontSee('AgentMirage');
+    $peerRadar->assertDontSee('AgentBeacon');
+    $peerRadar->assertDontSee('198.51.100.77');
+    $peerRadar->assertDontSee('198.51.100.88');
 
+    // 2. Admin I radar shows both members, including the one who hid their location
+    $this->actingAs($admin);
+    $adminRadar = $this->withSession([
+        "room_clearance_{$room->id}" => true,
+    ])->getJson(route('intel.radar', ['room' => $room->code]));
+
+    $adminRadar->assertStatus(200);
+    $operatives = collect($adminRadar->json('operatives'));
     $mirageOp = $operatives->firstWhere('alias', 'AgentMirage');
     $beaconOp = $operatives->firstWhere('alias', 'AgentBeacon');
-
-    // AgentMirage has hide_location = true -> Coordinates MUST BE NULL so no map pin appears inside chat channel
-    expect($mirageOp['latitude'])->toBeNull();
-    expect($mirageOp['longitude'])->toBeNull();
-    expect($mirageOp['city'])->toBeNull();
-    expect($mirageOp['country'])->toBeNull();
-    expect($mirageOp['flag'])->toBe('🔒');
+    expect($mirageOp['city'])->toBe('Zurich');
+    expect($mirageOp['ip_address'])->toBe('198.51.100.77');
     expect($mirageOp['location_hidden'])->toBeTrue();
-    expect($mirageOp['ip_address'])->toBe('***.***.***.***');
-
-    // AgentBeacon has hide_location = false -> Coordinates and location visible on chat channel map
     expect($beaconOp['latitude'])->toBe(46.2044);
-    expect($beaconOp['longitude'])->toBe(6.1432);
     expect($beaconOp['city'])->toBe('Geneva');
-    expect($beaconOp['flag'])->toBe('🇨🇭');
-    expect($beaconOp['location_hidden'])->toBeFalse();
-
-    // 2. Audit entries in chat channel radar also suppress city and show lock for hidden location
-    $recentEntries = collect($radarResponse->json('recent_entries'));
-    $mirageEntry = $recentEntries->firstWhere('alias', 'AgentMirage');
-    expect($mirageEntry['city'])->toBeNull();
-    expect($mirageEntry['country'])->toBeNull();
-    expect($mirageEntry['flag'])->toBe('🔒');
-    expect($mirageEntry['location_hidden'])->toBeTrue();
 
     // 3. Admin section dashboard STILL shows AgentMirage on the Global Traffic Map and in user list
     $this->actingAs($admin);

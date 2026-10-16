@@ -50,6 +50,7 @@ class SocialAuthController extends Controller
         }
 
         try {
+            $this->oauthService->assertCallbackIsGenuine($provider, $request);
             $identity = $this->oauthService->resolveUserFromCallback($provider, $request);
             $user = $this->oauthService->linkOrAuthenticate($provider, $identity, Auth::user());
 

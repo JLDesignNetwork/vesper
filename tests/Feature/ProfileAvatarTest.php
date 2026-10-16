@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Rank;
 use App\Models\Message;
 use App\Models\Room;
 use App\Models\User;
@@ -10,11 +11,11 @@ use Illuminate\Support\Facades\Storage;
 test('authenticated user can upload a profile picture', function () {
     Storage::fake('public');
 
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'AgentJane',
         'email' => 'jane@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     $this->actingAs($user);
@@ -40,11 +41,11 @@ test('authenticated user can upload a profile picture', function () {
 test('authenticated user can remove their profile picture', function () {
     Storage::fake('public');
 
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'AgentMark',
         'email' => 'mark@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     $this->actingAs($user);
@@ -80,11 +81,11 @@ test('authenticated user can remove their profile picture', function () {
 test('avatar validation rejects non-image files and oversized files', function () {
     Storage::fake('public');
 
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'AgentTest',
         'email' => 'test@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     $this->actingAs($user);
@@ -113,11 +114,11 @@ test('avatar validation rejects non-image files and oversized files', function (
 });
 
 test('messages stream includes sender avatar url', function () {
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'AgentAvatar',
         'email' => 'avatar@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
         'avatar_path' => 'avatars/avatar_1_test.png',
     ]);
 
@@ -151,11 +152,11 @@ test('messages stream includes sender avatar url', function () {
 });
 
 test('member profile endpoint returns user profile details and avatar url for chat card', function () {
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'AgentCardTest',
         'email' => 'cardtest@example.com',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
         'avatar_path' => 'avatars/avatar_card_test.jpg',
         'birthday' => '1990-05-15',
         'gender' => 'Other',

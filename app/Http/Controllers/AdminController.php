@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Rank;
 use App\Mail\ChannelInvitationNotification;
 use App\Models\AccessLog;
 use App\Models\ChannelInvitation;
@@ -11,10 +12,12 @@ use App\Services\AdminDashboardService;
 use App\Services\GeoLocationService;
 use App\Services\LanguageService;
 use App\Services\MediaStorageService;
+use App\Services\RankService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -30,7 +33,8 @@ class AdminController extends Controller
     public function __construct(
         public GeoLocationService $geoLocationService,
         public MediaStorageService $mediaStorageService,
-        public AdminDashboardService $dashboardService
+        public AdminDashboardService $dashboardService,
+        public RankService $rankService
     ) {}
 
     /**
@@ -113,7 +117,10 @@ class AdminController extends Controller
         }
 
         $userName = $user->name;
+        $affectedCreatorIds = $user->channels()->pluck('created_by_user_id')->filter()->unique();
         $user->delete();
+
+        User::whereIn('id', $affectedCreatorIds)->get()->each(fn (User $creator) => $this->rankService->recompute($creator));
 
         return redirect()->route('admin.dashboard')->with('status', "User [{$userName}] account removed.");
     }
@@ -231,6 +238,8 @@ class AdminController extends Controller
         $room->status = ($room->status === 'active') ? 'archived' : 'active';
         $room->save();
 
+        $this->rankService->recomputeCreatorOf($room);
+
         return redirect()->route('admin.channels.index')->with('status', "Channel status updated to {$room->status}.");
     }
 
@@ -246,6 +255,8 @@ class AdminController extends Controller
         $room->messages()->delete();
         $room->accessLogs()->delete();
         $room->delete();
+
+        $this->rankService->recomputeCreatorOf($room);
 
         return redirect()->route('admin.channels.index')->with('status', "Channel [{$code}] and all associated media have been permanently purged.");
     }
@@ -276,7 +287,6 @@ class AdminController extends Controller
                     'name' => ucfirst(explode('@', $email)[0]),
                     'email' => $email,
                     'password' => Hash::make(Str::random(24)),
-                    'role' => 'member',
                     'preferred_locale' => app()->getLocale(),
                 ]);
             }
@@ -383,5 +393,56 @@ class AdminController extends Controller
             'location' => $adminUser->location,
             'message' => __('GPS coordinates synchronized successfully.'),
         ]);
+    }
+
+    /**
+     * Appoint a member as Admin II. Refused with the list of missing prerequisites
+     * (verified email, recovery email or 2FA, enrolled passkey) when any are absent.
+     */
+    public function appointAdminTwo(Request $request, string $id): RedirectResponse
+    {
+        $candidate = User::findOrFail($id);
+
+        Gate::authorize('manageAdminTwo', $candidate);
+
+        if ($candidate->hasRank(Rank::AdminTwo)) {
+            return redirect()->route('admin.members.index')->with('status', __(':name is already Admin II.', ['name' => $candidate->name]));
+        }
+
+        $missing = $this->rankService->appointAdminTwo($request->user(), $candidate);
+
+        if ($missing !== []) {
+            return redirect()->route('admin.members.index')->withErrors([
+                'rank' => __(':name cannot be appointed Admin II yet. Missing: :missing.', [
+                    'name' => $candidate->name,
+                    'missing' => implode(', ', $missing),
+                ]),
+            ]);
+        }
+
+        return redirect()->route('admin.members.index')->with('status', __(':name is now Admin II.', ['name' => $candidate->name]));
+    }
+
+    /**
+     * Revoke a member's Admin II rank, returning them to the rank their channels earn.
+     */
+    public function revokeAdminTwo(Request $request, string $id): RedirectResponse
+    {
+        $adminTwo = User::findOrFail($id);
+
+        Gate::authorize('manageAdminTwo', $adminTwo);
+
+        if (! $adminTwo->hasRank(Rank::AdminTwo)) {
+            return redirect()->route('admin.members.index')->withErrors([
+                'rank' => __(':name is not Admin II.', ['name' => $adminTwo->name]),
+            ]);
+        }
+
+        $newRank = $this->rankService->revokeAdminTwo($request->user(), $adminTwo);
+
+        return redirect()->route('admin.members.index')->with('status', __(':name is no longer Admin II and is now :rank.', [
+            'name' => $adminTwo->name,
+            'rank' => $newRank->label(),
+        ]));
     }
 }

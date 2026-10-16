@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Rank;
 use App\Mail\AdminOperationsDigestNotification;
 use App\Mail\ChannelBurnWarningNotification;
 use App\Mail\ChannelInvitationNotification;
@@ -15,11 +16,11 @@ beforeEach(function () {
 });
 
 test('vesper:channel-burn-check incinerates expired channels and purges media', function () {
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'BurnAdmin',
         'email' => 'burnadmin@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
     $expiredRoom = Room::create([
@@ -48,11 +49,11 @@ test('vesper:channel-burn-check incinerates expired channels and purges media', 
 });
 
 test('vesper:channel-burn-check dispatches burn warnings for channels expiring soon', function () {
-    $member = User::create([
+    $member = User::forceCreate([
         'name' => 'WarnMember',
         'email' => 'warnmember@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
         'email_notifications' => true,
     ]);
 
@@ -76,11 +77,11 @@ test('vesper:channel-burn-check dispatches burn warnings for channels expiring s
 });
 
 test('vesper:send-operations-digest dispatches intelligence digest to administrators', function () {
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'ExecutiveAdmin',
         'email' => 'exec@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
     $this->artisan('vesper:send-operations-digest')
@@ -92,18 +93,18 @@ test('vesper:send-operations-digest dispatches intelligence digest to administra
 });
 
 test('direct admin channel invitation dispatches ChannelInvitationNotification and redirects to admin.channels.index', function () {
-    $admin = User::create([
+    $admin = User::forceCreate([
         'name' => 'InvitingAdmin',
         'email' => 'invitingadmin@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'admin',
+        'rank' => Rank::AdminOne,
     ]);
 
-    $targetMember = User::create([
+    $targetMember = User::forceCreate([
         'name' => 'TargetOperative',
         'email' => 'target@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     $room = Room::create([
@@ -125,11 +126,11 @@ test('direct admin channel invitation dispatches ChannelInvitationNotification a
 });
 
 test('2FA confirmation and disable dispatch TwoFactorStatusNotification', function () {
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'TwoFactorAgent',
         'email' => 'twofactor@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
     ]);
 
     $twoFactorService = app(TwoFactorService::class);

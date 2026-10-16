@@ -386,8 +386,8 @@
                 </svg>
             </button>
 
-            <!-- Network Map Drawer Toggle (Admin Only) -->
-            @if($isAdmin)
+            <!-- Network Map Drawer Toggle (Admin I Only) -->
+            @if($canViewRadar)
                 <button
                     type="button"
                     onclick="toggleRadar()"
@@ -414,7 +414,8 @@
                 </button>
             </form>
 
-            <!-- Purge Channel -->
+            <!-- Purge Channel (creator and Admin I only) -->
+            @if($canDestroyChannel)
             <button
                 type="button"
                 onclick="openNukeModal()"
@@ -426,6 +427,7 @@
                 </svg>
                 <span class="hidden sm:inline">{{ __('PURGE') }}</span>
             </button>
+            @endif
         </div>
     </header>
 
@@ -1090,6 +1092,7 @@
     </div>
 
     <!-- Channel Data Purge Confirmation Modal -->
+    @if($canDestroyChannel)
     <div id="nuke-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
         <div class="w-full max-w-md bg-slate-900 border border-rose-500/50 rounded-2xl p-6 shadow-[0_0_30px_rgba(244,63,94,0.3)] font-mono space-y-4">
             <div class="flex items-center gap-3 text-rose-400">
@@ -1134,6 +1137,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     <!-- Member Info Card Modal -->
     <div id="member-card-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
@@ -1736,6 +1740,8 @@
         const CURRENT_LOCALE = "{{ app()->getLocale() }}";
         const USER_PREFERRED_LOCALE = "{{ $userPreferredLocale ?? (Auth::user()?->effectiveLocale() ?? app()->getLocale()) }}";
         const IS_ADMIN = {{ $isAdmin ? 'true' : 'false' }};
+        const CAN_PIN_MESSAGES = {{ $canPinMessages ? 'true' : 'false' }};
+        const CAN_VIEW_RADAR = {{ $canViewRadar ? 'true' : 'false' }};
         const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         const ALLOWED_LANGUAGES = @json($room->effectiveAllowedLanguages());
         const CURRENT_USER_NAME = @json(Auth::user()?->name);
@@ -2321,7 +2327,7 @@
                     ↩
                 </button>
             `;
-            if (IS_ADMIN) {
+            if (CAN_PIN_MESSAGES) {
                 actionsHtml += `
                     <button type="button" onclick="togglePin(${msg.id})" class="px-1.5 py-0.5 rounded bg-slate-900/90 hover:bg-slate-800 text-slate-400 hover:text-amber-400 border border-slate-800 text-xs transition-colors cursor-pointer" title="${I18N.pin}">
                         📌
@@ -3433,10 +3439,10 @@
 
         // Nuke Modal
         function openNukeModal() {
-            document.getElementById('nuke-modal').classList.remove('hidden');
+            document.getElementById('nuke-modal')?.classList.remove('hidden');
         }
         function closeNukeModal() {
-            document.getElementById('nuke-modal').classList.add('hidden');
+            document.getElementById('nuke-modal')?.classList.add('hidden');
         }
 
         // Copy Channel Link
@@ -3480,7 +3486,7 @@
 
         // Intel Radar & Leaflet Map
         function toggleRadar() {
-            if (!IS_ADMIN) return;
+            if (!CAN_VIEW_RADAR) return;
             const drawer = document.getElementById('radar-drawer');
             if (!drawer) return;
             radarOpen = !radarOpen;
@@ -3494,7 +3500,7 @@
         }
 
         function initIntelMap() {
-            if (!IS_ADMIN) return;
+            if (!CAN_VIEW_RADAR) return;
             if (!leafletMap) {
                 leafletMap = L.map('intel-map', {
                     attributionControl: false,
@@ -3517,7 +3523,7 @@
         }
 
         async function loadRadarData() {
-            if (!IS_ADMIN) return;
+            if (!CAN_VIEW_RADAR) return;
             try {
                 const res = await fetch(`/c/${encodeURIComponent(ROOM_CODE)}/radar`, {
                     headers: { 'Accept': 'application/json' }

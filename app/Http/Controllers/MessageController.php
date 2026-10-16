@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\Rank;
 use App\Mail\NewMessageNotification;
 use App\Models\AccessLog;
 use App\Models\Message;
@@ -399,11 +400,11 @@ class MessageController extends Controller
             $senderLocation = $author ? $author->locationForViewer($viewer) : null;
             $senderBio = $author ? $author->bioForViewer($viewer) : null;
             $senderBirthday = $author ? $author->birthdayForViewer($viewer) : null;
-            $senderRole = $author?->role ?? ($message->is_admin ? 'admin' : 'guest');
+            $senderRole = $this->publicSenderRole($author, (bool) $message->is_admin);
             $senderAvatarUrl = $author?->avatarUrl();
 
             $isLocationHidden = (bool) ($author?->hide_location);
-            $canViewPrivate = ($viewer && $viewer->isAdmin()) || ($viewer && $author && $viewer->id === $author->id);
+            $canViewPrivate = (bool) $author?->hiddenFieldsVisibleTo($viewer);
 
             $msgCity = ($isLocationHidden && ! $canViewPrivate) ? null : $message->city;
             $msgCountry = ($isLocationHidden && ! $canViewPrivate) ? null : $message->country;
@@ -567,7 +568,7 @@ class MessageController extends Controller
         $geo = $this->geoLocationService->locate($clientIp);
         $sessionId = $request->session()->getId();
         $user = Auth::user();
-        $isAdmin = (bool) $request->session()->get("room_is_admin_{$room->id}", false) || ($user && $user->isAdmin());
+        $isAdmin = (bool) $user?->displaysAsAdmin();
         $alias = $request->session()->get("room_alias_{$room->id}");
 
         if ($user) {
@@ -650,7 +651,7 @@ class MessageController extends Controller
                 'sender_name' => $message->sender_name,
                 'is_self' => true,
                 'is_admin' => (bool) $message->is_admin,
-                'sender_role' => $user?->role ?? ($message->is_admin ? 'admin' : 'guest'),
+                'sender_role' => $this->publicSenderRole($user, (bool) $message->is_admin),
                 'sender_age' => $user?->age(),
                 'sender_gender' => $user?->gender,
                 'sender_location' => $user?->location,
@@ -744,6 +745,19 @@ class MessageController extends Controller
     }
 
     /**
+     * Resolve the role label other members see on a message: "admin", "member" or "guest".
+     * Rank levels are never exposed, and Admin III is shown as a member.
+     */
+    protected function publicSenderRole(?User $author, bool $sentAsAdmin): string
+    {
+        if ($author) {
+            return strtolower($author->rank->publicLabel());
+        }
+
+        return $sentAsAdmin ? 'admin' : 'guest';
+    }
+
+    /**
      * Send email notifications to users who opted in.
      * Admin notification setting is controlled per channel via $room->notify_admin.
      * Regular members opt in via their profile email_notifications toggle.
@@ -756,7 +770,7 @@ class MessageController extends Controller
             // 1. Channel-level Admin notification
             if ($room->notify_admin) {
                 $admins = User::where(function ($q) use ($room) {
-                    $q->where('role', 'admin')
+                    $q->where('rank', Rank::AdminOne)
                         ->orWhere('id', $room->created_by_user_id);
                 })
                     ->whereNotNull('email')
@@ -768,7 +782,7 @@ class MessageController extends Controller
             }
 
             // 2. Regular channel participants with email_notifications enabled in profile
-            $members = User::where('role', '!=', 'admin')
+            $members = User::where('rank', '!=', Rank::AdminOne)
                 ->where('id', '!=', $room->created_by_user_id)
                 ->where('email_notifications', true)
                 ->whereNotNull('email')

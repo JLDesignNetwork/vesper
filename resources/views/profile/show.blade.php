@@ -66,7 +66,7 @@
 
             <!-- Header Actions -->
             <div class="flex items-center gap-2.5 font-mono text-xs">
-                @if($user->isAdmin())
+                @can('accessAdminPanel')
                     <a
                         href="{{ route('admin.dashboard') }}"
                         class="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-amber-300 text-xs flex items-center gap-1.5 transition-colors"
@@ -74,7 +74,7 @@
                         <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
                         <span class="hidden sm:inline font-sans">{{ __('Admin Console') }}</span>
                     </a>
-                @endif
+                @endcan
 
                 <!-- Pinless Access Status Pill -->
                 <div
@@ -135,6 +135,22 @@
             </div>
         @endif
 
+        @unless($user->hasVerifiedEmail())
+            <div id="email-verification-banner" class="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-amber-200 text-xs flex flex-col sm:flex-row sm:items-center gap-3 shadow-lg shadow-amber-950/30 backdrop-blur-sm">
+                <svg class="w-5 h-5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                <div class="flex-1">
+                    <div class="font-semibold">{{ __('Verify your email address') }}</div>
+                    <div class="text-amber-300/80 mt-0.5">{{ __('Confirm :email to set up biometric sign-in and to count as a member toward channel ranks.', ['email' => $user->email]) }}</div>
+                </div>
+                <form method="POST" action="{{ route('verification.send') }}">
+                    @csrf
+                    <button type="submit" class="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-200 font-mono text-xs transition-colors cursor-pointer">
+                        {{ __('Send verification link') }}
+                    </button>
+                </form>
+            </div>
+        @endunless
+
         <!-- Two-Column Grid: Left Profile (5 cols) | Right Channels (7 cols) -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
@@ -150,8 +166,8 @@
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                             <span>{{ __('Member Profile') }}</span>
                         </div>
-                        <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded border {{ $user->isAdmin() ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' }}">
-                            {{ ucfirst($user->role) }}
+                        <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded border {{ $user->rank->isAdminRank() ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' }}">
+                            {{ __($user->rank->label()) }}
                         </span>
                     </div>
 

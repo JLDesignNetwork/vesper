@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Rank;
 use App\Models\Message;
 use App\Models\MessageUserView;
 use App\Models\Reaction;
@@ -351,8 +352,8 @@ test('self-destruct message expires for creator once all chat members have viewe
 });
 
 test('channel owners or admins can pin and unpin briefing messages', function () {
-    $admin = User::factory()->create(['role' => 'admin']);
-    $member = User::factory()->create(['role' => 'member']);
+    $admin = User::factory()->create(['rank' => Rank::AdminOne]);
+    $member = User::factory()->create(['rank' => Rank::UserTwo]);
 
     $room = Room::create([
         'code' => 'TACT-PIN',

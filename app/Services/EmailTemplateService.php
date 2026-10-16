@@ -13,7 +13,7 @@ class EmailTemplateService
     ) {}
 
     /**
-     * Master registry of all 9 tactical email templates.
+     * Master registry of all 10 tactical email templates.
      *
      * @return array<string, array<string, mixed>>
      */
@@ -89,6 +89,30 @@ class EmailTemplateService
                     'recovery_email' => 'alex.backup@example.com',
                     'expiry_time' => '60 minutes',
                     'verification_url' => config('app.url', 'https://vesper.jldn').'/recovery/email/verify/1/sample-hash',
+                ],
+            ],
+
+            'email_verification' => [
+                'name' => 'Primary Email Verification',
+                'category' => 'Authentication',
+                'description' => 'Dispatched to confirm ownership of a member\'s primary email address.',
+                'subject' => 'Confirm Your Vesper Email Address',
+                'preheader' => 'Verify your email to count toward channel ranks and enable biometrics.',
+                'body_markdown' => "Hello **{{member_name}}**,\n\nPlease confirm that **{{email}}** belongs to you.\n\nA verified email lets you set up biometric sign-in, and makes you count as a member toward channel ranks.\n\nThis verification link expires in **{{expiry_time}}**.",
+                'button_text' => 'Verify Email Address',
+                'button_color' => 'cyan',
+                'footer_text' => 'Vesper Security • Account Verification',
+                'variables' => [
+                    'member_name' => 'Name or display name of the member',
+                    'email' => 'Primary email address being verified',
+                    'expiry_time' => 'Validity window (e.g. 24 hours)',
+                    'verification_url' => 'Cryptographic signed verification URL',
+                ],
+                'sample_data' => [
+                    'member_name' => 'Alex Sterling',
+                    'email' => 'alex@vesper.network',
+                    'expiry_time' => '24 hours',
+                    'verification_url' => config('app.url', 'https://vesper.jldn').'/email/verify/1/sample-hash',
                 ],
             ],
 

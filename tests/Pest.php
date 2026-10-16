@@ -1,6 +1,14 @@
 <?php
 
+use App\Models\Message;
+use App\Models\Room;
+use App\Models\User;
+use App\Models\WebAuthnCredential;
+use App\Services\RankService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /*
@@ -47,4 +55,55 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Create a channel owned by $owner with $verifiedMembers active members who have a
+ * verified email (the owner is enrolled too, and is never counted toward ranks).
+ *
+ * @param  array<string, mixed>  $roomAttributes
+ */
+function channelOwnedBy(
+    User $owner,
+    int $verifiedMembers = RankService::MIN_VERIFIED_MEMBERS,
+    ?Carbon $lastMessageAt = null,
+    array $roomAttributes = [],
+): Room {
+    $room = Room::create(array_merge([
+        'code' => strtoupper(Str::random(8)),
+        'passcode_hash' => Hash::make('secret'),
+        'status' => 'active',
+        'created_by_user_id' => $owner->id,
+    ], $roomAttributes));
+
+    $room->belongsToMany(User::class, 'room_user')->attach($owner->id, ['role' => 'owner', 'status' => 'active']);
+
+    User::factory()->count($verifiedMembers)->create()->each(
+        fn (User $member) => $room->belongsToMany(User::class, 'room_user')->attach($member->id, ['role' => 'member', 'status' => 'active'])
+    );
+
+    $message = Message::create([
+        'room_id' => $room->id,
+        'user_id' => $owner->id,
+        'sender_session_id' => 'owner-session',
+        'sender_name' => $owner->name,
+        'content' => 'Channel activity',
+    ]);
+    $message->forceFill(['created_at' => $lastMessageAt ?? now()])->save();
+
+    return $room;
+}
+
+/**
+ * Enroll a biometric passkey for the user.
+ */
+function enrollPasskey(User $user, string $deviceName = 'Touch ID'): WebAuthnCredential
+{
+    return WebAuthnCredential::create([
+        'user_id' => $user->id,
+        'credential_id' => 'cred-'.Str::random(12),
+        'public_key' => 'test-public-key',
+        'counter' => 0,
+        'device_name' => $deviceName,
+    ]);
 }

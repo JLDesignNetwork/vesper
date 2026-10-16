@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\Rank;
 use App\Mail\AdminOperationsDigestNotification;
 use App\Models\Message;
 use App\Models\Room;
@@ -31,7 +32,7 @@ class SendOperationsDigestCommand extends Command
      */
     public function handle(): int
     {
-        $admins = User::where('role', 'admin')
+        $admins = User::where('rank', Rank::AdminOne)
             ->whereNotNull('email')
             ->where('email', '!=', '')
             ->get();

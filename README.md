@@ -3,7 +3,7 @@
 [![GVS Version](https://img.shields.io/badge/GVS-2609.11.0--bs-059669?style=flat-square&logo=git&logoColor=white)](CHANGELOG.md)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jldesignnetwork)
 [![Platform Status](https://img.shields.io/badge/Status-Active%20Defense-0284c7?style=flat-square)]()
-[![Pest Tests](https://img.shields.io/badge/Tests-127%20Passing-10b981?style=flat-square&logo=pest&logoColor=white)]()
+[![Pest Tests](https://img.shields.io/badge/Tests-254%20Passing-10b981?style=flat-square&logo=pest&logoColor=white)]()
 
 > **Vesper Enterprise** — Private, encrypted communications platform with real-time network visualization, ephemeral secure channels, and enterprise-grade privacy controls.
 
@@ -51,7 +51,7 @@
 - **Selective Concealment**: Members can independently hide their Age, Birthday, Location, and Bio from regular channel members.
 - **In-Channel Map Concealment**: When a member hides their location, their coordinates are suppressed (`null`) on in-channel maps (`/c/{room}/radar`), ensuring their pin never appears. Member lists and recent entries display `🔒 Location Hidden` with masked IP addresses for peers.
 - **Smart Birth Year Masking**: If a user hides their age while keeping their birthday visible, the system automatically conceals the birth year on the backend, only exposing the Month and Day (e.g. `June 20`) to prevent age deduction.
-- **Administrative Oversight**: Platform administrators maintain full unmasked visibility (including real-time IP address inspection, Global Network Map coordinates, and privacy override badges) across all registered accounts inside the Admin Console (`/admin`).
+- **Administrative Oversight**: The platform owner (Admin I) maintains full unmasked visibility (including real-time IP address inspection, Global Network Map coordinates, and privacy override badges) across all registered accounts inside the Admin Console (`/admin`). The in-channel network map is likewise restricted to Admin I. Other ranks, Admin II included, see only what members choose to share.
 
 ### 7. Multi-Modal Authentication & Account Security
 - **Hardware Biometrics & Passkeys**: WebAuthn/FIDO2 standard support for passwordless authentication using Apple Touch ID, Face ID, or Windows Hello.
@@ -73,7 +73,7 @@
 - **Backend**: Laravel 12.x (PHP 8.4+)
 - **Frontend**: Blade templates, TailwindCSS, Vanilla JavaScript (ES6+), Leaflet.js
 - **Asset Pipeline**: Vite 8.x
-- **Testing**: Pest PHP (127 tests, 872 assertions — 100% passing)
+- **Testing**: Pest PHP (254 tests, 1184 assertions — 100% passing)
 - **Mail Handling**: ServBay Mailpit (SMTP port 1025, Web UI port 18025)
 - **Local Environment**: ServBay Pro / macOS / PHP 8.4
 

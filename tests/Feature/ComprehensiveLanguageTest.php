@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Rank;
 use App\Models\Message;
 use App\Models\Room;
 use App\Models\User;
@@ -63,11 +64,11 @@ test('user can register with newly supported languages such as uzbek or japanese
 });
 
 test('user profile update validates and persists all supported languages', function () {
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'PolyglotUser',
         'email' => 'polyglot@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
         'preferred_locale' => 'en',
     ]);
 
@@ -128,11 +129,11 @@ test('channel translate and stream endpoints serve translations in uzbek', funct
         'status' => 'active',
     ]);
 
-    $user = User::create([
+    $user = User::forceCreate([
         'name' => 'UzbekViewer',
         'email' => 'uzviewer@vesper.test',
         'password' => Hash::make('password123'),
-        'role' => 'member',
+        'rank' => Rank::UserTwo,
         'preferred_locale' => 'uz',
     ]);
 

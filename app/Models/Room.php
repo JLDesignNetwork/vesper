@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\LanguageService;
+use App\Services\RankService;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -124,6 +125,8 @@ class Room extends Model
                 'last_accessed_at' => now(),
             ],
         ]);
+
+        app(RankService::class)->recomputeCreatorOf($this);
     }
 
     /**
