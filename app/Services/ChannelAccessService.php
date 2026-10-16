@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\DB;
  * - Visibility: public channels are listed for everyone; private channels only for
  *   their members, creator and pending invitees; admin channels only for admitted ranks.
  * - Entry: guests never enter. Private channels need membership; public channels are
- *   joined on entry. Secured channels need a PIN unless the member has 2FA or a passkey
+ *   joined on entry. Members kicked from a channel never enter it again. Secured channels need a PIN unless the member has 2FA or a passkey
  *   and has not turned that off for the channel. `pra` opens only with a passkey.
  *   Admin I may open any channel (audited by the caller).
  * - Clearance: once opened, a secured channel stays open for 15 minutes after the
@@ -52,7 +52,9 @@ class ChannelAccessService
             return $room->type->admitsRank($viewer->rank);
         }
 
-        return $room->isCreatedBy($viewer) || $this->membershipStatus($viewer, $room) !== null;
+        $status = $this->membershipStatus($viewer, $room);
+
+        return $room->isCreatedBy($viewer) || ($status !== null && $status !== 'kicked');
     }
 
     /**
@@ -72,7 +74,13 @@ class ChannelAccessService
             return ChannelEntry::Denied;
         }
 
-        $isMember = $this->membershipStatus($user, $room) === 'active' || $room->isCreatedBy($user);
+        $status = $this->membershipStatus($user, $room);
+
+        if ($status === 'kicked') {
+            return ChannelEntry::Denied;
+        }
+
+        $isMember = $status === 'active' || $room->isCreatedBy($user);
 
         if (! $room->isPublic() && ! $room->type->isAdminChannel() && ! $isMember) {
             return ChannelEntry::Denied;
@@ -95,7 +103,9 @@ class ChannelAccessService
 
     /**
      * Whether the member may keep using a channel they already opened. Re-checked on
-     * every channel request so a demotion or closed channel takes effect immediately.
+     * every channel request so a demotion, kick, lost membership or closed channel takes
+     * effect immediately. In private member channels a membership that is no longer
+     * active ends access.
      */
     public function mayContinue(User $user, Room $room): bool
     {
@@ -103,7 +113,27 @@ class ChannelAccessService
             return false;
         }
 
-        return $user->hasRank(Rank::AdminOne) || $room->type->admitsRank($user->rank);
+        if ($user->hasRank(Rank::AdminOne)) {
+            return true;
+        }
+
+        if (! $room->type->admitsRank($user->rank)) {
+            return false;
+        }
+
+        $status = $this->membershipStatus($user, $room);
+
+        if ($status === 'kicked') {
+            return false;
+        }
+
+        // A private-channel membership that is no longer active (declined, or allowed
+        // back after a kick) ends access even if the session still holds clearance.
+        if (! $room->isPublic() && ! $room->type->isAdminChannel() && $status !== null && $status !== 'active') {
+            return $room->isCreatedBy($user);
+        }
+
+        return true;
     }
 
     /**
@@ -176,7 +206,7 @@ class ChannelAccessService
     }
 
     /**
-     * The member's status in the channel ('active', 'invited', 'declined') or null.
+     * The member's status in the channel ('active', 'invited', 'declined', 'kicked') or null.
      */
     protected function membershipStatus(User $user, Room $room): ?string
     {

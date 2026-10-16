@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Casts\SafeEncryptedCast;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -106,14 +107,36 @@ class Message extends Model
     }
 
     /**
-     * Build aggregated reaction pills summary for the active viewer.
+     * Exclude messages written by the given members (used for blocks).
      *
+     * @param  Builder<self>  $query
+     * @param  list<int>  $authorIds
+     * @return Builder<self>
+     */
+    public function scopeExcludingAuthors(Builder $query, array $authorIds): Builder
+    {
+        if ($authorIds === []) {
+            return $query;
+        }
+
+        return $query->where(fn (Builder $builder) => $builder->whereNull('user_id')->orWhereNotIn('user_id', $authorIds));
+    }
+
+    /**
+     * Build aggregated reaction pills summary for the active viewer. Reactions by
+     * members in $hiddenUserIds (blocked either way) are left out.
+     *
+     * @param  list<int>  $hiddenUserIds
      * @return list<array{emoji: string, count: int, has_reacted: bool}>
      */
-    public function reactionsSummary(?string $sessionId, ?int $userId = null): array
+    public function reactionsSummary(?string $sessionId, ?int $userId = null, array $hiddenUserIds = []): array
     {
         $grouped = [];
         foreach ($this->reactions as $reaction) {
+            if ($reaction->user_id !== null && in_array((int) $reaction->user_id, $hiddenUserIds, true)) {
+                continue;
+            }
+
             $emoji = $reaction->emoji;
             if (! isset($grouped[$emoji])) {
                 $grouped[$emoji] = [

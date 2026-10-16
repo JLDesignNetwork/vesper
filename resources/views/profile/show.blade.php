@@ -710,6 +710,36 @@
                     <ul id="member-search-results" class="divide-y divide-slate-800/70" aria-live="polite"></ul>
                 </section>
 
+                <!-- Blocked Members -->
+                <section class="rounded-2xl bg-slate-900/60 border border-slate-800 p-5 space-y-3" aria-labelledby="blocked-members-heading">
+                    <div>
+                        <h2 id="blocked-members-heading" class="text-sm font-semibold text-white tracking-tight">{{ __('Blocked Members') }}</h2>
+                        <p class="text-[11px] text-slate-400">{{ __('You and the members you block cannot see each other\'s messages, find each other in search, or open each other\'s profile.') }}</p>
+                    </div>
+                    @error('moderation')
+                        <p class="text-xs text-rose-300">{{ $message }}</p>
+                    @enderror
+                    @if($blockedMembers->isEmpty())
+                        <p id="blocked-members-empty" class="text-xs text-slate-500">{{ __('You have not blocked anyone.') }}</p>
+                    @else
+                        <ul id="blocked-members-list" class="divide-y divide-slate-800/70">
+                            @foreach($blockedMembers as $blockedMember)
+                                <li class="py-2 flex items-center justify-between gap-3 text-xs">
+                                    <span class="min-w-0 truncate">
+                                        <span class="text-slate-200">{{ $blockedMember->name }}</span>
+                                        <span class="font-mono text-emerald-300">{{ '@'.$blockedMember->tag }}</span>
+                                    </span>
+                                    <form method="POST" action="{{ route('members.unblock', $blockedMember->tag) }}" class="shrink-0">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono cursor-pointer transition-colors">{{ __('Unblock') }}</button>
+                                    </form>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </section>
+
             </div>
         </div>
 

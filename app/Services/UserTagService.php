@@ -105,12 +105,14 @@ class UserTagService
 
     /**
      * The mentioned tags that belong to the channel's active members or its creator.
-     * Only these are highlighted; every other @tag stays plain text.
+     * Only these are highlighted; every other @tag stays plain text, including tags of
+     * members in $hiddenUserIds (blocked either way with the viewer).
      *
      * @param  iterable<?string>  $texts
+     * @param  list<int>  $hiddenUserIds
      * @return list<string>
      */
-    public function memberTagsMentionedIn(Room $room, iterable $texts): array
+    public function memberTagsMentionedIn(Room $room, iterable $texts, array $hiddenUserIds = []): array
     {
         $tags = $this->mentionedTags($texts);
 
@@ -125,6 +127,7 @@ class UserTagService
 
         return User::whereIn('tag', $tags)
             ->where(fn ($query) => $query->whereIn('id', $memberIds)->orWhere('id', $room->created_by_user_id))
+            ->when($hiddenUserIds !== [], fn ($query) => $query->whereNotIn('id', $hiddenUserIds))
             ->orderBy('tag')
             ->pluck('tag')
             ->all();

@@ -104,11 +104,12 @@
   {
     "id": "MOD-TODO-01",
     "title": "Add blocking, kicking, and reporting",
-    "status": "pending",
+    "status": "completed",
     "priority": "high-2",
     "existed_since": "2609.11.0-bs",
     "created_at": "2026-10-16T12:25:00+02:00",
-    "details": "user_blocks with bidirectional server-side filtering of messages, member lists, search, invites, and mentions. room_user kicked status enforced by invite links and codes. Block/Kick against admin ranks files a report with identical confirmation wording (Q3). Phase 5."
+    "details": "Added user_blocks, reports and room_user kick columns (kicked_by_user_id, kicked_at). BlockService hides members from each other in both directions, filtered on the server and cached per user: the message feed, reply previews, reactions, the pinned tray, presence, mention highlighting, member search, the member card, email notifications and translation by id; replying to, reacting to and downloading a blocked member's message return 404. A sender's self-destruct timer no longer waits for members who blocked them. Only the channel creator kicks (RoomPolicy::kickMembers, no Admin I override). A kick sets status kicked, is audited (moderation visibility) and recomputes the creator's rank. ChannelAccessService refuses kicked members on entry, on every channel request (mayContinue) and in visibility; invite links, codes, Room::addMember and Admin I direct invites refuse them too. The creator can Allow back a kicked member from a Removed members list on the channel page (status becomes declined, audited as kick_lifted); a private-channel membership that is no longer active also ends a stale session clearance. Block and kick against Admin I/II file a report (origin block_attempt / kick_attempt) and return the same response as a real block or kick (Q3). Admin III (owner decision Q11): blocked and kicked like any member, except that blocks against them do not apply inside channels they created, and blocking them from inside such a channel files a report instead. Members report others by tag with a reason, optional details, channel and message; channels the reporter cannot see are not attached. UI: Block / Report / Remove from channel on the in-channel member card (Block and Remove hidden for members shown as Admin), and a Blocked Members list with Unblock on the profile. Covered by BlockingTest, KickingTest and ReportingTest; 39 guard mutations all killed.",
+    "protected": "open"
   },
   {
     "id": "MOD-TODO-02",
@@ -242,6 +243,17 @@
     "existed_since": "2609.11.0-bs",
     "created_at": "2026-10-16T19:00:00+02:00",
     "details": "Fixed: the in-channel member card set innerHTML from the member's free-text location, allowing stored XSS through the profile location field. The location is now escaped.",
+    "protected": "open"
+  },
+  {
+    "id": "MSG-ISSUE-03",
+    "title": "Replies could quote a message from any channel",
+    "status": "completed",
+    "severity": "high",
+    "priority": "critical-2",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T14:47:00+02:00",
+    "details": "Fixed: messages.store validated reply_to_id only with exists:messages,id, so a member could reply to a message id from another channel, including a private one they are not in, and the reply preview then showed that message's sender and first 60 characters to everyone in their channel. reply_to_id must now belong to the same channel. Covered by BlockingTest.",
     "protected": "open"
   },
   {

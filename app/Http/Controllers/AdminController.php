@@ -302,7 +302,11 @@ class AdminController extends Controller
         }
 
         if ($targetUser) {
-            $room->inviteUser($targetUser, Auth::id());
+            if (! $room->inviteUser($targetUser, Auth::id())) {
+                return redirect()->route('admin.channels.index')->withErrors([
+                    'invite' => __('This member was kicked from the channel and cannot be invited back.'),
+                ]);
+            }
 
             if ($request->boolean('send_email', true) && ! empty($targetUser->email) && filter_var($targetUser->email, FILTER_VALIDATE_EMAIL)) {
                 try {

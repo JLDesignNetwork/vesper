@@ -52,7 +52,12 @@ class ChannelInviteController extends Controller
         }
 
         $user = $request->user();
-        $invitation->consume($user);
+
+        if (! $invitation->consume($user)) {
+            return redirect()->route('profile.show')->withErrors([
+                'channel' => __('This invitation cannot be used with your account.'),
+            ]);
+        }
 
         return redirect()->route('profile.show')->with(
             'status',

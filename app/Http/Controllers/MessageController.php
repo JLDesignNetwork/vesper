@@ -11,6 +11,7 @@ use App\Models\MessageUserView;
 use App\Models\Reaction;
 use App\Models\Room;
 use App\Models\User;
+use App\Services\BlockService;
 use App\Services\GeoLocationService;
 use App\Services\LanguageService;
 use App\Services\MediaStorageService;
@@ -36,7 +37,8 @@ class MessageController extends Controller
         public GeoLocationService $geoLocationService,
         public MediaStorageService $mediaStorageService,
         public TranslationService $translationService,
-        public UserTagService $userTags
+        public UserTagService $userTags,
+        public BlockService $blocks
     ) {}
 
     /**
@@ -64,7 +66,9 @@ class MessageController extends Controller
 
         $text = $validated['text'] ?? null;
         if (empty($text) && ! empty($validated['message_id'])) {
-            $msg = Message::where('room_id', $room->id)->find($validated['message_id']);
+            $msg = Message::where('room_id', $room->id)
+                ->excludingAuthors($this->blocks->hiddenUserIdsFor($request->user(), $room))
+                ->find($validated['message_id']);
             $text = $msg?->content;
         }
 
@@ -116,12 +120,13 @@ class MessageController extends Controller
             ], 422);
         }
 
+        $hiddenUserIds = $this->blocks->hiddenUserIdsFor($request->user(), $room);
         $texts = [];
         foreach ($validated['messages'] as $idx => $item) {
             $msgId = (string) ($item['id'] ?? $idx);
             $text = $item['text'] ?? '';
             if (empty($text) && ! empty($item['id'])) {
-                $dbMsg = Message::where('room_id', $room->id)->find($item['id']);
+                $dbMsg = Message::where('room_id', $room->id)->excludingAuthors($hiddenUserIds)->find($item['id']);
                 $text = $dbMsg?->content ?? '';
             }
             $texts[$msgId] = (string) $text;
@@ -177,8 +182,13 @@ class MessageController extends Controller
         // Pinned messages are exempt from every self-destruct timer while pinned.
         $pinnedIds = $room->pinnedMessageIds();
 
+        // Members blocked either way with the viewer: their messages, reactions and
+        // presence never reach this viewer.
+        $hiddenUserIds = $this->blocks->hiddenUserIdsFor($request->user(), $room);
+
         $query = $room->messages()
             ->with(['user', 'reactions', 'replyTo', 'views'])
+            ->excludingAuthors($hiddenUserIds)
             ->where('id', '>', $afterId)
             ->where(function ($q) use ($pinnedIds) {
                 $q->whereNull('expires_at')
@@ -248,7 +258,9 @@ class MessageController extends Controller
             }
         }
 
-        $checkAllViewed = function (Message $message, $recipientViews) use ($room): bool {
+        // Only called for the viewer's own messages, so members blocked either way with the
+        // viewer never see them and are not waited on before the sender's copy expires.
+        $checkAllViewed = function (Message $message, $recipientViews) use ($room, $hiddenUserIds): bool {
             if ($recipientViews->isEmpty()) {
                 return false;
             }
@@ -256,6 +268,7 @@ class MessageController extends Controller
             // Check enrolled members first if any exist
             $otherMemberIds = $room->members()
                 ->when($message->user_id, fn ($q) => $q->where('users.id', '!=', $message->user_id))
+                ->when($hiddenUserIds !== [], fn ($q) => $q->whereNotIn('users.id', $hiddenUserIds))
                 ->pluck('users.id');
 
             if ($otherMemberIds->isNotEmpty()) {
@@ -403,7 +416,7 @@ class MessageController extends Controller
             ? User::whereIn('name', $unlinkedAuthors)->get()->keyBy('name')
             : collect();
 
-        $messages = $rawMessages->map(function (Message $message) use ($sessionId, $viewer, $usersByName, $targetLang, $resolveView, $resolveSenderExpiresAt, $resolveSenderMediaExpiresAt, $pinnedIds): array {
+        $messages = $rawMessages->map(function (Message $message) use ($sessionId, $viewer, $usersByName, $targetLang, $resolveView, $resolveSenderExpiresAt, $resolveSenderMediaExpiresAt, $pinnedIds, $hiddenUserIds): array {
             $isPinned = in_array($message->id, $pinnedIds, true);
 
             $flag = $message->country_code
@@ -465,7 +478,8 @@ class MessageController extends Controller
             }
 
             $replyToData = null;
-            if ($message->replyTo) {
+            $replyToHidden = $message->replyTo?->user_id !== null && in_array((int) $message->replyTo->user_id, $hiddenUserIds, true);
+            if ($message->replyTo && ! $replyToHidden) {
                 $replyToData = [
                     'id' => $message->replyTo->id,
                     'sender_name' => $message->replyTo->sender_name,
@@ -501,7 +515,7 @@ class MessageController extends Controller
                 'flag' => $msgFlag,
                 'location_hidden' => $isLocationHidden,
                 'reply_to' => $replyToData,
-                'reactions' => $message->reactionsSummary($sessionId, $viewer?->id),
+                'reactions' => $message->reactionsSummary($sessionId, $viewer?->id, $hiddenUserIds),
                 'is_pinned' => $isPinned,
                 'ttl_seconds' => $message->ttl_seconds,
                 'expires_at' => $effectiveExpiresAt?->toIso8601String(),
@@ -522,6 +536,7 @@ class MessageController extends Controller
         $activeThreshold = now()->subMinutes(5);
         $activeOperatives = AccessLog::where('room_id', $room->id)
             ->where('last_seen_at', '>=', $activeThreshold)
+            ->when($hiddenUserIds !== [], fn ($q) => $q->where(fn ($sq) => $sq->whereNull('user_id')->orWhereNotIn('user_id', $hiddenUserIds)))
             ->orderBy('last_seen_at', 'desc')
             ->get()
             ->map(function ($log) {
@@ -534,7 +549,7 @@ class MessageController extends Controller
                 ];
             });
 
-        $pinnedMessages = $room->pinnedTray();
+        $pinnedMessages = $room->pinnedTray($hiddenUserIds);
 
         return response()->json([
             'status' => 'active',
@@ -545,7 +560,8 @@ class MessageController extends Controller
             'active_operatives' => $activeOperatives,
             'mention_tags' => $this->userTags->memberTagsMentionedIn(
                 $room,
-                collect($messages)->flatMap(fn (array $message): array => [$message['content'] ?? null, $message['auto_translated_text'] ?? null])
+                collect($messages)->flatMap(fn (array $message): array => [$message['content'] ?? null, $message['auto_translated_text'] ?? null]),
+                $hiddenUserIds
             ),
         ]);
     }
@@ -569,13 +585,19 @@ class MessageController extends Controller
         $validated = $request->validate([
             'content' => ['nullable', 'string', 'max:10000'],
             'attachment' => ['nullable', 'file', 'max:51200'],
-            'reply_to_id' => ['nullable', 'integer', 'exists:messages,id'],
+            'reply_to_id' => ['nullable', 'integer', Rule::exists('messages', 'id')->where('room_id', $room->id)],
             'ttl_seconds' => ['nullable', 'integer', 'min:5', 'max:604800'],
             'media_ttl_seconds' => ['nullable', 'integer', 'min:5', 'max:604800'],
         ]);
 
         if (empty($validated['content']) && ! $request->hasFile('attachment')) {
             return response()->json(['error' => 'Cannot transmit an empty message.'], 422);
+        }
+
+        $hiddenUserIds = $this->blocks->hiddenUserIdsFor($request->user(), $room);
+
+        if (! empty($validated['reply_to_id']) && ! Message::whereKey($validated['reply_to_id'])->excludingAuthors($hiddenUserIds)->exists()) {
+            return response()->json(['error' => __('This message is not available.')], 404);
         }
 
         $attachmentData = null;
@@ -668,7 +690,7 @@ class MessageController extends Controller
 
         return response()->json([
             'success' => true,
-            'mention_tags' => $this->userTags->memberTagsMentionedIn($room, [$message->content]),
+            'mention_tags' => $this->userTags->memberTagsMentionedIn($room, [$message->content], $hiddenUserIds),
             'message' => [
                 'id' => $message->id,
                 'sender_name' => $message->sender_name,
@@ -720,7 +742,8 @@ class MessageController extends Controller
             return response()->json(['error' => 'Clearance required'], 403);
         }
 
-        $message = Message::where('room_id', $room->id)->find($messageId);
+        $hiddenUserIds = $this->blocks->hiddenUserIdsFor($request->user(), $room);
+        $message = Message::where('room_id', $room->id)->excludingAuthors($hiddenUserIds)->find($messageId);
         if (! $message) {
             return response()->json(['error' => 'Message not found'], 404);
         }
@@ -763,7 +786,7 @@ class MessageController extends Controller
         return response()->json([
             'success' => true,
             'action' => $action,
-            'reactions' => $message->reactionsSummary($sessionId, $userId),
+            'reactions' => $message->reactionsSummary($sessionId, $userId, $hiddenUserIds),
         ]);
     }
 
@@ -816,6 +839,10 @@ class MessageController extends Controller
 
             $recipients = $recipients->merge($members)->unique('id');
 
+            // Members blocked either way with the sender never receive their messages.
+            $hiddenUserIds = $this->blocks->hiddenUserIdsFor($message->user, $room);
+            $recipients = $recipients->reject(fn (User $recipient): bool => in_array($recipient->id, $hiddenUserIds, true));
+
             foreach ($recipients as $recipient) {
                 Mail::to($recipient->email)->send(new NewMessageNotification($room, $message, $recipient));
             }
@@ -840,7 +867,9 @@ class MessageController extends Controller
             abort(403, 'Room clearance required to access media');
         }
 
-        $message = Message::where('room_id', $room->id)->find($messageId);
+        $message = Message::where('room_id', $room->id)
+            ->excludingAuthors($this->blocks->hiddenUserIdsFor($request->user(), $room))
+            ->find($messageId);
         if (! $message || ! $message->attachment_path) {
             abort(404, 'Attachment not found');
         }

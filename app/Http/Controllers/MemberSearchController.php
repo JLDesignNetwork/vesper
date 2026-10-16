@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\BlockService;
 use App\Services\UserTagService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -13,11 +14,13 @@ use Illuminate\Http\Request;
 class MemberSearchController extends Controller
 {
     public function __construct(
-        protected UserTagService $userTags
+        protected UserTagService $userTags,
+        protected BlockService $blocks
     ) {}
 
     /**
      * Find members by @tag prefix or display name. Returns only public details.
+     * Members blocked either way with the searcher are never returned.
      */
     public function index(Request $request): JsonResponse
     {
@@ -29,7 +32,10 @@ class MemberSearchController extends Controller
             return response()->json(['members' => []]);
         }
 
+        $hiddenUserIds = $this->blocks->hiddenUserIdsFor($request->user());
+
         $members = User::query()
+            ->when($hiddenUserIds !== [], fn (Builder $builder) => $builder->whereNotIn('id', $hiddenUserIds))
             ->where(fn (Builder $builder) => $builder
                 ->where('tag', 'like', "{$escaped}%")
                 ->orWhere('name', 'like', "%{$escaped}%"))

@@ -155,7 +155,12 @@ class ChannelHubController extends Controller
         }
 
         $user = $request->user();
-        $invitation->consume($user);
+
+        if (! $invitation->consume($user)) {
+            return back()->withErrors([
+                'code' => __('This invitation cannot be used with your account.'),
+            ]);
+        }
 
         return redirect()->route('profile.show')->with(
             'status',

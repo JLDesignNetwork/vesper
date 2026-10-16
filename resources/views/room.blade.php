@@ -414,6 +414,20 @@
                 </button>
             </form>
 
+            <!-- Removed Members (creator only) -->
+            @if($removedMembers->isNotEmpty())
+            <button
+                type="button"
+                onclick="document.getElementById('removed-members-modal').classList.remove('hidden')"
+                aria-controls="removed-members-modal"
+                class="px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-mono flex items-center gap-1 transition-colors cursor-pointer"
+                title="{{ __('Removed members') }}"
+            >
+                <span class="hidden sm:inline">{{ __('Removed') }}</span>
+                <span id="removed-members-count">{{ $removedMembers->count() }}</span>
+            </button>
+            @endif
+
             <!-- Purge Channel (creator and Admin I only) -->
             @if($canDestroyChannel)
             <button
@@ -1093,6 +1107,34 @@
         </div>
     </div>
 
+    <!-- Removed Members Modal (creator only) -->
+    @if($removedMembers->isNotEmpty())
+    <div id="removed-members-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="removed-members-heading">
+        <div class="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 font-sans">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <h3 id="removed-members-heading" class="text-xs font-mono uppercase text-slate-400 tracking-wider">{{ __('Removed members') }}</h3>
+                <button type="button" onclick="document.getElementById('removed-members-modal').classList.add('hidden')" class="text-slate-400 hover:text-white cursor-pointer" aria-label="{{ __('Close') }}">✕</button>
+            </div>
+            <p class="text-[11px] text-slate-400">{{ __('Removed members cannot rejoin until you allow them back.') }}</p>
+            <ul class="divide-y divide-slate-800/70">
+                @foreach($removedMembers as $removedMember)
+                    <li class="py-2 flex items-center justify-between gap-3 text-xs">
+                        <span class="min-w-0 truncate">
+                            <span class="text-slate-200">{{ $removedMember->name }}</span>
+                            <span class="font-mono text-emerald-300">{{ '@'.$removedMember->tag }}</span>
+                        </span>
+                        <form method="POST" action="{{ route('rooms.kick.lift', ['room' => $room->code, 'tag' => $removedMember->tag]) }}" class="shrink-0">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono cursor-pointer transition-colors">{{ __('Allow back') }}</button>
+                        </form>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+    @endif
+
     <!-- Channel Data Purge Confirmation Modal -->
     @if($canDestroyChannel)
     <div id="nuke-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
@@ -1182,6 +1224,25 @@
                     </div>
                     <p id="card-bio" class="text-slate-300 font-sans text-xs italic"></p>
                 </div>
+            </div>
+            <div id="card-actions" class="hidden pt-3 border-t border-slate-800 space-y-3 text-xs">
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" id="card-block-btn" onclick="blockCardMember()" class="hidden px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono cursor-pointer transition-colors">{{ __('Block') }}</button>
+                    <button type="button" id="card-report-btn" onclick="toggleCardReportForm()" aria-controls="card-report-form" aria-expanded="false" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono cursor-pointer transition-colors">{{ __('Report') }}</button>
+                    <button type="button" id="card-kick-btn" onclick="kickCardMember()" class="hidden px-3 py-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900/60 border border-rose-500/30 text-rose-200 font-mono cursor-pointer transition-colors">{{ __('Remove from channel') }}</button>
+                </div>
+                <form id="card-report-form" onsubmit="reportCardMember(event)" class="hidden space-y-2">
+                    <label for="card-report-reason" class="block text-slate-400">{{ __('Reason') }}</label>
+                    <select id="card-report-reason" name="reason" required class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 focus:outline-none focus:border-emerald-500/60">
+                        @foreach(\App\Enums\ReportReason::cases() as $reportReason)
+                            <option value="{{ $reportReason->value }}">{{ $reportReason->label() }}</option>
+                        @endforeach
+                    </select>
+                    <label for="card-report-details" class="block text-slate-400">{{ __('Details (optional)') }}</label>
+                    <textarea id="card-report-details" name="details" rows="2" maxlength="1000" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 focus:outline-none focus:border-emerald-500/60"></textarea>
+                    <button type="submit" class="w-full py-2 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-200 font-mono cursor-pointer transition-colors">{{ __('Send report') }}</button>
+                </form>
+                <p id="card-action-status" role="status" class="text-[11px] text-slate-300"></p>
             </div>
             <div class="pt-2 text-center">
                 <button type="button" onclick="closeMemberCard()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono cursor-pointer transition-colors">
@@ -1748,6 +1809,9 @@
         const ALLOWED_LANGUAGES = @json($room->effectiveAllowedLanguages());
         const CURRENT_USER_NAME = @json(Auth::user()?->name);
         const FLAG_MAP = @json(collect(\App\Services\LanguageService::supported())->mapWithKeys(fn($l, $k) => [$k => $l['flag']]));
+        @if(session('status') || $errors->has('moderation'))
+        document.addEventListener('DOMContentLoaded', () => showToast(@json(session('status') ?? $errors->first('moderation'))));
+        @endif
 
         // @tags the server confirmed belong to members of this channel. Only these are highlighted.
         const CONFIRMED_MENTION_TAGS = new Set();
@@ -3993,6 +4057,7 @@
             const bioBox = document.getElementById('card-bio-container');
 
             document.getElementById('card-name').textContent = member.name || 'Anonymous';
+            resetCardActions();
 
             const ageText = member.age ? `${member.age} yrs` : '—';
             document.getElementById('card-age').textContent = ageText;
@@ -4047,6 +4112,7 @@
                     if (res.ok) {
                         const live = await res.json();
                         if (live.found) {
+                            showCardActions(live);
                             document.getElementById('card-name').textContent = live.tag ? `${live.name} · @${live.tag}` : live.name;
                             if (live.avatar_url) {
                                 member.avatar_url = live.avatar_url;
@@ -4124,6 +4190,85 @@
         function closeMemberCard() {
             const modal = document.getElementById('member-card-modal');
             if (modal) modal.classList.add('hidden');
+        }
+
+        /* Member card moderation: block, report, and (for the channel creator) remove. */
+        let cardMemberTag = null;
+
+        function resetCardActions() {
+            cardMemberTag = null;
+            document.getElementById('card-actions')?.classList.add('hidden');
+            document.getElementById('card-report-form')?.classList.add('hidden');
+            document.getElementById('card-report-btn')?.setAttribute('aria-expanded', 'false');
+            const status = document.getElementById('card-action-status');
+            if (status) status.textContent = '';
+        }
+
+        function showCardActions(live) {
+            if (!live.tag || live.is_self) return;
+            cardMemberTag = live.tag;
+            document.getElementById('card-block-btn').classList.toggle('hidden', !!live.shows_as_admin);
+            document.getElementById('card-kick-btn').classList.toggle('hidden', !live.can_kick || !!live.shows_as_admin);
+            document.getElementById('card-actions').classList.remove('hidden');
+        }
+
+        async function sendMemberAction(url, body) {
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN },
+                    body: JSON.stringify(body),
+                });
+                const data = await res.json().catch(() => ({}));
+                const fallback = @json(__('That did not go through. Check your connection and try again.'));
+                return { ok: res.ok, message: data.message || data.error || fallback };
+            } catch (e) {
+                return { ok: false, message: @json(__('That did not go through. Check your connection and try again.')) };
+            }
+        }
+
+        async function blockCardMember() {
+            if (!cardMemberTag) return;
+            const question = @json(__('Block @:tag? You will no longer see each other\'s messages, and neither of you can find the other in search.', ['tag' => '__TAG__']));
+            if (!confirm(question.replace('__TAG__', cardMemberTag))) return;
+            const result = await sendMemberAction(`/members/${encodeURIComponent(cardMemberTag)}/block`, { room: ROOM_CODE });
+            showToast(result.message);
+            if (result.ok) {
+                closeMemberCard();
+                setTimeout(() => window.location.reload(), 1200);
+            }
+        }
+
+        async function kickCardMember() {
+            if (!cardMemberTag) return;
+            const question = @json(__('Remove @:tag from this channel? They will not be able to rejoin.', ['tag' => '__TAG__']));
+            if (!confirm(question.replace('__TAG__', cardMemberTag))) return;
+            const result = await sendMemberAction(`/c/${encodeURIComponent(ROOM_CODE)}/members/${encodeURIComponent(cardMemberTag)}/kick`, {});
+            showToast(result.message);
+            if (result.ok) closeMemberCard();
+        }
+
+        function toggleCardReportForm() {
+            const form = document.getElementById('card-report-form');
+            const isOpening = form.classList.contains('hidden');
+            form.classList.toggle('hidden', !isOpening);
+            document.getElementById('card-report-btn').setAttribute('aria-expanded', String(isOpening));
+            if (isOpening) document.getElementById('card-report-reason').focus();
+        }
+
+        async function reportCardMember(event) {
+            event.preventDefault();
+            if (!cardMemberTag) return;
+            const result = await sendMemberAction(`/members/${encodeURIComponent(cardMemberTag)}/report`, {
+                room: ROOM_CODE,
+                reason: document.getElementById('card-report-reason').value,
+                details: document.getElementById('card-report-details').value.trim() || null,
+            });
+            document.getElementById('card-action-status').textContent = result.message;
+            if (result.ok) {
+                document.getElementById('card-report-form').classList.add('hidden');
+                document.getElementById('card-report-details').value = '';
+            }
         }
 
         /* -------------------------------------------------------------

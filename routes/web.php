@@ -11,6 +11,7 @@ use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\IntelController;
 use App\Http\Controllers\MemberSearchController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\ModerationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\SocialAuthController;
@@ -56,6 +57,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/channels', [ChannelController::class, 'store'])->name('channels.store');
     Route::put('/channels/{room}/settings', [ChannelController::class, 'update'])->name('channels.update');
     Route::get('/members/search', [MemberSearchController::class, 'index'])->name('members.search')->middleware('throttle:30,1');
+    Route::post('/members/{tag}/block', [ModerationController::class, 'block'])->name('members.block')->middleware('throttle:20,1');
+    Route::delete('/members/{tag}/block', [ModerationController::class, 'unblock'])->name('members.unblock');
+    Route::post('/members/{tag}/report', [ModerationController::class, 'report'])->name('members.report')->middleware('throttle:5,10');
 
     // WebAuthn registration
     Route::get('/webauthn/register/options', [WebAuthnController::class, 'optionsRegister'])->name('webauthn.register.options');
@@ -163,6 +167,8 @@ Route::middleware('auth')->group(function () {
             Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
             Route::post('/messages/{message}/react', [MessageController::class, 'toggleReaction'])->name('messages.react');
             Route::post('/messages/{message}/pin', [RoomController::class, 'togglePin'])->name('rooms.pin');
+            Route::post('/members/{tag}/kick', [ModerationController::class, 'kick'])->name('rooms.kick');
+            Route::delete('/members/{tag}/kick', [ModerationController::class, 'allowBack'])->name('rooms.kick.lift');
             Route::get('/attachments/{message}', [MessageController::class, 'streamAttachment'])->name('messages.attachment');
             Route::post('/translate', [MessageController::class, 'translate'])->name('messages.translate');
             Route::post('/translate-batch', [MessageController::class, 'translateBatch'])->name('messages.translate-batch');

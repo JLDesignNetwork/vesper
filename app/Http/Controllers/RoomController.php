@@ -10,6 +10,7 @@ use App\Models\Message;
 use App\Models\MessagePin;
 use App\Models\Room;
 use App\Models\User;
+use App\Services\BlockService;
 use App\Services\ChannelAccessService;
 use App\Services\GeoLocationService;
 use App\Services\RankService;
@@ -31,7 +32,8 @@ class RoomController extends Controller
      */
     public function __construct(
         public GeoLocationService $geoLocationService,
-        protected ChannelAccessService $channelAccess
+        protected ChannelAccessService $channelAccess,
+        protected BlockService $blocks
     ) {}
 
     /**
@@ -246,6 +248,7 @@ class RoomController extends Controller
             'canPinMessages' => $user->can('pinMessages', $room),
             'canViewRadar' => $user->can('viewGeolocation'),
             'canDestroyChannel' => $user->can('destroy', $room),
+            'removedMembers' => $user->can('kickMembers', $room) ? $room->kickedMembers()->get(['users.id', 'users.name', 'users.tag']) : collect(),
             'clearanceIdleSeconds' => $room->isSecured() ? ChannelAccessService::CLEARANCE_IDLE_MINUTES * 60 : null,
             'sessionId' => $request->session()->getId(),
             'clientIp' => $this->geoLocationService->getClientIp($request),
@@ -384,14 +387,14 @@ class RoomController extends Controller
             return response()->json(['found' => false]);
         }
 
-        if (! $user) {
+        $viewer = Auth::user();
+
+        if (! $user || $this->blocks->isBlockedBetween($viewer, $user, $room)) {
             return response()->json([
                 'found' => false,
                 'name' => $name,
             ]);
         }
-
-        $viewer = Auth::user();
 
         return response()->json([
             'found' => true,
@@ -405,6 +408,8 @@ class RoomController extends Controller
             'bio' => $user->bioForViewer($viewer),
             'is_self' => ($viewer && $viewer->id === $user->id),
             'is_admin' => (bool) $viewer?->can('viewHiddenFields', $user),
+            'shows_as_admin' => $user->displaysAsAdmin(),
+            'can_kick' => ! $user->is($viewer) && (bool) $viewer?->can('kickMembers', $room) && $room->isMember($user),
             'preferred_locale' => $user->hiddenFieldsVisibleTo($viewer) ? $user->preferred_locale : null,
             'effective_locale' => $user->effectiveLocale(),
             'location_locale' => $user->resolveLocationLocale(),
@@ -479,7 +484,7 @@ class RoomController extends Controller
             'success' => true,
             'is_pinned' => $isPinned,
             'pinned_message_id' => $isPinned ? $message->id : null,
-            'pinned_messages' => $room->pinnedTray(),
+            'pinned_messages' => $room->pinnedTray($this->blocks->hiddenUserIdsFor($request->user(), $room)),
         ]);
     }
 }

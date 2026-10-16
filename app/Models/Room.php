@@ -125,13 +125,16 @@ class Room extends Model
 
     /**
      * The channel's pinned messages for the pinned tray, most recently pinned first.
+     * Pins of messages written by members in $hiddenAuthorIds (blocked either way) are left out.
      *
+     * @param  list<int>  $hiddenAuthorIds
      * @return list<array{id: int, sender_name: string, content: string, created_at_time: string, pinned_at: string|null}>
      */
-    public function pinnedTray(): array
+    public function pinnedTray(array $hiddenAuthorIds = []): array
     {
         return $this->pins()->with('message')->get()
-            ->filter(fn (MessagePin $pin): bool => $pin->message !== null)
+            ->filter(fn (MessagePin $pin): bool => $pin->message !== null
+                && ($pin->message->user_id === null || ! in_array((int) $pin->message->user_id, $hiddenAuthorIds, true)))
             ->map(fn (MessagePin $pin): array => [
                 'id' => $pin->message->id,
                 'sender_name' => (string) $pin->message->sender_name,
@@ -173,6 +176,17 @@ class Room extends Model
     }
 
     /**
+     * Members kicked from this channel, most recently kicked first.
+     */
+    public function kickedMembers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'room_user')
+            ->wherePivot('status', 'kicked')
+            ->withPivot(['kicked_at'])
+            ->orderByPivot('kicked_at', 'desc');
+    }
+
+    /**
      * Get all secure invitations generated for this channel.
      */
     public function invitations(): HasMany
@@ -195,11 +209,30 @@ class Room extends Model
     }
 
     /**
-     * Enroll a user as an active member of this room.
+     * Determine if the user was kicked from this room. Kicked members cannot rejoin.
+     */
+    public function isKicked(User|int|null $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return $this->belongsToMany(User::class, 'room_user')
+            ->wherePivot('status', 'kicked')
+            ->where('users.id', $user instanceof User ? $user->id : $user)
+            ->exists();
+    }
+
+    /**
+     * Enroll a user as an active member of this room. A kicked member is never re-enrolled.
      */
     public function addMember(User|int $user, string $role = 'member', ?int $invitedBy = null, ?string $alias = null): void
     {
         $userId = $user instanceof User ? $user->id : $user;
+
+        if ($this->isKicked($userId)) {
+            return;
+        }
 
         $this->belongsToMany(User::class, 'room_user')->syncWithoutDetaching([
             $userId => [
@@ -216,10 +249,15 @@ class Room extends Model
 
     /**
      * Issue a pending direct invitation to a user for this room.
+     * Returns false, inviting no one, when the user was kicked from the room.
      */
-    public function inviteUser(User|int $user, ?int $invitedBy = null): void
+    public function inviteUser(User|int $user, ?int $invitedBy = null): bool
     {
         $userId = $user instanceof User ? $user->id : $user;
+
+        if ($this->isKicked($userId)) {
+            return false;
+        }
 
         $this->belongsToMany(User::class, 'room_user')->syncWithoutDetaching([
             $userId => [
@@ -228,6 +266,8 @@ class Room extends Model
                 'invited_by_user_id' => $invitedBy,
             ],
         ]);
+
+        return true;
     }
 
     /**

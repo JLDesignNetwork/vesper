@@ -9,6 +9,9 @@ This project adheres to the **JLDN Generational Versioning Schema (GVS)** (`[YYM
 ## [Unreleased]
 
 ### Added
+- **Blocking (Phase 5)**: members block each other by tag from the in-channel member card and manage their block list on the profile. Blocked members are hidden from each other in both directions: messages, replies, reactions, pins, presence, mentions, search, member cards and email notifications. Admin I and II cannot be blocked, and an Admin III cannot be blocked inside channels they created; those attempts file a report.
+- **Kicking**: a channel's creator can remove a member, who cannot rejoin by link, code, public entry or direct invite until the creator allows them back from the channel's Removed members list. Admin I and II cannot be kicked; the attempt files a report.
+- **Reporting**: members report others with a reason and optional details, channel and message. Reports and kicks are recorded in the audit log for Admin I and II.
 - **Multi-Message Pinning (Phase 4)**: up to 10 pinned messages per channel in a collapsible tray at the top of the channel. Pinned messages are exempt from text, media and burn-after-reading timers while pinned; already-destroyed messages cannot be pinned.
 - **User Tags (Phase 3)**: every member has a unique, editable `@tag`. Members can be found by tag or name from the profile (`/members/search`).
 - **Mentions**: `@tag` mentions of channel members are highlighted and open the member card; tags of non-members stay plain text.
@@ -30,6 +33,7 @@ This project adheres to the **JLDN Generational Versioning Schema (GVS)** (`[YYM
 - The in-channel network map (`/c/{room}/radar`) is restricted to Admin I.
 
 ### Security
+- Fixed replies quoting messages from other channels: a reply could reference any message id and show its sender and opening text. Replies must now point at a message in the same channel.
 - Fixed stored XSS in chat messages: a crafted link could add an event handler to the rendered `<a>`. Messages are now sanitized with DOMPurify and quotes are escaped.
 - Fixed stored XSS in the member card through the profile location field.
 - Changing the primary email now clears its verification and sends a new link.

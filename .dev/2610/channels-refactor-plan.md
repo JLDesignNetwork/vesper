@@ -43,6 +43,8 @@ Backlog items live in [`backlog.json`](backlog.json).
 | Q10 | Secured clearance clears on route exit, `pagehide`, or 15 minutes idle, enforced server-side. |
 | D1 | Only the channel creator and Admin I may purge (destroy) a channel (`CHAN-ISSUE-02`). |
 | D2 | The in-channel radar (IPs, ISP, GPS) is Admin I only (`CHAN-ISSUE-03`). |
+| Q11 | Admin III can be blocked and kicked like any member, except inside channels they created: a block against them does not apply there, and blocking them from inside such a channel files a report. Admin I and II still cannot be blocked or kicked. |
+| Q12 | A creator can let a kicked member back (`MOD-IDEA-01`, approved). |
 | A3 | Ban-vote subject sees "Your account is restricted pending an admin review", no details. |
 
 ## Audit pass 1 findings (applied)
@@ -123,3 +125,15 @@ Backlog items live in [`backlog.json`](backlog.json).
 - Pinned messages are shown to every member, including members whose personal countdown had already run out before the pin.
 - Channel expiry and purge still remove pinned messages.
 
+## Phase 5 implementation notes (2026-10-16)
+
+- `user_blocks` (one row per direction) and `BlockService`. A block hides both members from each other everywhere content flows: message feed, reply previews, reactions, pinned tray, presence, mention highlighting, member search, member card, email notifications and translation by id. The hidden-member list is cached per user for an hour and cleared on block/unblock.
+- Unblocking removes only your own block; if the other member also blocked you, you stay hidden from each other.
+- A sender's self-destruct timer no longer waits for members who blocked them (they never see the message).
+- Kicking: `room_user.status = kicked` plus `kicked_by_user_id` / `kicked_at`. Only the channel creator can kick; Admin I has no kick override (spec: "kicking can only be done by the channel creator"). `ChannelAccessService` checks the kicked status on entry, on every channel request and for visibility, which closes the per-request membership gap noted in Phase 2.
+- Invite links, codes, public entry and Admin I direct invites all refuse a kicked member until the creator lets them back (Q12). Allow back sets the membership to `declined`, so a private channel needs a new invitation and a public one can simply be reopened.
+- In private channels, `mayContinue` also ends access for a membership that exists but is no longer active, so a session clearance left over from before a kick cannot be reused after Allow back.
+- Block and kick against Admin I/II file a report (`origin` `block_attempt` / `kick_attempt`) and return the same response as a real block or kick (Q3). The member card hides Block and Remove for members shown as Admin.
+- Admin III (Q11): blocked and kicked like anyone else (they can never be kicked from their own channel because only its creator kicks). Inside a channel they created, blocks against them are ignored in both directions; a block the Admin III placed still applies. Blocking them from inside their channel files a report with the normal confirmation.
+- Reports: `reports` table (reporter, subject, optional channel and message, reason, details, status). Reports and kicks are written to the audit log with moderation visibility, readable by Admin I and II. The review screens are Phase 7.
+- Found and fixed `MSG-ISSUE-03`: a reply could quote a message from any channel.

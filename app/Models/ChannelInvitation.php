@@ -70,11 +70,12 @@ class ChannelInvitation extends Model
     }
 
     /**
-     * Redeem this invitation for a specific user.
+     * Redeem this invitation for a specific user. Members kicked from the channel
+     * cannot rejoin through any link or code.
      */
     public function consume(User $user): bool
     {
-        if (! $this->isValid()) {
+        if (! $this->isValid() || $this->room->isKicked($user)) {
             return false;
         }
 

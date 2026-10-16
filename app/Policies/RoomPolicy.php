@@ -42,6 +42,15 @@ class RoomPolicy
     }
 
     /**
+     * Determine whether the user may kick members from the channel. Only the channel's
+     * creator may; Admin I has no kick override.
+     */
+    public function kickMembers(User $user, Room $room): bool
+    {
+        return $room->isCreatedBy($user);
+    }
+
+    /**
      * Determine whether the user may pin or unpin messages in the channel.
      */
     public function pinMessages(User $user, Room $room): bool
