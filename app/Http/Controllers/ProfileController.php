@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ChannelType;
+use App\Enums\Rank;
 use App\Models\AccessLog;
 use App\Services\GeoLocationService;
 use App\Services\LanguageService;
@@ -43,6 +45,11 @@ class ProfileController extends Controller
             'channels' => $channels,
             'pendingInvites' => $pendingInvites,
             'canUsePinlessEntry' => $canUsePinlessEntry,
+            'creatableChannelTypes' => $user->hasRank(Rank::AdminOne) ? ChannelType::cases() : ChannelType::memberCreatable(),
+            'pinSecuredChannelTypes' => collect(ChannelType::cases())
+                ->filter(fn (ChannelType $type): bool => $type->isSecured() && ! $type->isPasskeyOnly())
+                ->map(fn (ChannelType $type): string => $type->value)
+                ->values(),
         ]);
     }
 

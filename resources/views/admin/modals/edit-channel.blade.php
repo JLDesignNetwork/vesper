@@ -33,13 +33,14 @@
                 </div>
 
                 <div>
-                    <label class="block font-medium text-slate-300 mb-1.5">{{ __('Channel PIN') }}</label>
+                    <label for="edit-input-pin" class="block font-medium text-slate-300 mb-1.5">{{ __('New Channel PIN') }}</label>
                     <input
                         id="edit-input-pin"
                         type="text"
                         name="pin"
-                        required
-                        placeholder="PIN"
+                        minlength="4"
+                        autocomplete="off"
+                        placeholder="{{ __('Leave blank to keep the current PIN') }}"
                         class="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 font-mono text-sm focus:outline-none focus:border-emerald-500"
                     >
                 </div>

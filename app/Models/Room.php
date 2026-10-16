@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\ChannelType;
 use App\Services\LanguageService;
 use App\Services\RankService;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,6 +26,8 @@ class Room extends Model
     protected $fillable = [
         'code',
         'title',
+        'type',
+        'description',
         'passcode_hash',
         'duress_passcode_hash',
         'pin',
@@ -35,6 +39,17 @@ class Room extends Model
         'created_by_user_id',
         'pinned_message_id',
         'status',
+        'is_system',
+    ];
+
+    /**
+     * Default attribute values, mirrored from the database.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'type' => 'prs',
+        'is_system' => false,
     ];
 
     /**
@@ -49,7 +64,47 @@ class Room extends Model
             'notify_admin' => 'boolean',
             'expires_at' => 'datetime',
             'allowed_languages' => 'array',
+            'type' => ChannelType::class,
+            'is_system' => 'boolean',
         ];
+    }
+
+    /**
+     * Write-only channel PIN. Setting it stores only a hash in passcode_hash; reading
+     * it always returns null, so a PIN can never be displayed or emailed after it is set.
+     */
+    protected function pin(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): ?string => null,
+            set: fn (?string $value): array => [
+                'passcode_hash' => ($value === null || trim($value) === '') ? null : Hash::make(trim($value)),
+            ],
+        );
+    }
+
+    /**
+     * Whether entry to this channel needs a credential each time it is opened.
+     */
+    public function isSecured(): bool
+    {
+        return $this->type->isSecured();
+    }
+
+    /**
+     * Whether this channel appears in the public directory.
+     */
+    public function isPublic(): bool
+    {
+        return $this->type->isPublic();
+    }
+
+    /**
+     * Whether the user created this channel.
+     */
+    public function isCreatedBy(?User $user): bool
+    {
+        return $user !== null && (int) $this->created_by_user_id === $user->id;
     }
 
     /**
@@ -170,11 +225,7 @@ class Room extends Model
      */
     public function verifyPasscode(string $passcode): bool
     {
-        if (! empty($this->pin) && $this->pin === $passcode) {
-            return true;
-        }
-
-        return ! empty($this->passcode_hash) && Hash::check($passcode, $this->passcode_hash);
+        return $passcode !== '' && ! empty($this->passcode_hash) && Hash::check($passcode, $this->passcode_hash);
     }
 
     /**

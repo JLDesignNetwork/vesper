@@ -24,7 +24,7 @@ test('clearance is required to react to messages', function () {
         'content' => 'Classified transmission',
     ]);
 
-    $response = $this->postJson(route('messages.react', [
+    $response = $this->actingAs(User::factory()->create())->postJson(route('messages.react', [
         'room' => 'TACT-01',
         'message' => $message->id,
     ]), ['emoji' => '👍']);
@@ -102,7 +102,7 @@ test('media streaming supports direct download with Content-Disposition attachme
 
     $file = UploadedFile::fake()->image('recon_satellite.jpg', 600, 400);
 
-    $storeResponse = $this->withSession([
+    $storeResponse = $this->actingAs(User::factory()->create(['name' => 'Analyst']))->withSession([
         "room_clearance_{$room->id}" => true,
         "room_alias_{$room->id}" => 'Analyst',
     ])->postJson(route('messages.store', ['room' => 'TACT-MEDIA']), [
@@ -115,7 +115,7 @@ test('media streaming supports direct download with Content-Disposition attachme
     expect($message)->not->toBeNull();
 
     // Stream with ?download=1
-    $downloadResponse = $this->withSession([
+    $downloadResponse = $this->actingAs(User::factory()->create(['name' => 'Director']))->withSession([
         "room_clearance_{$room->id}" => true,
         "room_alias_{$room->id}" => 'Director',
     ])->get(route('messages.attachment', [
@@ -142,7 +142,7 @@ test('messages can quote and reply to previous messages', function () {
         'content' => 'Deploy team to sector 7 immediately.',
     ]);
 
-    $replyResponse = $this->withSession([
+    $replyResponse = $this->actingAs(User::factory()->create(['name' => 'Echo']))->withSession([
         "room_clearance_{$room->id}" => true,
         "room_alias_{$room->id}" => 'Echo',
     ])->postJson(route('messages.store', ['room' => 'TACT-REPLY']), [
@@ -172,7 +172,7 @@ test('messages with ttl_seconds auto-expire and are excluded from message stream
     ]);
 
     // Create a message expiring in 30 seconds
-    $sendResponse = $this->withSession([
+    $sendResponse = $this->actingAs(User::factory()->create(['name' => 'Ghost']))->withSession([
         "room_clearance_{$room->id}" => true,
         "room_alias_{$room->id}" => 'Ghost',
     ])->postJson(route('messages.store', ['room' => 'TACT-TTL']), [
@@ -227,7 +227,7 @@ test('in a group chat each operative receives their own independent self-destruc
     ]);
 
     // Ghost transmits a 30s self-destruct message
-    $sendResponse = $this->withSession([
+    $sendResponse = $this->actingAs(User::factory()->create(['name' => 'Ghost']))->withSession([
         "room_clearance_{$room->id}" => true,
         "room_alias_{$room->id}" => 'Ghost',
     ])->postJson(route('messages.store', ['room' => 'TACT-GROUP-TTL']), [

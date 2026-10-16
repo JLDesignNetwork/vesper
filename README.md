@@ -3,7 +3,7 @@
 [![GVS Version](https://img.shields.io/badge/GVS-2609.11.0--bs-059669?style=flat-square&logo=git&logoColor=white)](CHANGELOG.md)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jldesignnetwork)
 [![Platform Status](https://img.shields.io/badge/Status-Active%20Defense-0284c7?style=flat-square)]()
-[![Pest Tests](https://img.shields.io/badge/Tests-254%20Passing-10b981?style=flat-square&logo=pest&logoColor=white)]()
+[![Pest Tests](https://img.shields.io/badge/Tests-348%20Passing-10b981?style=flat-square&logo=pest&logoColor=white)]()
 
 > **Vesper Enterprise** — Private, encrypted communications platform with real-time network visualization, ephemeral secure channels, and enterprise-grade privacy controls.
 
@@ -18,12 +18,13 @@
 ## Key Features
 
 ### 1. Ephemeral Secure Channels & Split Lifecycles
-- **Passcode & Access Gate**: Dual-credential authentication (Channel Code + Secret PIN) with rate limiting against brute-force intrusion.
+- **Channel Types & Access Gate**: Six channel types — private or public, PIN-secured or free entry, plus two rank-restricted admin channels (`pra`, `pra-2`). Private channels are joined only by invitation; public channels are listed in the directory (`/directory`). Secured channels need their PIN, or 2FA or a passkey, each time they are opened, and close after 15 minutes without member activity. PINs are stored only as hashes, entry is rate limited, and every channel requires a signed-in account.
+- **Member-Run Channels**: Any member can create channels and edit them from a creator-only settings modal.
 - **Encrypted Message Stream**: End-to-end verified communication stream with encrypted payloads, inline audio, video, photos, and media attachments.
 - **Independent Dual TTL Self-Destruct Timers**: Configurable independent countdowns for text content and media attachments (`media_ttl_seconds`), ensuring media can burn separately without prematurely destroying context.
 - **Optimistic UI & Low Latency**: 0ms perceptual transmission with instant rendering and deferred background translation (`defer(...)`), reducing server response times to ~15-30ms.
 - **Auto-Expiration & Scheduled Retention**: Configurable TTL timers automatically expunge channels, messages, attachments, and access logs upon expiration.
-- **Instant Channel Purge**: Administrative and host controls to purge channel data, expunge assets, or revoke active invitations instantly.
+- **Instant Channel Purge**: The channel creator and Admin I can purge channel data and expunge assets instantly. The seeded admin channels cannot be purged.
 
 ### 2. Ergonomic Mobile-First & Theming Experience
 - **Mobile-First Input Modal**: Automatic bottom-sheet input expansion on mobile screens (< 640px) with dedicated safe-area padding (`pb-safe`), live character counters, and dual TTL selectors.
@@ -73,7 +74,7 @@
 - **Backend**: Laravel 12.x (PHP 8.4+)
 - **Frontend**: Blade templates, TailwindCSS, Vanilla JavaScript (ES6+), Leaflet.js
 - **Asset Pipeline**: Vite 8.x
-- **Testing**: Pest PHP (254 tests, 1184 assertions — 100% passing)
+- **Testing**: Pest PHP (348 tests, 1499 assertions — 100% passing)
 - **Mail Handling**: ServBay Mailpit (SMTP port 1025, Web UI port 18025)
 - **Local Environment**: ServBay Pro / macOS / PHP 8.4
 

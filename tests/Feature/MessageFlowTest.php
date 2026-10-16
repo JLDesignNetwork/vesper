@@ -17,7 +17,7 @@ test('a user with clearance can transmit a text message', function () {
         'status' => 'active',
     ]);
 
-    $response = $this->withSession([
+    $response = $this->actingAs(User::factory()->create(['name' => 'Ghost']))->withSession([
         "room_clearance_{$room->id}" => true,
         "room_alias_{$room->id}" => 'Ghost',
     ])->postJson(route('messages.store', ['room' => 'CHAT-01']), [
@@ -48,7 +48,7 @@ test('a user can upload an encrypted image attachment', function () {
 
     $file = UploadedFile::fake()->image('surveillance.jpg', 600, 400);
 
-    $response = $this->withSession([
+    $response = $this->actingAs(User::factory()->create(['name' => 'Analyst']))->withSession([
         "room_clearance_{$room->id}" => true,
         "room_alias_{$room->id}" => 'Analyst',
     ])->postJson(route('messages.store', ['room' => 'IMG-SAFE']), [
@@ -77,7 +77,7 @@ test('a user can upload a video attachment', function () {
 
     $file = UploadedFile::fake()->create('briefing.mp4', 1024, 'video/mp4');
 
-    $response = $this->withSession([
+    $response = $this->actingAs(User::factory()->create(['name' => 'Director']))->withSession([
         "room_clearance_{$room->id}" => true,
         "room_alias_{$room->id}" => 'Director',
     ])->postJson(route('messages.store', ['room' => 'VID-SAFE']), [
@@ -102,7 +102,7 @@ test('empty messages without attachments are rejected', function () {
         'status' => 'active',
     ]);
 
-    $response = $this->withSession([
+    $response = $this->actingAs(User::factory()->create())->withSession([
         "room_clearance_{$room->id}" => true,
     ])->postJson(route('messages.store', ['room' => 'FAIL-01']), [
         'content' => '',
@@ -132,7 +132,7 @@ test('live polling returns new messages since after_id', function () {
         'content' => 'Second transmission',
     ]);
 
-    $response = $this->withSession([
+    $response = $this->actingAs(User::factory()->create())->withSession([
         "room_clearance_{$room->id}" => true,
     ])->getJson(route('messages.index', [
         'room' => 'POLL-01',
@@ -213,7 +213,7 @@ test('a user can send message with independent text and media ttl timers', funct
 
     $file = UploadedFile::fake()->image('intel.png', 200, 200);
 
-    $response = $this->withSession([
+    $response = $this->actingAs(User::factory()->create(['name' => 'Agent47']))->withSession([
         "room_clearance_{$room->id}" => true,
         "room_alias_{$room->id}" => 'Agent47',
     ])->postJson(route('messages.store', ['room' => 'DUAL-TTL-1']), [

@@ -527,8 +527,27 @@
                                 {{ $channels->count() }}
                             </span>
                         </h2>
-                        <p class="text-xs text-slate-400 mt-0.5">{{ __('Strict zero discovery: only enrolled channels are accessible.') }}</p>
+                        <p class="text-xs text-slate-400 mt-0.5">{{ __('Channels you belong to. Private channels stay hidden from everyone else.') }}</p>
                     </div>
+
+                    <div class="flex items-center gap-2 flex-wrap">
+                    <a
+                        href="{{ route('channels.directory') }}"
+                        class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-200 text-xs font-medium flex items-center gap-2 transition-colors shadow-sm"
+                    >
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                        <span>{{ __('Browse Public Channels') }}</span>
+                    </a>
+
+                    <button
+                        type="button"
+                        id="open-create-channel"
+                        onclick="openChannelModal('create-channel-modal')"
+                        class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-medium flex items-center gap-2 cursor-pointer transition-colors shadow-sm"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                        <span>{{ __('Create Channel') }}</span>
+                    </button>
 
                     <!-- Redeem Code Button -->
                     <button
@@ -539,6 +558,7 @@
                         <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
                         <span>{{ __('Redeem Invite Code') }}</span>
                     </button>
+                    </div>
                 </div>
 
                 <!-- Channels List or Zero-Channel Empty State -->
@@ -579,7 +599,21 @@
                                 </div>
 
                                 <!-- Channel Entry Form -->
-                                <div class="mt-5 pt-3 border-t border-slate-800/60">
+                                <div class="mt-5 pt-3 border-t border-slate-800/60 space-y-2">
+                                    @can('update', $channel)
+                                        <button
+                                            type="button"
+                                            class="channel-settings-button w-full py-2 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs border border-slate-800 hover:border-slate-700 transition-colors cursor-pointer"
+                                            data-action="{{ route('channels.update', $channel->id) }}"
+                                            data-title="{{ $channel->title }}"
+                                            data-description="{{ $channel->description }}"
+                                            data-type="{{ $channel->type->value }}"
+                                            data-system="{{ $channel->is_system ? '1' : '0' }}"
+                                            onclick="openChannelSettings(this)"
+                                        >
+                                            {{ __('Channel Settings') }}
+                                        </button>
+                                    @endcan
                                     <form method="POST" action="{{ route('channels.enter', $channel->id) }}">
                                         @csrf
                                         @if($canUsePinlessEntry)
@@ -696,7 +730,131 @@
         </div>
     </div>
 
+    <!-- Modal: Create Channel -->
+    <div id="create-channel-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden p-4 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="create-channel-heading">
+        <div class="w-full max-w-md max-h-[90vh] overflow-y-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl font-sans">
+            <div class="flex items-center justify-between p-5 border-b border-slate-800">
+                <div>
+                    <h3 id="create-channel-heading" class="text-sm font-semibold text-white tracking-tight">{{ __('Create Channel') }}</h3>
+                    <p class="text-[11px] text-slate-400">{{ __('You will own and moderate this channel.') }}</p>
+                </div>
+                <button type="button" onclick="closeChannelModal('create-channel-modal')" class="text-slate-400 hover:text-white cursor-pointer text-sm" aria-label="{{ __('Close') }}">✕</button>
+            </div>
+            <form method="POST" action="{{ route('channels.store') }}" class="p-5 space-y-4">
+                @csrf
+                <div>
+                    <label for="create-channel-title" class="block text-xs font-medium text-slate-300 mb-1.5">{{ __('Name') }}</label>
+                    <input id="create-channel-title" name="title" type="text" maxlength="100" required value="{{ old('title') }}" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500/60">
+                </div>
+                <div>
+                    <label for="create-channel-description" class="block text-xs font-medium text-slate-300 mb-1.5">{{ __('Description') }} <span class="text-slate-500">({{ __('optional') }})</span></label>
+                    <textarea id="create-channel-description" name="description" rows="2" maxlength="500" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500/60">{{ old('description') }}</textarea>
+                </div>
+                <div>
+                    <label for="create-channel-type" class="block text-xs font-medium text-slate-300 mb-1.5">{{ __('Type') }}</label>
+                    <select id="create-channel-type" name="type" onchange="syncPinField(this)" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500/60">
+                        @foreach($creatableChannelTypes as $channelType)
+                                <option value="{{ $channelType->value }}" @selected(old('type', 'prs') === $channelType->value)>{{ __($channelType->label()) }}</option>
+                            @endforeach
+                    </select>
+                    <p class="text-[11px] text-slate-500 mt-1.5">{{ __('Private channels are hidden and joined by invitation. Public channels appear in the directory.') }}</p>
+                </div>
+                <div class="pin-field">
+                    <label for="create-channel-pin" class="block text-xs font-medium text-slate-300 mb-1.5">{{ __('Channel PIN') }}</label>
+                    <input id="create-channel-pin" name="pin" type="password" minlength="4" maxlength="64" autocomplete="new-password" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm font-mono focus:outline-none focus:border-emerald-500/60">
+                    <p class="text-[11px] text-slate-500 mt-1.5">{{ __('At least 4 characters. It is stored encrypted and cannot be shown again, so share it carefully.') }}</p>
+                </div>
+                <div>
+                    <label for="create-channel-expiration" class="block text-xs font-medium text-slate-300 mb-1.5">{{ __('Self-destruct') }}</label>
+                    <select id="create-channel-expiration" name="expiration" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500/60">
+                        <option value="permanent">{{ __('Never') }}</option>
+                        <option value="7d">{{ __('After 7 days') }}</option>
+                        <option value="24h">{{ __('After 24 hours') }}</option>
+                        <option value="1h">{{ __('After 1 hour') }}</option>
+                    </select>
+                </div>
+                <div class="flex items-center justify-end gap-2.5 pt-2">
+                    <button type="button" onclick="closeChannelModal('create-channel-modal')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer">{{ __('Cancel') }}</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-medium cursor-pointer">{{ __('Create Channel') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Channel Settings (creator only) -->
+    <div id="channel-settings-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden p-4 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="channel-settings-heading">
+        <div class="w-full max-w-md max-h-[90vh] overflow-y-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl font-sans">
+            <div class="flex items-center justify-between p-5 border-b border-slate-800">
+                <h3 id="channel-settings-heading" class="text-sm font-semibold text-white tracking-tight">{{ __('Channel Settings') }}</h3>
+                <button type="button" onclick="closeChannelModal('channel-settings-modal')" class="text-slate-400 hover:text-white cursor-pointer text-sm" aria-label="{{ __('Close') }}">✕</button>
+            </div>
+            <form id="channel-settings-form" method="POST" action="" class="p-5 space-y-4">
+                @csrf
+                @method('PUT')
+                <div>
+                    <label for="settings-channel-title" class="block text-xs font-medium text-slate-300 mb-1.5">{{ __('Name') }}</label>
+                    <input id="settings-channel-title" name="title" type="text" maxlength="100" required class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500/60">
+                </div>
+                <div>
+                    <label for="settings-channel-description" class="block text-xs font-medium text-slate-300 mb-1.5">{{ __('Description') }}</label>
+                    <textarea id="settings-channel-description" name="description" rows="2" maxlength="500" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500/60"></textarea>
+                </div>
+                <div id="settings-type-field">
+                    <label for="settings-channel-type" class="block text-xs font-medium text-slate-300 mb-1.5">{{ __('Type') }}</label>
+                    <select id="settings-channel-type" name="type" onchange="syncPinField(this)" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500/60">
+                        @foreach($creatableChannelTypes as $channelType)
+                            <option value="{{ $channelType->value }}">{{ __($channelType->label()) }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="pin-field">
+                    <label for="settings-channel-pin" class="block text-xs font-medium text-slate-300 mb-1.5">{{ __('New PIN') }}</label>
+                    <input id="settings-channel-pin" name="pin" type="password" minlength="4" maxlength="64" autocomplete="new-password" placeholder="{{ __('Leave blank to keep the current PIN') }}" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm font-mono focus:outline-none focus:border-emerald-500/60">
+                </div>
+                <div class="flex items-center justify-end gap-2.5 pt-2">
+                    <button type="button" onclick="closeChannelModal('channel-settings-modal')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer">{{ __('Cancel') }}</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-medium cursor-pointer">{{ __('Save Settings') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Client-Side Javascript Handlers -->
+    <script>
+        const PIN_SECURED_TYPES = @json($pinSecuredChannelTypes);
+
+        function openChannelModal(id) {
+            document.getElementById(id)?.classList.remove('hidden');
+        }
+
+        function closeChannelModal(id) {
+            document.getElementById(id)?.classList.add('hidden');
+        }
+
+        function syncPinField(select) {
+            const pinField = select.closest('form').querySelector('.pin-field');
+            if (pinField) pinField.hidden = ! PIN_SECURED_TYPES.includes(select.value);
+        }
+
+        function openChannelSettings(button) {
+            const form = document.getElementById('channel-settings-form');
+            form.action = button.dataset.action;
+            document.getElementById('settings-channel-title').value = button.dataset.title || '';
+            document.getElementById('settings-channel-description').value = button.dataset.description || '';
+            const typeSelect = document.getElementById('settings-channel-type');
+            typeSelect.value = button.dataset.type;
+            document.getElementById('settings-type-field').hidden = button.dataset.system === '1';
+            document.getElementById('settings-channel-pin').value = '';
+            syncPinField(typeSelect);
+            openChannelModal('channel-settings-modal');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => syncPinField(document.getElementById('create-channel-type')));
+        @if($errors->hasAny(['title', 'type', 'pin', 'description']) && old('_method') !== 'PUT')
+            document.addEventListener('DOMContentLoaded', () => openChannelModal('create-channel-modal'));
+        @endif
+    </script>
+
     <script>
         function openRedeemModal() {
             const modal = document.getElementById('redeem-modal');

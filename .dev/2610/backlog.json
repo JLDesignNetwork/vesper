@@ -53,30 +53,33 @@
   {
     "id": "CHAN-ISSUE-01",
     "title": "Channel PINs are stored and compared in plaintext",
-    "status": "pending",
+    "status": "completed",
     "severity": "high",
     "priority": "critical-2",
     "existed_since": "2609.11.0-bs",
     "created_at": "2026-10-16T12:25:00+02:00",
-    "details": "Room::verifyPasscode compares $this->pin === $passcode and invite emails include the PIN. Hash PINs into passcode_hash, drop the plaintext column, and send invite links without PINs. Phase 2."
+    "details": "Fixed: Room::pin is now a write-only attribute that stores only a hash in passcode_hash; the migration hashes existing PINs and drops the plaintext column. verifyPasscode checks the hash only. The admin console no longer shows or copies PINs (edit modal: blank keeps the PIN), invitation emails and the direct-invite status message no longer include it. Covered by ChannelManagementTest (no plaintext in the row, PIN still opens, blank PIN kept).",
+    "protected": "open"
   },
   {
     "id": "CHAN-TODO-01",
     "title": "Add channel types, member channel creation, and unified entry gate",
-    "status": "pending",
+    "status": "completed",
     "priority": "critical-2",
     "existed_since": "2609.11.0-bs",
     "created_at": "2026-10-16T12:25:00+02:00",
-    "details": "Add rooms.type (prs prf pus puf pra pra-2), member channel creation and creator settings modal, ChannelAccessService checked on every channel request (AU-3), public directory with limited signed-out fields (AU-4), Q10 clearance lifetime refreshed only by user actions (AU-2), Admin I audited override (Q1), and seeded undeletable pra / pra-2 system channels (Q8). Phase 2."
+    "details": "Added ChannelType enum and rooms.type/description/is_system (existing rooms become prs); ChannelAccessService (visibility, entry decision, continued access, 15-minute idle clearance); EnsureChannelClearance middleware on every in-channel route (AU-2, AU-3); member channel creation and creator settings (ChannelController, profile modals); public directory at /directory with limited signed-out details (AU-4); seeded undeletable PRA/PRA-2 system channels (Q8); Admin I audited override kept (Q1); room page heartbeat on real input and pagehide lock (Q10). Private channels are joined only by creation or invitation. Covered by ChannelAccessServiceTest, ChannelClearanceTest, ChannelManagementTest.",
+    "protected": "open"
   },
   {
     "id": "CHAN-TODO-02",
     "title": "Retire guest mode and add guest restriction tests",
-    "status": "pending",
+    "status": "completed",
     "priority": "critical-2",
     "existed_since": "2609.11.0-bs",
     "created_at": "2026-10-16T12:25:00+02:00",
-    "details": "Remove guest entry from RoomController::verify. Convert existing guest cases in GeoLocationTest, SecurityHardeningTest, RoomSecurityTest, PrivacySettingsTest to signed-in users without weakening assertions. Add GuestRestrictionsTest asserting every non-directory route refuses signed-out visitors and writes nothing (owner approval A2). Phase 2."
+    "details": "Retired guest mode: every channel route requires sign-in and the entry page's register/sign-in forms were removed. Converted the guest cases in GeoLocationTest, SecurityHardeningTest, RoomSecurityTest, PrivacySettingsTest, MessageFlowTest, TacticalFeaturesTest, ProfileAvatarTest and RussianLocalizationTest to signed-in users without removing assertions. Added GuestRestrictionsTest: 20 routes refused with nothing written, sign-in returns to the channel, directory browsable with limited details.",
+    "protected": "open"
   },
   {
     "id": "MSG-TODO-01",
@@ -121,7 +124,7 @@
     "priority": "high-3",
     "existed_since": "2609.11.0-bs",
     "created_at": "2026-10-16T12:25:00+02:00",
-    "details": "Admin I full panel plus channel list; Admin II same partials with geolocation, IP, and access-log location excluded by policy (Q9); Admin III My Channels view scoped to own channels only (Q9, AU-5); rank-scoped channel profile modal; public rank labels Member/Admin only; strings in all 15 languages. Phase 7."
+    "details": "Admin I full panel plus channel list; Admin II same partials with geolocation, IP, and access-log location excluded by policy (Q9); Admin III My Channels view scoped to own channels only (Q9, AU-5); rank-scoped channel profile modal; public rank labels Member/Admin only; strings in all 15 languages. Phase 7. Also translate the new Phase 1/2 strings (verification banner, channel creation/settings, directory) into all 15 languages."
   },
   {
     "id": "AUTH-TODO-02",
@@ -130,7 +133,7 @@
     "priority": "high-3",
     "existed_since": "2609.11.0-bs",
     "created_at": "2026-10-16T12:25:00+02:00",
-    "details": "Biometric setup requires verified primary email plus verified recovery email or confirmed 2FA (Q5, A1). Passkey or TOTP replaces PIN on prs, pus, pra-2 with per-channel opt-out; pra is passkey-only (AU-10). Phase 8."
+    "details": "Biometric setup requires verified primary email plus verified recovery email or confirmed 2FA (Q5, A1). Passkey or TOTP replaces PIN on prs, pus, pra-2 with per-channel opt-out; pra is passkey-only (AU-10). Phase 8. Phase 2 interim: pra admits Admin I/II who have an enrolled passkey; a fresh passkey assertion on each entry is still to be built here. The per-channel opt-out is stored in room_user.biometric_entry and honoured by ChannelAccessService; its toggle UI belongs here."
   },
   {
     "id": "ROOT-TODO-02",
@@ -193,6 +196,28 @@
     "existed_since": "2609.11.0-bs",
     "created_at": "2026-10-16T14:30:00+02:00",
     "details": "Fixed per owner decision (2026-10-16): the channel radar is Admin I only. IntelController::radar now requires the viewGeolocation gate (403 otherwise), and the Network Map button renders only for Admin I (it previously showed for any rank displayed as Admin). GeoLocationTest's radar test runs as Admin I; PrivacySettingsTest's peer section now asserts the peer is refused and receives none of the IPs or names, and that Admin I sees both members. The peer masking assertions were replaced because peers can no longer reach the endpoint.",
+    "protected": "open"
+  },
+  {
+    "id": "ADMN-ISSUE-01",
+    "title": "Generating an invitation link from the admin console crashed",
+    "status": "completed",
+    "severity": "high",
+    "priority": "high-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T17:30:00+02:00",
+    "details": "Fixed: AdminController::createInvite called ChannelInvitation::createForRoom() with createdByUser: but the parameter is creator:, so every link/code generation threw an unknown named argument error. The existing test only covered direct user invites. Covered by ChannelManagementTest.",
+    "protected": "open"
+  },
+  {
+    "id": "ADMN-ISSUE-02",
+    "title": "Invitation email button linked to #",
+    "status": "completed",
+    "severity": "medium",
+    "priority": "medium-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T17:30:00+02:00",
+    "details": "Fixed: ChannelInvitationNotification passed the link as invitation_url, which EmailTemplateService does not use for the button URL, so the 'Enter Secure Channel' button pointed to #. It now also passes channel_url. Covered by ChannelManagementTest.",
     "protected": "open"
   }
 ]

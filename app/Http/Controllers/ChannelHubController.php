@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ChannelEntry;
 use App\Models\ChannelInvitation;
 use App\Models\Room;
+use App\Services\ChannelAccessService;
 use App\Services\RankService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,7 +18,8 @@ class ChannelHubController extends Controller
      * Create a new controller instance.
      */
     public function __construct(
-        protected RankService $rankService
+        protected RankService $rankService,
+        protected ChannelAccessService $channelAccess
     ) {}
 
     /**
@@ -57,41 +60,24 @@ class ChannelHubController extends Controller
     public function enter(Room $room, Request $request): RedirectResponse
     {
         $user = $request->user();
+        $entry = $this->channelAccess->entryFor($user, $room);
 
-        // Verify membership
-        if (! $room->isMember($user)) {
+        if ($entry === ChannelEntry::Denied) {
             return redirect()->route('profile.show')->withErrors([
-                'channel' => __('Access restricted. You are not a member of this channel.'),
+                'channel' => __('This channel is unavailable, or you are not a member of it.'),
             ]);
         }
 
-        if ($room->status !== 'active') {
-            return redirect()->route('profile.show')->withErrors([
-                'channel' => __('This channel is currently archived or inactive.'),
-            ]);
-        }
-
-        // Check if member qualifies for 2FA-guarded pinless entry
-        if ($user->canUsePinlessEntry()) {
-            $request->session()->put("room_clearance_{$room->id}", true);
-            $request->session()->put("room_alias_{$room->id}", $user->name);
-
-            // Update last accessed timestamp
-            DB::table('room_user')
-                ->where('room_id', $room->id)
-                ->where('user_id', $user->id)
-                ->update([
-                    'last_accessed_at' => now(),
-                    'updated_at' => now(),
-                ]);
+        if ($entry === ChannelEntry::Granted) {
+            $this->channelAccess->grantClearance($request, $room, $user->name);
+            $room->touchMemberAccess($user);
 
             return redirect()->route('rooms.show', ['room' => $room->code]);
         }
 
-        // If user does not have 2FA, they must supply the channel PIN
         return redirect()->route('rooms.show', ['room' => $room->code])->with(
-            'pin_notice',
-            __('Pinless entry requires Two-Factor Authentication. Please enter your channel PIN, or activate 2FA in Profile Settings to unlock instant pinless access.')
+            'status',
+            __('Enter the channel PIN, or turn on Two-Factor Authentication or a passkey in Profile Settings to open secured channels without it.')
         );
     }
 

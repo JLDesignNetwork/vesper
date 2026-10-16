@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Room;
+use App\Models\User;
 use App\Services\TranslationService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -44,7 +45,7 @@ test('message translation endpoint returns translated text into Russian', functi
         'status' => 'active',
     ]);
 
-    $response = $this->withSession([
+    $response = $this->actingAs(User::factory()->create())->withSession([
         "room_clearance_{$room->id}" => true,
     ])->postJson(route('messages.translate', ['room' => 'TRANS-01']), [
         'text' => 'Secret meeting at midnight',

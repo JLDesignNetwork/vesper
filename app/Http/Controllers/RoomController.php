@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Enums\AuditAction;
+use App\Enums\ChannelEntry;
 use App\Models\AccessLog;
 use App\Models\AdminAuditLog;
 use App\Models\Message;
 use App\Models\Room;
 use App\Models\User;
+use App\Services\ChannelAccessService;
 use App\Services\GeoLocationService;
-use App\Services\LanguageService;
 use App\Services\RankService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -18,7 +19,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class RoomController extends Controller
@@ -27,7 +27,8 @@ class RoomController extends Controller
      * Create a new controller instance.
      */
     public function __construct(
-        public GeoLocationService $geoLocationService
+        public GeoLocationService $geoLocationService,
+        protected ChannelAccessService $channelAccess
     ) {}
 
     /**
@@ -119,11 +120,13 @@ class RoomController extends Controller
     }
 
     /**
-     * Verify passkey and grant room clearance.
+     * Check the member's PIN (or 2FA / passkey eligibility) and open the channel.
+     * Private channels never reveal whether they exist to someone who may not enter.
      */
     public function verify(Request $request, string $code): RedirectResponse
     {
         $code = strtoupper(trim($code));
+        $user = $request->user();
         $clientIp = $this->geoLocationService->getClientIp($request);
         $rateLimitKey = 'room_auth_'.$clientIp.'_'.$code;
 
@@ -136,138 +139,48 @@ class RoomController extends Controller
         }
 
         $room = Room::where('code', $code)->where('status', 'active')->first();
+        $entry = $room ? $this->channelAccess->entryFor($user, $room) : ChannelEntry::Denied;
 
-        if (! $room || $room->isExpired()) {
-            return redirect()->route('portal')
-                ->withErrors(['code' => 'Channel does not exist, has expired, or was purged.']);
-        }
-
-        $passcode = (string) $request->input('passcode', '');
-        $isDuress = false;
-
-        if ($room->verifyDuressPasscode($passcode)) {
-            $isDuress = true;
-        } elseif (! $room->verifyPasscode($passcode)) {
+        if ($entry === ChannelEntry::Denied) {
             RateLimiter::hit($rateLimitKey, 120);
 
+            return redirect()->route('profile.show')
+                ->withErrors(['code' => __('Channel does not exist, has expired, or was purged.')]);
+        }
+
+        if ($entry === ChannelEntry::PasskeyRequired) {
             return back()->withErrors([
-                'passcode' => 'Invalid Secret Passcode. Transmission rejected.',
+                'passcode' => __('This channel opens only with a biometric passkey. Enroll one in your profile first.'),
             ]);
+        }
+
+        $isDuress = false;
+
+        if ($entry === ChannelEntry::PinRequired) {
+            $passcode = (string) $request->input('passcode', '');
+
+            if ($room->verifyDuressPasscode($passcode)) {
+                $isDuress = true;
+            } elseif (! $room->verifyPasscode($passcode)) {
+                RateLimiter::hit($rateLimitKey, 120);
+
+                return back()->withErrors([
+                    'passcode' => 'Invalid Secret Passcode. Transmission rejected.',
+                ]);
+            }
         }
 
         RateLimiter::clear($rateLimitKey);
 
-        $mode = $request->input('mode', 'guest');
-
-        if ($mode === 'register') {
-            $validated = $request->validate([
-                'name' => ['required', 'string', 'max:50'],
-                'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-                'password' => ['required', 'string', 'min:6'],
-                'preferred_locale' => ['nullable', 'string', Rule::in(LanguageService::codes())],
-                'birthday' => ['nullable', 'date', 'before:today'],
-                'gender' => ['nullable', 'string', 'max:30'],
-                'location' => ['nullable', 'string', 'max:100'],
-                'bio' => ['nullable', 'string', 'max:500'],
-                'email_notifications' => ['nullable', 'boolean'],
-            ]);
-
-            $prefLocale = $request->input('preferred_locale') ?: session('locale', 'en');
-            $validLocale = LanguageService::isValid($prefLocale) ? $prefLocale : 'en';
-
-            $member = User::create([
-                'name' => trim($validated['name']),
-                'email' => strtolower(trim($validated['email'])),
-                'password' => Hash::make($validated['password']),
-                'birthday' => ! empty($validated['birthday']) ? $validated['birthday'] : null,
-                'gender' => ! empty($validated['gender']) ? trim($validated['gender']) : null,
-                'location' => ! empty($validated['location']) ? trim($validated['location']) : null,
-                'bio' => ! empty($validated['bio']) ? trim($validated['bio']) : null,
-                'preferred_locale' => $validLocale,
-                'email_notifications' => $request->boolean('email_notifications'),
-            ]);
-
-            $member->sendEmailVerificationNotification();
-
-            Auth::login($member, true);
-            $request->session()->regenerate();
-            $effectiveLocale = $member->preferred_locale;
-            $request->session()->put('locale', $effectiveLocale);
-            app()->setLocale($effectiveLocale);
-            $alias = $member->name;
-        } elseif ($mode === 'login') {
-            $validated = $request->validate([
-                'login' => ['required', 'string'],
-                'password' => ['required', 'string'],
-            ]);
-
-            $loginInput = trim($validated['login']);
-            $field = filter_var($loginInput, FILTER_VALIDATE_EMAIL) ? 'email' : 'name';
-
-            if (! Auth::attempt([$field => $loginInput, 'password' => $validated['password']], true)) {
-                return back()->withErrors([
-                    'login' => __('Invalid credentials provided.'),
-                ]);
-            }
-
-            $request->session()->regenerate();
-            $user = Auth::user();
-            $effectiveLocale = $user->effectiveLocale();
-            $request->session()->put('locale', $effectiveLocale);
-            app()->setLocale($effectiveLocale);
-            $alias = $user->name;
-        } elseif (Auth::check()) {
-            $user = Auth::user();
-            $alias = $user->name;
-        } else {
-            $alias = trim((string) $request->input('alias', '')) ?: 'Guest_'.strtoupper(Str::random(4));
-        }
-
-        $sessionId = $request->session()->getId();
-
-        $request->session()->put("room_clearance_{$room->id}", true);
-        $request->session()->put("room_alias_{$room->id}", $alias);
+        $this->openChannel($request, $room, $user);
         $request->session()->put("room_is_duress_{$room->id}", $isDuress);
-
-        $geo = $this->geoLocationService->locate($clientIp);
-        $user = Auth::user();
-        $userId = $user?->id;
-        $lat = ($user && $user->hasGps()) ? $user->latitude : $geo['latitude'];
-        $lon = ($user && $user->hasGps()) ? $user->longitude : $geo['longitude'];
-        $city = ($user && $user->city) ? $user->city : $geo['city'];
-        $country = ($user && $user->country) ? $user->country : $geo['country'];
-        $countryCode = ($user && $user->country_code) ? $user->country_code : $geo['country_code'];
-
-        AccessLog::updateOrCreate(
-            [
-                'room_id' => $room->id,
-                'session_id' => $sessionId,
-            ],
-            [
-                'user_id' => $userId,
-                'alias' => $isDuress ? $alias.' [DURESS_TRIGGER]' : $alias,
-                'ip_address' => $clientIp,
-                'city' => $city,
-                'region' => $geo['region'],
-                'country' => $country,
-                'country_code' => $countryCode,
-                'latitude' => $lat,
-                'longitude' => $lon,
-                'isp' => $geo['isp'],
-                'user_agent' => $request->userAgent(),
-                'last_seen_at' => now(),
-            ]
-        );
-
-        if ($user) {
-            $room->addMember($user, 'member', null, $alias);
-        }
+        $this->recordAccess($request, $room, $isDuress ? $user->name.' [DURESS_TRIGGER]' : $user->name);
 
         return redirect()->route('rooms.show', ['room' => $room->code]);
     }
 
     /**
-     * Display the room or prompt for passkey if clearance is missing.
+     * Display the channel, or the entry gate when the member must present a PIN first.
      */
     public function show(Request $request, string $code): View|RedirectResponse
     {
@@ -275,104 +188,121 @@ class RoomController extends Controller
         $room = Room::where('code', $code)->where('status', 'active')->first();
 
         if (! $room) {
-            return redirect()->route('portal')
-                ->withErrors(['code' => 'Requested channel does not exist or has been terminated.']);
+            return redirect()->route('profile.show')
+                ->withErrors(['code' => __('Requested channel does not exist or has been terminated.')]);
         }
 
         if ($room->isExpired()) {
             $room->purgeAllMedia();
             $room->update(['status' => 'destroyed']);
+            app(RankService::class)->recomputeCreatorOf($room);
 
-            return redirect()->route('portal')
-                ->withErrors(['code' => 'This secure channel reached its expiration timer and was self-destructed.']);
+            return redirect()->route('profile.show')
+                ->withErrors(['code' => __('This secure channel reached its expiration timer and was self-destructed.')]);
         }
 
-        $hasClearance = $request->session()->get("room_clearance_{$room->id}", false);
+        $user = $request->user();
+        $hasClearance = $this->channelAccess->hasClearance($request, $room)
+            && $this->channelAccess->mayContinue($user, $room);
 
-        if (Auth::check()) {
-            $currentUser = Auth::user();
-            $isMember = $room->isMember($currentUser);
+        if (! $hasClearance) {
+            $entry = $this->channelAccess->entryFor($user, $room);
 
-            if ($currentUser->can('overrideAccess', $room)) {
-                $request->session()->put("room_clearance_{$room->id}", true);
-                $request->session()->put("room_alias_{$room->id}", $currentUser->name);
-                $hasClearance = true;
+            if ($entry === ChannelEntry::Denied) {
+                $this->channelAccess->revokeClearance($request, $room);
 
-                if (! $isMember) {
-                    AdminAuditLog::record(AuditAction::ChannelAccessOverride, actor: $currentUser, room: $room);
-                }
-            } elseif ($isMember) {
-                if ($currentUser->canUsePinlessEntry()) {
-                    $request->session()->put("room_clearance_{$room->id}", true);
-                    $request->session()->put("room_alias_{$room->id}", $currentUser->name);
-                    $hasClearance = true;
-                    $room->touchMemberAccess($currentUser);
-                } elseif ($hasClearance) {
-                    $request->session()->put("room_alias_{$room->id}", $currentUser->name);
-                }
-            } elseif ($hasClearance) {
-                $request->session()->put("room_alias_{$room->id}", $currentUser->name);
-            } else {
                 return redirect()->route('profile.show')
                     ->withErrors(['code' => __('Channel not found.')]);
             }
+
+            if ($entry !== ChannelEntry::Granted) {
+                return view('channel_entry', [
+                    'targetRoomCode' => $room->code,
+                    'roomTitle' => $room->title,
+                    'authMember' => $user,
+                    'requiresPasskey' => $entry === ChannelEntry::PasskeyRequired,
+                ]);
+            }
+
+            $this->openChannel($request, $room, $user);
         }
 
-        if (! $hasClearance) {
-            return view('channel_entry', [
-                'targetRoomCode' => $room->code,
-                'roomTitle' => $room->title,
-                'authMember' => Auth::user(),
-            ]);
+        if ($user->can('overrideAccess', $room) && ! $room->isMember($user)) {
+            AdminAuditLog::record(AuditAction::ChannelAccessOverride, actor: $user, room: $room);
         }
 
-        $alias = $request->session()->get("room_alias_{$room->id}", 'Guest');
-        $sessionId = $request->session()->getId();
+        $alias = $request->session()->get("room_alias_{$room->id}", $user->name);
+        $this->recordAccess($request, $room, $alias);
+
+        $userPreferredLocale = $user->preferred_locale ?: session('locale', config('app.locale', 'en'));
+
+        return view('room', [
+            'room' => $room,
+            'alias' => $alias,
+            'isAdmin' => $user->displaysAsAdmin(),
+            'canPinMessages' => $user->can('pinMessages', $room),
+            'canViewRadar' => $user->can('viewGeolocation'),
+            'canDestroyChannel' => $user->can('destroy', $room),
+            'clearanceIdleSeconds' => $room->isSecured() ? ChannelAccessService::CLEARANCE_IDLE_MINUTES * 60 : null,
+            'sessionId' => $request->session()->getId(),
+            'clientIp' => $this->geoLocationService->getClientIp($request),
+            'userPreferredLocale' => $userPreferredLocale,
+        ]);
+    }
+
+    /**
+     * Keep a secured channel open while the member is actively using it. The clearance
+     * middleware extends clearance on this request; polling does not.
+     */
+    public function heartbeat(): JsonResponse
+    {
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Grant clearance, enroll public-channel joiners and the creator as members, and
+     * record the member's latest access. Admin I opening a channel is not membership.
+     */
+    protected function openChannel(Request $request, Room $room, User $user): void
+    {
+        $this->channelAccess->grantClearance($request, $room, $user->name);
+
+        if ($room->isMember($user)) {
+            $room->touchMemberAccess($user);
+        } elseif ($room->isPublic() || $room->isCreatedBy($user)) {
+            $room->addMember($user, $room->isCreatedBy($user) ? 'owner' : 'member', null, $user->name);
+        }
+    }
+
+    /**
+     * Record (or refresh) this session's access log entry for the channel.
+     */
+    protected function recordAccess(Request $request, Room $room, string $alias): void
+    {
+        $user = $request->user();
         $clientIp = $this->geoLocationService->getClientIp($request);
-
         $geo = $this->geoLocationService->locate($clientIp);
-        $user = Auth::user();
-        $userId = $user?->id;
-        $lat = ($user && $user->hasGps()) ? $user->latitude : $geo['latitude'];
-        $lon = ($user && $user->hasGps()) ? $user->longitude : $geo['longitude'];
-        $city = ($user && $user->city) ? $user->city : $geo['city'];
-        $country = ($user && $user->country) ? $user->country : $geo['country'];
-        $countryCode = ($user && $user->country_code) ? $user->country_code : $geo['country_code'];
 
         AccessLog::updateOrCreate(
             [
                 'room_id' => $room->id,
-                'session_id' => $sessionId,
+                'session_id' => $request->session()->getId(),
             ],
             [
-                'user_id' => $userId,
+                'user_id' => $user?->id,
                 'alias' => $alias,
                 'ip_address' => $clientIp,
-                'city' => $city,
+                'city' => $user?->city ?: $geo['city'],
                 'region' => $geo['region'],
-                'country' => $country,
-                'country_code' => $countryCode,
-                'latitude' => $lat,
-                'longitude' => $lon,
+                'country' => $user?->country ?: $geo['country'],
+                'country_code' => $user?->country_code ?: $geo['country_code'],
+                'latitude' => ($user && $user->hasGps()) ? $user->latitude : $geo['latitude'],
+                'longitude' => ($user && $user->hasGps()) ? $user->longitude : $geo['longitude'],
                 'isp' => $geo['isp'],
                 'user_agent' => $request->userAgent(),
                 'last_seen_at' => now(),
             ]
         );
-
-        $userPreferredLocale = $user?->preferred_locale ?: session('locale', config('app.locale', 'en'));
-
-        return view('room', [
-            'room' => $room,
-            'alias' => $alias,
-            'isAdmin' => (bool) $user?->displaysAsAdmin(),
-            'canPinMessages' => (bool) $user?->can('pinMessages', $room),
-            'canViewRadar' => (bool) $user?->can('viewGeolocation'),
-            'canDestroyChannel' => (bool) $user?->can('destroy', $room),
-            'sessionId' => $sessionId,
-            'clientIp' => $clientIp,
-            'userPreferredLocale' => $userPreferredLocale,
-        ]);
     }
 
     /**
@@ -401,8 +331,7 @@ class RoomController extends Controller
         $room->accessLogs()->delete();
         $room->delete();
 
-        $request->session()->forget("room_clearance_{$room->id}");
-        $request->session()->forget("room_alias_{$room->id}");
+        $this->channelAccess->revokeClearance($request, $room);
 
         app(RankService::class)->recomputeCreatorOf($room);
 
@@ -419,8 +348,7 @@ class RoomController extends Controller
         $room = Room::where('code', $code)->first();
 
         if ($room) {
-            $request->session()->forget("room_clearance_{$room->id}");
-            $request->session()->forget("room_alias_{$room->id}");
+            $this->channelAccess->revokeClearance($request, $room);
         }
 
         return redirect()->route('portal')

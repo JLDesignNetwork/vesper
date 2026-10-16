@@ -9,25 +9,36 @@ This project adheres to the **JLDN Generational Versioning Schema (GVS)** (`[YYM
 ## [Unreleased]
 
 ### Added
+- **Channel Types (Phase 2)**: `rooms.type` with `prs`, `prf`, `pus`, `puf`, `pra`, `pra-2` (`App\Enums\ChannelType`). Existing rooms become private secured (`prs`). The `pra` (Admin I/II, passkey only) and `pra-2` (all admins) system channels are seeded and cannot be archived, deleted or purged.
+- **Member-Created Channels**: members create channels from their profile and edit them in a creator-only settings modal (`ChannelController`). Admin I can also create admin channels.
+- **Public Channel Directory** at `/directory`, browsable signed out with limited details and searchable.
+- **Unified Channel Access**: `ChannelAccessService` decides visibility, entry (PIN, 2FA/passkey, passkey-only) and continued access; `EnsureChannelClearance` re-checks every in-channel request.
+- **Secured Channel Timeout**: secured channels close after 15 minutes without member activity, when the page is left (`pagehide`), or when locked. Polling does not count as activity; real input sends a heartbeat at most once a minute.
 - **Five-Rank Hierarchy**: replaced the `admin`/`member` role with ranks Admin I, Admin II, Admin III, User I and User II (`App\Enums\Rank`). Admin III, User I and User II are computed from qualifying channels (active, unexpired, a message in the last 10 days, 10+ verified members not counting the creator) by `RankService`, nightly via `vesper:recompute-ranks` and immediately on membership or channel status changes. Public views show only "Admin" (Admin I/II) or "Member".
 - **Admin II Appointment**: Admin I can appoint and revoke Admin II from the members panel. Appointment requires a verified email, a verified recovery email or 2FA, and an enrolled passkey, and lists whatever is missing. Admin II cannot remove their last passkey.
 - **Primary Email Verification**: signed 24-hour verification links on registration, resend from the profile banner, and provider-confirmed verification for Google and Apple sign-ins.
 - **Admin Audit Log**: records rank changes, Admin II appointments and revocations, and Admin I entering channels they are not a member of. Admin I reads all entries; Admin II reads moderation entries only.
 
 ### Changed
+- **Guest mode retired**: every channel route requires a signed-in account. Signed-out visitors following a channel link sign in and return to it.
+- Private channels can no longer be joined with a code and PIN alone; they are joined by creating them or accepting an invitation. Public secured channels still accept their PIN.
 - All privilege checks moved to `UserPolicy`, `RoomPolicy` and the `accessAdminPanel` / `viewGeolocation` gates. Hidden profile fields are visible only to the member and Admin I. The admin console is Admin I only until the Admin II view lands.
 - Purging a channel is restricted to its creator and Admin I.
 - The in-channel network map (`/c/{room}/radar`) is restricted to Admin I.
 
 ### Security
+- Channel PINs are stored only as hashes. The plaintext `pin` column is dropped (existing PINs are hashed during migration and keep working); PINs are no longer shown in the admin console or included in invitation emails.
 - Fixed an account takeover in the OAuth callback: a forged Apple `id_token` in the callback URL could sign in as any user. The callback now requires a configured provider and the single-use OAuth state, and Apple identities come only from Apple's token endpoint with `aud`/`iss` checked.
 
 ### Fixed
+- Generating an invitation link or code from the admin console crashed with an unknown named argument.
+- The "Enter Secure Channel" button in invitation emails linked to `#`.
 - Recovery-email verification and welcome emails no longer print unfilled `{{recovery_email}}`, `{{expiry_time}}` and `{{role}}` placeholders.
 - New accounts now carry their default rank immediately after creation instead of only after a reload.
 
 ### Migration
 - Run `php artisan migrate` then `php artisan vesper:recompute-ranks`. Existing admins become Admin I; everyone else starts as User II.
+- The Phase 2 migration hashes existing channel PINs and drops the plaintext column. This cannot be undone: a rollback restores the column empty.
 
 ## [2609.11.0-bs] - 2026-09-30
 

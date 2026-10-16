@@ -3,6 +3,7 @@
 use App\Models\AccessLog;
 use App\Models\Message;
 use App\Models\Room;
+use App\Models\User;
 use App\Services\MediaStorageService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -87,14 +88,14 @@ test('media attachments are stored on private disk and streamed only to cleared 
     ]);
 
     // 1. Unauthenticated / Uncleared request -> 403 Forbidden
-    $unclearedResponse = $this->get(route('messages.attachment', [
+    $unclearedResponse = $this->actingAs(User::factory()->create())->get(route('messages.attachment', [
         'room' => $room->code,
         'message' => $message->id,
     ]));
     $unclearedResponse->assertStatus(403);
 
     // 2. Cleared session request -> 200 OK with streamed file
-    $clearedResponse = $this->withSession(["room_clearance_{$room->id}" => true])
+    $clearedResponse = $this->actingAs(User::factory()->create())->withSession(["room_clearance_{$room->id}" => true])
         ->get(route('messages.attachment', [
             'room' => $room->code,
             'message' => $message->id,
@@ -112,7 +113,7 @@ test('ip addresses and gps coordinates are anonymized and jittered on message cr
         'status' => 'active',
     ]);
 
-    $response = $this->withSession([
+    $response = $this->actingAs(User::factory()->create(['name' => 'Phantom']))->withSession([
         "room_clearance_{$room->id}" => true,
         "room_alias_{$room->id}" => 'Phantom',
     ])->postJson(route('messages.store', ['room' => $room->code]), [
@@ -149,7 +150,7 @@ test('duress passcode unlocks decoy vault session hiding all real communications
     Message::create(['room_id' => $room->id, 'sender_name' => 'Agent3', 'sender_session_id' => 'sess_3', 'content' => 'Classified Intel #3']);
 
     // 1. Enter with the DURESS passcode
-    $response = $this->post(route('rooms.verify', ['room' => $room->code]), [
+    $response = $this->actingAs(memberOf($room, ['name' => 'UnderDuressOperative']))->post(route('rooms.verify', ['room' => $room->code]), [
         'passcode' => 'duress-coerced-code',
         'alias' => 'UnderDuressOperative',
     ]);

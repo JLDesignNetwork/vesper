@@ -141,7 +141,7 @@ test('messages stream includes sender avatar url', function () {
         'content' => 'Hello with avatar',
     ]);
 
-    $response = $this->withSession([
+    $response = $this->actingAs(User::factory()->create())->withSession([
         "room_clearance_{$room->id}" => true,
     ])->get(route('messages.index', ['room' => $room->code]));
 
@@ -176,11 +176,11 @@ test('member profile endpoint returns user profile details and avatar url for ch
     ]);
 
     // Without clearance -> 403
-    $unauthResponse = $this->getJson(route('rooms.member-profile', ['room' => $room->code, 'name' => 'AgentCardTest']));
+    $unauthResponse = $this->actingAs(User::factory()->create())->getJson(route('rooms.member-profile', ['room' => $room->code, 'name' => 'AgentCardTest']));
     $unauthResponse->assertStatus(403);
 
     // With clearance -> 200 with avatar and profile
-    $response = $this->withSession([
+    $response = $this->actingAs(User::factory()->create())->withSession([
         "room_clearance_{$room->id}" => true,
     ])->getJson(route('rooms.member-profile', ['room' => $room->code, 'name' => 'AgentCardTest']));
 

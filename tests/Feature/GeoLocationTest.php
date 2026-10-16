@@ -64,7 +64,7 @@ test('radar endpoint returns active operative tracking details', function () {
     $response->assertJsonPath('operatives.0.flag', '🇨🇭');
 });
 
-test('the radar endpoint refuses everyone except admin one', function (?Rank $rank) {
+test('the radar endpoint refuses everyone except admin one', function (Rank $rank) {
     $room = Room::create([
         'code' => 'RADAR-02',
         'passcode_hash' => Hash::make('secret'),
@@ -80,8 +80,8 @@ test('the radar endpoint refuses everyone except admin one', function (?Rank $ra
         'last_seen_at' => now(),
     ]);
 
-    $request = $rank ? $this->actingAs(User::factory()->rank($rank)->create()) : $this;
-    $response = $request->withSession(["room_clearance_{$room->id}" => true])
+    $response = $this->actingAs(User::factory()->rank($rank)->create())
+        ->withSession(["room_clearance_{$room->id}" => true])
         ->getJson(route('intel.radar', ['room' => 'RADAR-02']));
 
     $response->assertForbidden()
@@ -91,7 +91,6 @@ test('the radar endpoint refuses everyone except admin one', function (?Rank $ra
     'Admin II' => [Rank::AdminTwo],
     'Admin III' => [Rank::AdminThree],
     'User II' => [Rank::UserTwo],
-    'guest with clearance' => [null],
 ]);
 
 test('a user can sync their high precision browser GPS coordinates', function () {
@@ -101,7 +100,7 @@ test('a user can sync their high precision browser GPS coordinates', function ()
         'status' => 'active',
     ]);
 
-    $response = $this->withSession([
+    $response = $this->actingAs(User::factory()->create())->withSession([
         "room_clearance_{$room->id}" => true,
     ])->postJson(route('intel.gps', ['room' => 'GPS-01']), [
         'latitude' => 40.7128,

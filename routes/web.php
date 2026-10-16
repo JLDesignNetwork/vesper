@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountRecoveryController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminEmailController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ChannelController;
 use App\Http\Controllers\ChannelHubController;
 use App\Http\Controllers\ChannelInviteController;
 use App\Http\Controllers\EmailVerificationController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\TwoFactorController;
 use App\Http\Controllers\WebAuthnController;
 use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsureChannelClearance;
 use App\Services\LanguageService;
 use Illuminate\Support\Facades\Route;
 
@@ -24,6 +26,9 @@ Route::get('/manifest.json', function () {
         'Content-Type' => 'application/manifest+json',
     ]);
 })->name('pwa.manifest');
+
+// Public Channel Directory (browsable signed out with limited details)
+Route::get('/directory', [ChannelController::class, 'directory'])->name('channels.directory');
 
 // Public Root & Authentication Entry Point
 Route::get('/', [AuthController::class, 'showLogin'])->name('portal');
@@ -47,6 +52,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/channels/invites/{roomId}/accept', [ChannelHubController::class, 'acceptInvite'])->name('channels.invites.accept');
     Route::post('/channels/invites/{roomId}/decline', [ChannelHubController::class, 'declineInvite'])->name('channels.invites.decline');
     Route::post('/channels/redeem', [ChannelHubController::class, 'redeemCode'])->name('channels.redeem')->middleware('throttle:5,1');
+    Route::post('/channels', [ChannelController::class, 'store'])->name('channels.store');
+    Route::put('/channels/{room}/settings', [ChannelController::class, 'update'])->name('channels.update');
 
     // WebAuthn registration
     Route::get('/webauthn/register/options', [WebAuthnController::class, 'optionsRegister'])->name('webauthn.register.options');
@@ -137,23 +144,29 @@ Route::middleware(['auth', EnsureAdmin::class])->prefix('admin')->group(function
 Route::get('/invite/{token}', [ChannelInviteController::class, 'showInvite'])->name('invites.show');
 Route::post('/invite/{token}/accept', [ChannelInviteController::class, 'acceptInviteLink'])->name('invites.accept')->middleware(['auth', 'throttle:10,1']);
 
-// Private Channel Direct Access (Zero public discovery)
-Route::post('/rooms/{room}/verify', [RoomController::class, 'verify'])->name('rooms.verify');
+// Channel Access (sign-in required; guests were retired in Phase 2)
+Route::middleware('auth')->group(function () {
+    Route::post('/rooms/{room}/verify', [RoomController::class, 'verify'])->name('rooms.verify');
 
-Route::prefix('c/{room}')->group(function () {
-    Route::get('/', [RoomController::class, 'show'])->name('rooms.show');
-    Route::post('/lock', [RoomController::class, 'lock'])->name('rooms.lock');
-    Route::post('/nuke', [RoomController::class, 'nuke'])->name('rooms.nuke');
-    Route::get('/member-profile', [RoomController::class, 'memberProfile'])->name('rooms.member-profile');
+    Route::prefix('c/{room}')->group(function () {
+        Route::get('/', [RoomController::class, 'show'])->name('rooms.show');
+        Route::post('/lock', [RoomController::class, 'lock'])->name('rooms.lock');
 
-    Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
-    Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
-    Route::post('/messages/{message}/react', [MessageController::class, 'toggleReaction'])->name('messages.react');
-    Route::post('/messages/{message}/pin', [RoomController::class, 'togglePin'])->name('rooms.pin');
-    Route::get('/attachments/{message}', [MessageController::class, 'streamAttachment'])->name('messages.attachment');
-    Route::post('/translate', [MessageController::class, 'translate'])->name('messages.translate');
-    Route::post('/translate-batch', [MessageController::class, 'translateBatch'])->name('messages.translate-batch');
+        Route::middleware(EnsureChannelClearance::class)->group(function () {
+            Route::post('/heartbeat', [RoomController::class, 'heartbeat'])->name('rooms.heartbeat');
+            Route::post('/nuke', [RoomController::class, 'nuke'])->name('rooms.nuke');
+            Route::get('/member-profile', [RoomController::class, 'memberProfile'])->name('rooms.member-profile');
 
-    Route::get('/radar', [IntelController::class, 'radar'])->name('intel.radar');
-    Route::post('/gps', [IntelController::class, 'updateGps'])->name('intel.gps');
+            Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
+            Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
+            Route::post('/messages/{message}/react', [MessageController::class, 'toggleReaction'])->name('messages.react');
+            Route::post('/messages/{message}/pin', [RoomController::class, 'togglePin'])->name('rooms.pin');
+            Route::get('/attachments/{message}', [MessageController::class, 'streamAttachment'])->name('messages.attachment');
+            Route::post('/translate', [MessageController::class, 'translate'])->name('messages.translate');
+            Route::post('/translate-batch', [MessageController::class, 'translateBatch'])->name('messages.translate-batch');
+
+            Route::get('/radar', [IntelController::class, 'radar'])->name('intel.radar');
+            Route::post('/gps', [IntelController::class, 'updateGps'])->name('intel.gps');
+        });
+    });
 });

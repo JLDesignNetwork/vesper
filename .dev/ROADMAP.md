@@ -13,7 +13,7 @@ cleanup: manual
 > **Project:** Vesper (Laravel 13 / PHP 8.4 / Blade + vanilla JS)
 > **Generation Epoch:** `2610`
 > **Author:** Jeff Langdon (JL Design Network)
-> **Status:** Active — Channels Refactor Phase 1 complete, Phase 2 in progress
+> **Status:** Active — Channels Refactor Phases 1–2 complete, Phase 3 in progress
 
 ---
 
@@ -40,7 +40,7 @@ pinning, blocking and kicking, and a voted ban system.
 Full plan: [`2610/channels-refactor-plan.md`](2610/channels-refactor-plan.md). Backlog: [`2610/backlog.json`](2610/backlog.json).
 
 - [x] **Phase 1:** Primary email verification, five-rank model, permission policies, audit log.
-- [ ] **Phase 2:** Channel types (`prs prf pus puf pra pra-2`), member channel creation, unified entry gate, guest mode retired.
+- [x] **Phase 2:** Channel types (`prs prf pus puf pra pra-2`), member channel creation, unified entry gate, guest mode retired.
 - [ ] **Phase 3:** User tags (`@slug`) and server-confirmed mentions.
 - [ ] **Phase 4:** Multi-message pinning (max 10, exempt from auto-delete).
 - [ ] **Phase 5:** Blocking, kicking, reporting.

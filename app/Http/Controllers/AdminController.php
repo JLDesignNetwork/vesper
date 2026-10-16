@@ -166,7 +166,6 @@ class AdminController extends Controller
             'code' => $code,
             'title' => ! empty($validated['title']) ? trim($validated['title']) : null,
             'pin' => $pin,
-            'passcode_hash' => Hash::make($pin),
             'allowed_languages' => $allowedLanguages,
             'burn_after_reading' => (bool) ($validated['burn_after_reading'] ?? false),
             'notify_admin' => (bool) ($validated['notify_admin'] ?? false),
@@ -193,7 +192,7 @@ class AdminController extends Controller
 
         $validated = $request->validate([
             'title' => ['nullable', 'string', 'max:100'],
-            'pin' => ['required', 'string', 'min:4'],
+            'pin' => ['nullable', 'string', 'min:4'],
             'allowed_languages' => ['required', 'array', 'min:1'],
             'allowed_languages.*' => ['string', Rule::in(LanguageService::codes())],
             'status' => ['nullable', 'string', 'in:active,archived'],
@@ -201,8 +200,9 @@ class AdminController extends Controller
         ]);
 
         $room->title = ! empty($validated['title']) ? trim($validated['title']) : null;
-        $room->pin = trim($validated['pin']);
-        $room->passcode_hash = Hash::make(trim($validated['pin']));
+        if (! empty($validated['pin'])) {
+            $room->pin = trim($validated['pin']);
+        }
         $room->allowed_languages = array_values($validated['allowed_languages']);
         $room->notify_admin = (bool) ($validated['notify_admin'] ?? false);
 
@@ -235,6 +235,11 @@ class AdminController extends Controller
     public function toggleChannel(string $id): RedirectResponse
     {
         $room = Room::findOrFail($id);
+
+        if ($room->is_system) {
+            return redirect()->route('admin.channels.index')->withErrors(['channel' => __('System channels cannot be archived.')]);
+        }
+
         $room->status = ($room->status === 'active') ? 'archived' : 'active';
         $room->save();
 
@@ -250,6 +255,10 @@ class AdminController extends Controller
     {
         $room = Room::findOrFail($id);
         $code = $room->code;
+
+        if ($room->is_system) {
+            return redirect()->route('admin.channels.index')->withErrors(['channel' => __('System channels cannot be deleted.')]);
+        }
 
         $room->purgeAllMedia();
         $room->messages()->delete();
@@ -311,17 +320,16 @@ class AdminController extends Controller
 
             return redirect()->route('admin.channels.index')->with(
                 'status',
-                __('Direct invitation issued to Member [:name] for channel [:code] (Access PIN: :pin).', [
+                __('Direct invitation issued to Member [:name] for channel [:code].', [
                     'name' => $targetUser->name,
                     'code' => $room->code,
-                    'pin' => $room->pin,
                 ])
             );
         }
 
         $invitation = ChannelInvitation::createForRoom(
             room: $room,
-            createdByUser: Auth::user(),
+            creator: Auth::user(),
             maxUses: ! empty($validated['max_uses']) ? (int) $validated['max_uses'] : null,
             expiresAt: ! empty($validated['expires_in_days']) ? now()->addDays((int) $validated['expires_in_days']) : null
         );

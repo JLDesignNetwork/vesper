@@ -4396,6 +4396,32 @@
         const ACTIVE_POLL_INTERVAL = 1500;
         const BACKGROUND_POLL_INTERVAL = 10000;
 
+        // Secured-channel clearance: closes on leaving the page and after 15 idle minutes.
+        // Real input extends it (at most once a minute); message polling never does.
+        const CLEARANCE_IDLE_SECONDS = @json($clearanceIdleSeconds);
+        if (CLEARANCE_IDLE_SECONDS) {
+            let lastHeartbeatAt = 0;
+            const sendClearanceHeartbeat = () => {
+                const now = Date.now();
+                if (now - lastHeartbeatAt < 60000) return;
+                lastHeartbeatAt = now;
+                fetch(`/c/${encodeURIComponent(ROOM_CODE)}/heartbeat`, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': CSRF_TOKEN, 'Accept': 'application/json' }
+                }).then(res => {
+                    if (res.status === 403) window.location.reload();
+                }).catch(() => {});
+            };
+            ['keydown', 'pointerdown', 'touchstart', 'wheel'].forEach(eventName => {
+                document.addEventListener(eventName, sendClearanceHeartbeat, { passive: true });
+            });
+            window.addEventListener('pagehide', () => {
+                const lockRequest = new FormData();
+                lockRequest.append('_token', CSRF_TOKEN);
+                navigator.sendBeacon(`/c/${encodeURIComponent(ROOM_CODE)}/lock`, lockRequest);
+            });
+        }
+
         function startPolling(interval = ACTIVE_POLL_INTERVAL) {
             if (pollTimer) clearInterval(pollTimer);
             pollTimer = setInterval(fetchMessages, interval);

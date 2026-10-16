@@ -44,7 +44,7 @@ test('an unauthorized user visiting a room is presented with the passkey prompt'
         'status' => 'active',
     ]);
 
-    $response = $this->get(route('rooms.show', ['room' => 'SECRET-99']));
+    $response = $this->actingAs(memberOf($room))->get(route('rooms.show', ['room' => 'SECRET-99']));
 
     $response->assertStatus(200);
     $response->assertSee('SECRET-99');
@@ -58,7 +58,7 @@ test('verifying with the correct passcode grants access and sets clearance', fun
         'status' => 'active',
     ]);
 
-    $response = $this->post(route('rooms.verify', ['room' => 'COVERT-42']), [
+    $response = $this->actingAs(memberOf($room, ['name' => 'Spectre']))->post(route('rooms.verify', ['room' => 'COVERT-42']), [
         'passcode' => 'vault-key-77',
         'alias' => 'Spectre',
     ]);
@@ -75,7 +75,7 @@ test('verifying with an incorrect passcode is rejected', function () {
         'status' => 'active',
     ]);
 
-    $response = $this->post(route('rooms.verify', ['room' => 'LOCKED-01']), [
+    $response = $this->actingAs(memberOf($room))->post(route('rooms.verify', ['room' => 'LOCKED-01']), [
         'passcode' => 'wrong-key',
     ]);
 
@@ -188,10 +188,8 @@ function purgeableChannel(): Room
 
 test('a channel cannot be purged by anyone but its creator or admin one', function (Closure $makeActor) {
     $room = purgeableChannel();
-    $actor = $makeActor();
-
-    $request = $actor ? $this->actingAs($actor) : $this;
-    $request->withSession(["room_clearance_{$room->id}" => true])
+    $this->actingAs($makeActor())
+        ->withSession(["room_clearance_{$room->id}" => true])
         ->post(route('rooms.nuke', ['room' => 'NUKE-GUARD']))
         ->assertForbidden();
 
@@ -200,7 +198,6 @@ test('a channel cannot be purged by anyone but its creator or admin one', functi
 })->with([
     'Admin II who did not create it' => [fn () => User::factory()->adminTwo()->create()],
     'a member with clearance' => [fn () => User::factory()->create()],
-    'a guest with clearance' => [fn () => null],
 ]);
 
 test('admin one can purge a channel they did not create', function () {

@@ -95,6 +95,19 @@ function channelOwnedBy(
 }
 
 /**
+ * Create a user who is an active member of the channel.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function memberOf(Room $room, array $attributes = []): User
+{
+    $member = User::factory()->create($attributes);
+    $room->belongsToMany(User::class, 'room_user')->attach($member->id, ['role' => 'member', 'status' => 'active']);
+
+    return $member;
+}
+
+/**
  * Enroll a biometric passkey for the user.
  */
 function enrollPasskey(User $user, string $deviceName = 'Touch ID'): WebAuthnCredential

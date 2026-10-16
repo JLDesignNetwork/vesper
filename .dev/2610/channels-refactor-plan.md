@@ -95,3 +95,14 @@ Backlog items live in [`backlog.json`](backlog.json).
 - "Notify admin" emails go to Admin I only, so Admin II never receives message previews from channels they cannot read.
 - Admin II cannot delete their last passkey.
 - Every `isAdmin()` call site (24) was reassigned and `isAdmin()` / `isMember()` removed.
+
+## Phase 2 implementation notes (2026-10-16)
+
+- `ChannelAccessService` is the single access decision. `EnsureChannelClearance` runs on every in-channel route and re-checks channel status, expiry and rank admission (AU-3). Membership is not re-checked per request because it can only change mid-session through kicking; Phase 5 adds that check.
+- Existing rooms became `prs`. Private channels are now joined only by creating them or accepting an invitation; code + PIN alone no longer admits a non-member. Public secured channels still accept their PIN and enroll the member.
+- `Room::pin` is write-only and stores a hash. The migration's PIN hashing is one-way; a rollback restores an empty column.
+- Clearance on secured channels lapses 15 minutes after the last member action (POSTs, heartbeat). A clearance flag without a timestamp (sessions from before the deploy) is stamped on first use rather than rejected.
+- `pra` interim rule: admits Admin I/II who have an enrolled passkey. A fresh passkey assertion per entry is Phase 8 (`AUTH-TODO-02`).
+- Admin I keeps PIN-free entry to every channel (the audited override from Q1).
+- New UI strings fall back to English until Phase 7 translates them.
+
