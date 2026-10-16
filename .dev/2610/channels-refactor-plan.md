@@ -45,6 +45,7 @@ Backlog items live in [`backlog.json`](backlog.json).
 | D2 | The in-channel radar (IPs, ISP, GPS) is Admin I only (`CHAN-ISSUE-03`). |
 | Q11 | Admin III can be blocked and kicked like any member, except inside channels they created: a block against them does not apply there, and blocking them from inside such a channel files a report. Admin I and II still cannot be blocked or kicked. |
 | Q12 | A creator can let a kicked member back (`MOD-IDEA-01`, approved). |
+| Q13 | Lifting a ban takes a majority vote (`MOD-ISSUE-02`). |
 | A3 | Ban-vote subject sees "Your account is restricted pending an admin review", no details. |
 
 ## Audit pass 1 findings (applied)
@@ -169,3 +170,36 @@ Backlog items live in [`backlog.json`](backlog.json).
 - The per-channel switch turns off both 2FA and passkey entry for that channel; `pra` has no switch.
 - Release gate: Logic and Defense audits run (ledger `.dev/2610/audit-log.json`), coverage 85.3%, version `2610.0.0-bs` in README/CHANGELOG/package.json. Tag and GitHub Release wait for the owner.
 - Open owner decisions: `MOD-ISSUE-02` (lifting bans), `ROOT-ISSUE-01` (room page E2E wording), `ROOT-ISSUE-03` (local pnpm store), `ROOT-TODO-03` (pre-2610 strings).
+
+## Post-release plan (2026-10-16, after Phase 8)
+
+### MOD-ISSUE-02: lifting a ban by vote (Q13)
+
+- `ban_cases.kind`: `ban` (default, every existing case) or `lift`. Admin I or II opens a lift vote about a banned member, with a reason, from a new "Banned members" list on `/moderation/bans`.
+- Same rules as a ban vote: voters are Admin I and every Admin II who is not banned, 72 hours, strict majority of the ballots cast, Admin I breaks ties, and while no Admin II exists Admin I's ballot decides at once. The opener votes separately; ballots can change until the vote closes.
+- The ban stays unless the vote decides to lift it: no ballots, or a tie without Admin I's ballot, keeps the ban (the same "no change without a decision" reading as Phase 6).
+- Ballots keep one meaning: `ban = true` means "banned". In a lift vote the buttons read "Keep ban" and "Lift ban".
+- New outcomes `lifted` and `upheld`. Lifting clears `banned_at` only; the member's rank is unchanged, and their passkeys and sessions are not restored, so they sign in with their password, a linked account or recovery, then add a passkey again.
+- Banned Admin II members are covered too: Admin I bans them directly, but lifting is still a vote.
+- One open case per member at a time. A lift vote does not restrict anyone (`isRestricted` counts only open ban votes).
+- Audited with moderation visibility (`ban_case_opened` with kind, `ban_vote_cast`, `ban_case_closed`, new `ban_lifted`). Voters get a `ban_lift_opened` email; the member gets a `ban_lifted` email when the ban ends.
+
+### ROOT-ISSUE-03: local pnpm store (recommendation only)
+
+- Cause: the project is on the Kingston volume and the store is on the internal disk. Hard links cannot cross volumes, so pnpm copies every file (83 MB).
+- Recommendation, tested in a throwaway copy: `pnpm-workspace.yaml` with `enableGlobalVirtualStore: true` and a `packageExtensions` entry declaring `vite` as a peer of `vite-plugin-full-reload`. `node_modules` becomes about 290 KB of symlinks and `pnpm build` passes. Not applied until the owner approves.
+
+### ROOT-TODO-03 and ROOT-TODO-04: translations and Malay
+
+- Add the 240 keys missing from `lang/en.json` and translate them into the 14 other languages. The email templates page's confirm text, built from two fragments in JavaScript, becomes one string with `:count`.
+- Add Malay (`ms`, Bahasa Melayu) as the 16th language: config entry, complete `lang/ms.json`, one plural form, and location detection for Malaysia and Brunei. Singapore stays English, its working language. Email templates need no files because they are auto-translated per locale from the admin page.
+- Tests that assert 15 languages move to 16; the existing completeness test then covers `ms.json`.
+- Found `ROOT-ISSUE-04` while preparing this: translated text inside JavaScript is HTML-escaped, so apostrophes and ampersands show as escape codes. Fixed in the same change with `Js::from`, because the new translations would otherwise add more broken strings.
+
+## Post-release implementation notes (2026-10-16)
+
+- `MOD-ISSUE-02`: built as planned. `BanCaseKind::bannedWithoutDecision()` holds the "nothing changes without a decision" rule for both kinds. Ballots keep `ban = true` meaning "banned", so the existing decision code serves both. `close()` never calls `applyBan` for a lift vote, so a kept ban is not re-applied (no second session or passkey wipe, no second `member_banned` entry).
+- `ROOT-TODO-03`: the code scan found 256 keys missing from `en.json` (the 240 older strings plus the new lift-vote strings). All are translated into the 14 other languages. New strings use the correct terms where older machine translations do not (`ROOT-TODO-05`).
+- `ROOT-TODO-04`: Malay (`ms`) uses "Sekat" for block and "Haramkan" for ban, so the two stay distinct. A stored channel language list that covers all 15 earlier languages is read as "all languages", like the old four-language list, so existing channels gain Malay.
+- `ROOT-ISSUE-04`: `{{ Js::from(__(...)) }}` replaces `'{{ __(...) }}'` wherever a whole JavaScript string is one translation. Strings inside HTML built with `innerHTML` were left as they are because the browser decodes them correctly there.
+- `ROOT-ISSUE-03`: applied after owner approval. `pnpm-workspace.yaml` enables the global virtual store; `node_modules` holds only links into the global store (148 KB instead of 83 MB). The test copy at `/Volumes/Kingston-256/_DevSites/.vesper-gvs-test` still needs deleting.

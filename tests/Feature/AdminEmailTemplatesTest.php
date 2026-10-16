@@ -210,11 +210,11 @@ test('outgoing mailables render using customized email templates or factory fall
     expect($customContent->htmlString)->toContain('LOCKDOWN LINK');
 });
 
-test('admin email templates interface supports all 15 dynamic languages', function () {
+test('admin email templates interface supports every configured language', function () {
     $response = $this->actingAs($this->admin)->get(route('admin.emails.index'));
     $response->assertStatus(200);
 
-    // Verify all 15 language codes are present in the UI
+    // Verify every configured language code is present in the UI
     foreach (LanguageService::codes() as $code) {
         $response->assertSee('locale='.$code, false);
     }

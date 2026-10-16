@@ -16,7 +16,9 @@ Generation 2610: the Channels Refactor (member-run channels, ranks, moderation a
 - **Passkey Entry Rules (Phase 8)**: `pra` opens only with a fresh passkey check, for every rank. On other PIN-secured channels a passkey check can replace the PIN for members who meet the biometric precondition; 2FA members enter without a PIN. Members can require the PIN per channel from their profile.
 - **Passkey Precondition**: enrolling a passkey requires a verified email plus a verified recovery email or confirmed 2FA.
 - **Admin Panels (Phase 7)**: Admin II gets the admin panel without geolocation, IP addresses or access-log locations; Admin III gets a panel limited to the channels they created. Every channel has a profile overview (settings, members, pending invitations, invite links, removed members). The audit log is visible to Admin I (all entries) and Admin II (moderation entries).
-- **Translations**: all new channel, moderation and admin strings are available in the 15 supported languages.
+- **Lifting Bans by Vote**: Admin I and II open a vote to lift a member's ban from the Banned members list on `/moderation/bans`. It follows the ban-vote rules (72 hours, strict majority, Admin I breaks ties); without a decision the ban stays. Lifting restores sign-in only: rank is unchanged and the member adds their passkeys again. The voters and the member are emailed (`ban_lift_opened`, `ban_lifted` templates).
+- **Malay (`ms`, Bahasa Melayu)**: a 16th interface language, chosen automatically for members in Malaysia and Brunei. Channels that allowed every language before keep allowing all of them, Malay included.
+- **Translations**: all channel, moderation and admin strings, and about 240 older strings that were still English-only, are available in the 16 supported languages.
 - **Ban Votes (Phase 6)**: Admin I and II open ban votes about members by tag or from a report, at `/moderation/bans`. The member is read-only while the vote is open and sees only that an admin review is pending. Votes close after 72 hours; a strict majority of the votes cast decides and Admin I breaks ties. Admin I bans an Admin II directly. A ban signs the member out everywhere, removes their passkeys and blocks sign-in.
 - **Blocking (Phase 5)**: members block each other by tag from the in-channel member card and manage their block list on the profile. Blocked members are hidden from each other in both directions: messages, replies, reactions, pins, presence, mentions, search, member cards and email notifications. Admin I and II cannot be blocked, and an Admin III cannot be blocked inside channels they created; those attempts file a report.
 - **Kicking**: a channel's creator can remove a member, who cannot rejoin by link, code, public entry or direct invite until the creator allows them back from the channel's Removed members list. Admin I and II cannot be kicked; the attempt files a report.
@@ -61,9 +63,10 @@ Generation 2610: the Channels Refactor (member-run channels, ranks, moderation a
 - The "Enter Secure Channel" button in invitation emails linked to `#`.
 - Recovery-email verification and welcome emails no longer print unfilled `{{recovery_email}}`, `{{expiry_time}}` and `{{role}}` placeholders.
 - New accounts now carry their default rank immediately after creation instead of only after a reload.
+- Translated text in alerts, buttons and confirmations no longer shows HTML codes such as `&#039;` or `&amp;` (for example in French, Italian, Turkish and Uzbek).
 
 ### Migration
-- Run `php artisan migrate` then `php artisan vesper:recompute-ranks`. Existing admins become Admin I; everyone else starts as User II.
+- Run `php artisan migrate` then `php artisan vesper:recompute-ranks`. Existing ban cases become ban votes (`ban_cases.kind`). Existing admins become Admin I; everyone else starts as User II.
 - The Phase 4 migration moves each channel's single pin into `message_pins`.
 - The Phase 2 migration hashes existing channel PINs and drops the plaintext column. This cannot be undone: a rollback restores the column empty.
 

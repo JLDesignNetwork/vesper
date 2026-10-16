@@ -1827,47 +1827,47 @@
 
         // Client localization strings
         const I18N = {
-            active: "{{ __('Active') }}",
-            expand: "{{ __('EXPAND') }}",
-            expandVideo: "{{ __('Expand Video') }}",
-            translation: "{{ __('TRANSLATION') }}",
-            translate: "{{ __('Translate') }}",
-            translating: "{{ __('Translating...') }}",
-            original: "{{ __('Original') }}",
-            admin: "{{ __('Admin') }}",
-            member: "{{ __('Member') }}",
-            guest: "{{ __('Guest') }}",
-            viewProfile: "{{ __('Click to view profile') }}",
-            commandCenter: "{{ __('Command Center') }}",
-            localNetwork: "{{ __('Local Network') }}",
-            noOperatives: "{{ __('No active members detected.') }}",
-            justNow: "{{ __('Just now') }}",
-            syncSuccess: "{{ __('✓ GPS SYNCED') }}",
-            acquiring: "{{ __('ACQUIRING...') }}",
-            closeLightbox: "{{ __('Close Lightbox (Esc)') }}",
-            locationHidden: "{{ __('Location Hidden') }}",
-            hidden: "{{ __('Hidden') }}",
-            classifiedMedia: "{{ __('CLASSIFIED MEDIA • TAP TO REVEAL') }}",
-            reblurMedia: "{{ __('Re-blur Media') }}",
-            downloadMedia: "{{ __('Download Media') }}",
-            reply: "{{ __('Reply') }}",
-            pin: "{{ __('Pin Briefing') }}",
-            unpin: "{{ __('Unpin Briefing') }}",
-            pinnedBriefing: "{{ __('PINNED BRIEFING') }}",
-            view: "{{ __('VIEW') }}",
-            copyCode: "{{ __('Copy') }}",
-            copied: "{{ __('✓ Copied') }}",
-            voiceNote: "{{ __('Voice Note') }}",
-            recordingVoice: "{{ __('RECORDING VOICE NOTE') }}",
-            sendVoice: "{{ __('Send Voice') }}",
-            cancel: "{{ __('Cancel') }}"
+            active: {{ Js::from(__('Active')) }},
+            expand: {{ Js::from(__('EXPAND')) }},
+            expandVideo: {{ Js::from(__('Expand Video')) }},
+            translation: {{ Js::from(__('TRANSLATION')) }},
+            translate: {{ Js::from(__('Translate')) }},
+            translating: {{ Js::from(__('Translating...')) }},
+            original: {{ Js::from(__('Original')) }},
+            admin: {{ Js::from(__('Admin')) }},
+            member: {{ Js::from(__('Member')) }},
+            guest: {{ Js::from(__('Guest')) }},
+            viewProfile: {{ Js::from(__('Click to view profile')) }},
+            commandCenter: {{ Js::from(__('Command Center')) }},
+            localNetwork: {{ Js::from(__('Local Network')) }},
+            noOperatives: {{ Js::from(__('No active members detected.')) }},
+            justNow: {{ Js::from(__('Just now')) }},
+            syncSuccess: {{ Js::from(__('✓ GPS SYNCED')) }},
+            acquiring: {{ Js::from(__('ACQUIRING...')) }},
+            closeLightbox: {{ Js::from(__('Close Lightbox (Esc)')) }},
+            locationHidden: {{ Js::from(__('Location Hidden')) }},
+            hidden: {{ Js::from(__('Hidden')) }},
+            classifiedMedia: {{ Js::from(__('CLASSIFIED MEDIA • TAP TO REVEAL')) }},
+            reblurMedia: {{ Js::from(__('Re-blur Media')) }},
+            downloadMedia: {{ Js::from(__('Download Media')) }},
+            reply: {{ Js::from(__('Reply')) }},
+            pin: {{ Js::from(__('Pin Briefing')) }},
+            unpin: {{ Js::from(__('Unpin Briefing')) }},
+            pinnedBriefing: {{ Js::from(__('PINNED BRIEFING')) }},
+            view: {{ Js::from(__('VIEW')) }},
+            copyCode: {{ Js::from(__('Copy')) }},
+            copied: {{ Js::from(__('✓ Copied')) }},
+            voiceNote: {{ Js::from(__('Voice Note')) }},
+            recordingVoice: {{ Js::from(__('RECORDING VOICE NOTE')) }},
+            sendVoice: {{ Js::from(__('Send Voice')) }},
+            cancel: {{ Js::from(__('Cancel')) }}
         };
 
         const GENDER_LABELS = {
-            'Male': "{{ __('Male') }}",
-            'Female': "{{ __('Female') }}",
-            'Non-binary': "{{ __('Non-binary') }}",
-            'Other': "{{ __('Other') }}"
+            'Male': {{ Js::from(__('Male')) }},
+            'Female': {{ Js::from(__('Female')) }},
+            'Non-binary': {{ Js::from(__('Non-binary')) }},
+            'Other': {{ Js::from(__('Other')) }}
         };
 
         let lastMessageId = 0;
@@ -4297,13 +4297,13 @@
 
         async function enrollCurrentDeviceBiometrics() {
             if (!window.PublicKeyCredential) {
-                alert('{{ __("WebAuthn biometrics are not supported by this browser.") }}');
+                alert({{ Js::from(__("WebAuthn biometrics are not supported by this browser.")) }});
                 return;
             }
 
             const btn = document.getElementById('enroll-bio-btn');
             const originalText = btn.textContent;
-            btn.textContent = '{{ __("Awaiting Touch ID...") }}';
+            btn.textContent = {{ Js::from(__("Awaiting Touch ID...")) }};
 
             try {
                 const optRes = await fetch('{{ route("webauthn.register.options") }}', {
@@ -4312,7 +4312,7 @@
                 const options = await optRes.json();
                 if (!optRes.ok) {
                     btn.textContent = originalText;
-                    alert(options.message || '{{ __("Passkeys cannot be enrolled yet.") }}');
+                    alert(options.message || {{ Js::from(__("Passkeys cannot be enrolled yet.")) }});
                     return;
                 }
 
@@ -4330,7 +4330,7 @@
                     throw new Error('Credential creation rejected');
                 }
 
-                const deviceLabel = prompt('{{ __("Enter a label for this device (e.g. MacBook Touch ID):") }}', 'Touch ID / Platform Key') || 'Touch ID Key';
+                const deviceLabel = prompt({{ Js::from(__("Enter a label for this device (e.g. MacBook Touch ID):")) }}, 'Touch ID / Platform Key') || 'Touch ID Key';
 
                 const payload = {
                     id: credential.id,
@@ -4347,15 +4347,15 @@
 
                 const result = await regRes.json();
                 if (result.success) {
-                    showToast(result.message || '{{ __("Device registered successfully.") }}');
+                    showToast(result.message || {{ Js::from(__("Device registered successfully.")) }});
                     setTimeout(() => window.location.reload(), 800);
                 } else {
-                    alert(result.message || '{{ __("Biometric registration failed.") }}');
+                    alert(result.message || {{ Js::from(__("Biometric registration failed.")) }});
                 }
             } catch (err) {
                 console.error(err);
                 if (err.name !== 'NotAllowedError') {
-                    alert('{{ __("Biometric enrollment error: ") }}' + err.message);
+                    alert({{ Js::from(__("Biometric enrollment error: ")) }} + err.message);
                 }
             } finally {
                 btn.textContent = originalText;
@@ -4363,7 +4363,7 @@
         }
 
         async function revokeBiometricKey(id, btnElement) {
-            if (!confirm('{{ __("Are you sure you want to revoke this biometric passkey?") }}')) {
+            if (!confirm({{ Js::from(__("Are you sure you want to revoke this biometric passkey?")) }})) {
                 return;
             }
 
@@ -4375,10 +4375,10 @@
                 const result = await res.json();
                 if (result.success) {
                     btnElement.closest('div').remove();
-                    showToast('{{ __("Biometric passkey revoked.") }}');
+                    showToast({{ Js::from(__("Biometric passkey revoked.")) }});
                 }
             } catch (err) {
-                alert('{{ __("Failed to revoke biometric key.") }}');
+                alert({{ Js::from(__("Failed to revoke biometric key.")) }});
             }
         }
 
@@ -4409,11 +4409,11 @@
                     secretCode.textContent = data.secret;
                     qrWrap.innerHTML = data.qr_code_svg;
                 } else {
-                    alert('{{ __("Failed to initialize 2FA setup.") }}');
+                    alert({{ Js::from(__("Failed to initialize 2FA setup.")) }});
                     closeTwoFactorSetupModal();
                 }
             } catch (err) {
-                alert('{{ __("Failed to contact server.") }}');
+                alert({{ Js::from(__("Failed to contact server.")) }});
                 closeTwoFactorSetupModal();
             }
         }
@@ -4430,13 +4430,13 @@
 
             if (code.length !== 6) {
                 alertBox.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/40 border border-rose-500/30 text-rose-300';
-                alertBox.textContent = '{{ __("Please enter a 6-digit code.") }}';
+                alertBox.textContent = {{ Js::from(__("Please enter a 6-digit code.")) }};
                 alertBox.classList.remove('hidden');
                 return;
             }
 
             btn.disabled = true;
-            btn.textContent = '{{ __("Verifying...") }}';
+            btn.textContent = {{ Js::from(__("Verifying...")) }};
 
             try {
                 const res = await fetch('{{ route("2fa.confirm") }}', {
@@ -4455,16 +4455,16 @@
                     document.getElementById('two-factor-step-2').classList.remove('hidden');
                 } else {
                     alertBox.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/40 border border-rose-500/30 text-rose-300';
-                    alertBox.textContent = data.message || '{{ __("Invalid verification code.") }}';
+                    alertBox.textContent = data.message || {{ Js::from(__("Invalid verification code.")) }};
                     alertBox.classList.remove('hidden');
                 }
             } catch (err) {
                 alertBox.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/40 border border-rose-500/30 text-rose-300';
-                alertBox.textContent = '{{ __("Verification request failed.") }}';
+                alertBox.textContent = {{ Js::from(__("Verification request failed.")) }};
                 alertBox.classList.remove('hidden');
             } finally {
                 btn.disabled = false;
-                btn.textContent = '{{ __("Verify & Enable 2FA") }}';
+                btn.textContent = {{ Js::from(__("Verify & Enable 2FA")) }};
             }
         }
 
@@ -4475,7 +4475,7 @@
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(text).then(() => {
                     const original = btn.textContent;
-                    btn.textContent = '{{ __("Copied!") }}';
+                    btn.textContent = {{ Js::from(__("Copied!")) }};
                     setTimeout(() => btn.textContent = original, 2000);
                 }).catch(() => fallbackRoomCopy(text, () => {}));
             } else {
@@ -4485,7 +4485,7 @@
 
         function finishTwoFactorSetup() {
             closeTwoFactorSetupModal();
-            showToast('{{ __("Two-factor authentication active.") }}');
+            showToast({{ Js::from(__("Two-factor authentication active.")) }});
             setTimeout(() => window.location.reload(), 800);
         }
 
@@ -4506,7 +4506,7 @@
 
             if (!password) {
                 alertBox.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/40 border border-rose-500/30 text-rose-300';
-                alertBox.textContent = '{{ __("Please enter your current password.") }}';
+                alertBox.textContent = {{ Js::from(__("Please enter your current password.")) }};
                 alertBox.classList.remove('hidden');
                 return;
             }
@@ -4523,16 +4523,16 @@
 
                 if (data.success) {
                     closeDisable2faModal();
-                    showToast('{{ __("Two-factor authentication deactivated.") }}');
+                    showToast({{ Js::from(__("Two-factor authentication deactivated.")) }});
                     setTimeout(() => window.location.reload(), 800);
                 } else {
                     alertBox.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/40 border border-rose-500/30 text-rose-300';
-                    alertBox.textContent = data.message || '{{ __("Failed to disable 2FA.") }}';
+                    alertBox.textContent = data.message || {{ Js::from(__("Failed to disable 2FA.")) }};
                     alertBox.classList.remove('hidden');
                 }
             } catch (err) {
                 alertBox.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/40 border border-rose-500/30 text-rose-300';
-                alertBox.textContent = '{{ __("Server request failed.") }}';
+                alertBox.textContent = {{ Js::from(__("Server request failed.")) }};
                 alertBox.classList.remove('hidden');
             } finally {
                 btn.disabled = false;
@@ -4545,12 +4545,12 @@
             const email = input.value.trim();
 
             if (!email) {
-                alert('{{ __("Please enter a valid recovery email address.") }}');
+                alert({{ Js::from(__("Please enter a valid recovery email address.")) }});
                 return;
             }
 
             btn.disabled = true;
-            btn.textContent = '{{ __("Saving...") }}';
+            btn.textContent = {{ Js::from(__("Saving...")) }};
 
             try {
                 const res = await fetch('{{ route("recovery.email.update") }}', {
@@ -4561,15 +4561,15 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    showToast(data.message || '{{ __("Recovery email saved. Please confirm via link in inbox.") }}');
+                    showToast(data.message || {{ Js::from(__("Recovery email saved. Please confirm via link in inbox.")) }});
                 } else {
-                    alert(data.message || '{{ __("Failed to save recovery email.") }}');
+                    alert(data.message || {{ Js::from(__("Failed to save recovery email.")) }});
                 }
             } catch (err) {
-                alert('{{ __("Request failed.") }}');
+                alert({{ Js::from(__("Request failed.")) }});
             } finally {
                 btn.disabled = false;
-                btn.textContent = '{{ __("Save") }}';
+                btn.textContent = {{ Js::from(__("Save")) }};
             }
         }
 
@@ -4583,7 +4583,7 @@
                 const diffMs = expiresAt - now;
                 if (diffMs <= 0) {
                     countdownBadge.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[11px] font-mono animate-pulse';
-                    countdownText.textContent = '{{ __("Channel Expired") }}';
+                    countdownText.textContent = {{ Js::from(__("Channel Expired")) }};
                     setTimeout(() => {
                         window.location.href = "{{ route('channels.index') }}";
                     }, 2500);

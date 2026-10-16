@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Enums;
 
 /**
- * How a closed ban case was decided (owner decision Q6, audit finding AU-7).
+ * How a closed ban or lift vote was decided (owner decisions Q6 and Q13, audit finding AU-7).
  */
 enum BanDecision: string
 {
@@ -15,13 +15,13 @@ enum BanDecision: string
     /** The ballots were tied and Admin I's ballot decided. */
     case TieBreak = 'tie_break';
 
-    /** The ballots were tied and Admin I did not vote, so the subject was not banned. */
+    /** The ballots were tied and Admin I did not vote, so nothing changed. */
     case TiedWithoutTieBreak = 'tied_without_tie_break';
 
     /** No Admin II existed, so Admin I's ballot decided alone. */
     case AdminOneAlone = 'admin_one_alone';
 
-    /** Nobody voted before the case closed, so the subject was not banned. */
+    /** Nobody voted before the case closed, so nothing changed. */
     case NoBallots = 'no_ballots';
 
     /** Admin I banned an Admin II directly, without a vote. */

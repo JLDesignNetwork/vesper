@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AdminPanelScope;
+use App\Enums\BanCaseKind;
 use App\Enums\Rank;
 use App\Mail\PrimaryEmailVerification;
 use App\Services\GeoLocationService;
@@ -168,11 +169,12 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Whether the member is restricted (read-only) while a ban case about them is open.
+     * Whether the member is restricted (read-only) while a ban vote about them is open.
+     * An open vote to lift their ban does not restrict anyone.
      */
     public function isRestricted(): bool
     {
-        return $this->banCases()->open()->exists();
+        return $this->banCases()->open()->ofKind(BanCaseKind::Ban)->exists();
     }
 
     /**

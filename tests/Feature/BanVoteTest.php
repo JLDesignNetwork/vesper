@@ -2,12 +2,14 @@
 
 use App\Enums\AuditAction;
 use App\Enums\AuditVisibility;
+use App\Enums\BanCaseKind;
 use App\Enums\BanCaseStatus;
 use App\Enums\BanDecision;
 use App\Enums\ChannelType;
 use App\Enums\Rank;
 use App\Enums\ReportStatus;
 use App\Mail\BanCaseOpenedNotification;
+use App\Mail\BanLiftedNotification;
 use App\Models\AdminAuditLog;
 use App\Models\BanCase;
 use App\Models\BanVote;
@@ -404,4 +406,179 @@ test('an Admin III under a ban vote cannot change their channels from the admin 
     $this->actingAs($adminThree)->putJson(route('admin.channels.update', ['id' => $room->id]), ['title' => 'x', 'allowed_languages' => ['en']])->assertForbidden();
 
     expect(Room::find($room->id))->not->toBeNull();
+});
+
+/* -------------------------------------------------------------
+ * Lifting a ban (owner decision Q13)
+ * ------------------------------------------------------------- */
+
+function liftVoteAbout(User $subject, ?User $opener = null): BanCase
+{
+    return app(BanVoteService::class)->openLift($opener ?? User::factory()->adminOne()->create(), $subject, 'Banned by mistake');
+}
+
+test('an admin opens a vote to lift a ban: the member stays banned and the other voters are emailed', function () {
+    Mail::fake();
+    $adminOne = User::factory()->adminOne()->create();
+    $adminTwo = User::factory()->adminTwo()->create();
+    $subject = User::factory()->create(['tag' => 'pest_banned', 'banned_at' => now()]);
+
+    $this->actingAs($adminTwo)
+        ->post(route('moderation.bans.lift'), ['tag' => '@pest_banned', 'reason' => 'The reports were filed in error'])
+        ->assertRedirect(route('moderation.bans.index'))
+        ->assertSessionHas('status', 'Vote to lift the ban on @pest_banned opened. They stay banned until it is decided.');
+
+    $case = BanCase::sole();
+    expect($case->kind)->toBe(BanCaseKind::Lift);
+    expect($case->status)->toBe(BanCaseStatus::Open);
+    expect($case->closes_at->diffInHours(now()->addHours(72)))->toBeLessThan(1);
+    expect($subject->fresh()->isBanned())->toBeTrue();
+    expect($subject->fresh()->isRestricted())->toBeFalse();
+    expect(AdminAuditLog::where('action', AuditAction::BanCaseOpened)->sole()->details)->toMatchArray(['kind' => 'lift']);
+
+    Mail::assertQueued(BanCaseOpenedNotification::class, fn ($mail) => $mail->hasTo($adminOne->email)
+        && $mail->getRendered()['subject'] === 'Vote to lift a ban: @pest_banned');
+    Mail::assertNotQueued(BanCaseOpenedNotification::class, fn ($mail) => $mail->hasTo($adminTwo->email));
+});
+
+test('a lift vote needs a banned member with no other open vote', function (Closure $subject, string $error) {
+    $this->actingAs(User::factory()->adminOne()->create())
+        ->post(route('moderation.bans.lift'), ['tag' => $subject()->tag, 'reason' => 'x'])
+        ->assertSessionHasErrors(['tag' => $error]);
+
+    expect(BanCase::ofKind(BanCaseKind::Lift)->count())->toBeLessThanOrEqual(1);
+})->with([
+    'not banned' => [fn () => User::factory()->create(), 'This member is not banned.'],
+    'lift vote already open' => [fn () => tap(User::factory()->create(['banned_at' => now()]), fn (User $user) => liftVoteAbout($user)), 'A vote to lift this member\'s ban is already open.'],
+]);
+
+test('only Admin I and II can open a lift vote', function (Rank $rank) {
+    User::factory()->create(['tag' => 'pest_banned', 'banned_at' => now()]);
+
+    $this->actingAs(User::factory()->rank($rank)->create())
+        ->post(route('moderation.bans.lift'), ['tag' => 'pest_banned', 'reason' => 'x'])
+        ->assertForbidden();
+
+    expect(BanCase::count())->toBe(0);
+})->with([Rank::AdminThree, Rank::UserOne, Rank::UserTwo]);
+
+test('a lift vote is decided by its ballots, and the ban stays without a decision', function (array $ballots, bool $banned, BanDecision $decision) {
+    $adminOne = User::factory()->adminOne()->create();
+    $adminTwos = User::factory()->adminTwo()->count(3)->create();
+    $case = liftVoteAbout(User::factory()->create(['banned_at' => now()]), $adminOne);
+
+    foreach ($ballots as $voter => $keepBan) {
+        castBallot($voter === 'one' ? $adminOne : $adminTwos[$voter], $case, $keepBan);
+    }
+
+    expect(app(BanVoteService::class)->decide($case))->toBe([$banned, $decision]);
+})->with([
+    'majority to lift' => [[0 => false, 1 => false, 2 => true], false, BanDecision::Majority],
+    'majority to keep' => [[0 => false, 1 => true, 2 => true], true, BanDecision::Majority],
+    'Admin I breaks a tie to lift' => [['one' => false, 0 => true], false, BanDecision::TieBreak],
+    'Admin I breaks a tie to keep' => [['one' => true, 0 => false], true, BanDecision::TieBreak],
+    'tie without Admin I keeps the ban' => [[0 => true, 1 => false], true, BanDecision::TiedWithoutTieBreak],
+    'no ballots keeps the ban' => [[], true, BanDecision::NoBallots],
+]);
+
+test('a lift vote decided to lift ends the ban, keeps the rank and emails the member', function () {
+    Mail::fake();
+    [$first, $second] = User::factory()->adminTwo()->count(2)->create()->all();
+    $subject = User::factory()->rank(Rank::UserOne)->create(['email' => 'lifted@example.com', 'password' => 'secret-password', 'banned_at' => now()]);
+    $case = liftVoteAbout($subject);
+    castBallot($first, $case, false);
+    castBallot($second, $case, false);
+
+    $this->travel(73)->hours();
+    $this->artisan('vesper:close-ban-cases')->assertSuccessful();
+
+    expect($case->fresh()->status)->toBe(BanCaseStatus::Lifted);
+    expect($subject->fresh()->isBanned())->toBeFalse();
+    expect($subject->fresh()->rank)->toBe(Rank::UserOne);
+    expect(AdminAuditLog::where('action', AuditAction::BanLifted)->where('subject_user_id', $subject->id)->sole()->visibility)->toBe(AuditVisibility::Moderation);
+    Mail::assertQueued(BanLiftedNotification::class, fn ($mail) => $mail->hasTo('lifted@example.com')
+        && $mail->getRendered()['subject'] === 'Your Vesper account is active again');
+
+    $this->post(route('login.post'), ['login' => 'lifted@example.com', 'password' => 'secret-password']);
+    $this->get(route('profile.show'))->assertOk();
+    $this->assertAuthenticatedAs($subject->fresh());
+});
+
+test('a lift vote that keeps the ban changes nothing', function () {
+    Mail::fake();
+    $subject = User::factory()->create(['banned_at' => now()->subDay()]);
+    $case = liftVoteAbout($subject);
+    $this->travel(73)->hours();
+
+    app(BanVoteService::class)->closeDue();
+
+    expect($case->fresh()->status)->toBe(BanCaseStatus::Upheld);
+    expect($case->fresh()->decision)->toBe(BanDecision::NoBallots);
+    expect($subject->fresh()->isBanned())->toBeTrue();
+    expect(AdminAuditLog::where('action', AuditAction::BanLifted)->exists())->toBeFalse();
+    expect(AdminAuditLog::where('action', AuditAction::MemberBanned)->exists())->toBeFalse();
+    Mail::assertNotQueued(BanLiftedNotification::class);
+});
+
+test('with no Admin II, Admin I\'s ballot decides a lift vote at once', function (int $keepBan, BanCaseStatus $status, bool $banned) {
+    $adminOne = User::factory()->adminOne()->create();
+    $subject = User::factory()->create(['banned_at' => now()]);
+    $case = liftVoteAbout($subject, $adminOne);
+
+    $this->actingAs($adminOne)
+        ->post(route('moderation.bans.vote', $case), ['ban' => $keepBan])
+        ->assertSessionHas('status', 'Vote recorded. The case is decided.');
+
+    expect($case->fresh()->status)->toBe($status);
+    expect($case->fresh()->decision)->toBe(BanDecision::AdminOneAlone);
+    expect($subject->fresh()->isBanned())->toBe($banned);
+})->with([
+    'lift' => [0, BanCaseStatus::Lifted, false],
+    'keep' => [1, BanCaseStatus::Upheld, true],
+]);
+
+test('a banned Admin II gets their ban lifted only by a vote, and keeps their rank', function () {
+    $adminOne = User::factory()->adminOne()->create();
+    $adminTwo = User::factory()->adminTwo()->create(['tag' => 'pest_admin_two']);
+    app(BanVoteService::class)->banAdminTwo($adminOne, $adminTwo, 'Leaked a private channel');
+
+    $case = liftVoteAbout($adminTwo->fresh(), $adminOne);
+    app(BanVoteService::class)->vote($adminOne, $case, false);
+
+    expect($case->fresh()->status)->toBe(BanCaseStatus::Lifted);
+    expect($adminTwo->fresh()->isBanned())->toBeFalse();
+    expect($adminTwo->fresh()->rank)->toBe(Rank::AdminTwo);
+});
+
+test('the review page lists banned members and shows lift votes', function () {
+    $adminTwo = User::factory()->adminTwo()->create();
+    User::factory()->create(['tag' => 'pest_banned', 'banned_at' => now()]);
+    $underVote = User::factory()->create(['tag' => 'pest_under_vote', 'banned_at' => now()]);
+    $case = liftVoteAbout($underVote);
+    castBallot($adminTwo, $case, false);
+
+    $this->actingAs($adminTwo)
+        ->get(route('moderation.bans.index'))
+        ->assertOk()
+        ->assertSee('Banned members')
+        ->assertSee('@pest_banned')
+        ->assertSee('Open vote to lift ban')
+        ->assertSee('A vote to lift this ban is open.')
+        ->assertSee('Lift ban 1 · Keep ban 0')
+        ->assertSee('You voted to lift the ban')
+        ->assertSeeInOrder(['name="ban" value="0"', '>Lift ban</button>', 'name="ban" value="1"', '>Keep ban</button>'], false);
+});
+
+test('recent decisions show whether a ban was lifted or kept', function () {
+    $lifted = User::factory()->create(['tag' => 'pest_lifted', 'banned_at' => now()]);
+    $kept = User::factory()->create(['tag' => 'pest_kept', 'banned_at' => now()]);
+    $adminOne = User::factory()->adminOne()->create();
+    app(BanVoteService::class)->vote($adminOne, liftVoteAbout($lifted, $adminOne), false);
+    app(BanVoteService::class)->vote($adminOne, liftVoteAbout($kept, $adminOne), true);
+
+    $this->actingAs($adminOne)
+        ->get(route('moderation.bans.index'))
+        ->assertOk()
+        ->assertSeeInOrder(['Recent decisions', '@pest_kept', 'Ban kept'])
+        ->assertSeeInOrder(['Recent decisions', '@pest_lifted', 'Ban lifted']);
 });

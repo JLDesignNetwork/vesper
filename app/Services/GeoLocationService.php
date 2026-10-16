@@ -306,7 +306,12 @@ class GeoLocationService
             return 'ru';
         }
 
-        // 15. Country name inspection
+        // 15. Malay: MY, BN (Singapore stays English, its working language)
+        if (in_array($code, ['MY', 'BN'], true)) {
+            return 'ms';
+        }
+
+        // 16. Country name inspection
         if ($countryName !== '') {
             if (str_contains($countryName, 'uzbekistan') || str_contains($countryName, 'oʻzbekiston')) {
                 return 'uz';
@@ -344,12 +349,15 @@ class GeoLocationService
             if (str_contains($countryName, 'france') || str_contains($countryName, 'monaco') || str_contains($countryName, 'senegal') || str_contains($countryName, 'belgique') || str_contains($countryName, 'belgium')) {
                 return 'fr';
             }
+            if (str_contains($countryName, 'malaysia') || str_contains($countryName, 'brunei')) {
+                return 'ms';
+            }
             if (str_contains($countryName, 'russia') || str_contains($countryName, 'россия') || str_contains($countryName, 'belarus') || str_contains($countryName, 'kazakhstan') || str_contains($countryName, 'kyrgyzstan')) {
                 return 'ru';
             }
         }
 
-        // 16. Freeform location text inspection
+        // 17. Freeform location text inspection
         if ($text !== '') {
             if (preg_match('/\b(uzbekistan|tashkent|samarkand|bukhara|toshkent)\b/u', $text)) {
                 return 'uz';
@@ -386,6 +394,9 @@ class GeoLocationService
             }
             if (preg_match('/\b(france|paris|marseille|lyon|toulouse|nice|nantes|strasbourg|bordeaux|lille|monaco)\b/u', $text)) {
                 return 'fr';
+            }
+            if (preg_match('/\b(malaysia|kuala lumpur|selangor|penang|pulau pinang|johor bahru|kota kinabalu|kuching|melaka|ipoh|brunei|bandar seri begawan)\b/u', $text)) {
+                return 'ms';
             }
             if (preg_match('/\b(russia|россия|moscow|москва|saint petersburg|петербург|saint-petersburg|novosibirsk|kazan|казань|minsk|минск|almaty|алматы|astana|астана)\b/u', $text)) {
                 return 'ru';

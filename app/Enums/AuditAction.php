@@ -20,6 +20,7 @@ enum AuditAction: string
     case BanVoteCast = 'ban_vote_cast';
     case BanCaseClosed = 'ban_case_closed';
     case MemberBanned = 'member_banned';
+    case BanLifted = 'ban_lifted';
 
     /**
      * The default audience allowed to read entries of this action.
@@ -28,7 +29,7 @@ enum AuditAction: string
     {
         return match ($this) {
             self::MemberKicked, self::KickLifted, self::ReportFiled,
-            self::BanCaseOpened, self::BanVoteCast, self::BanCaseClosed, self::MemberBanned => AuditVisibility::Moderation,
+            self::BanCaseOpened, self::BanVoteCast, self::BanCaseClosed, self::MemberBanned, self::BanLifted => AuditVisibility::Moderation,
             default => AuditVisibility::AdminOneOnly,
         };
     }
@@ -50,6 +51,7 @@ enum AuditAction: string
             self::BanVoteCast => __('Ban vote cast'),
             self::BanCaseClosed => __('Ban vote closed'),
             self::MemberBanned => __('Member banned'),
+            self::BanLifted => __('Ban lifted'),
         };
     }
 }

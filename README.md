@@ -22,7 +22,7 @@
 - **Member-Run Channels**: Any member can create channels and edit them from a creator-only settings modal.
 - **Pinned Messages**: Channel creators (and Admin I) can pin up to 10 messages, shown in a collapsible tray at the top of the channel. Pinned messages never self-destruct while pinned.
 - **Blocking, Kicking & Reports**: Members block each other (hidden both ways, on the server), channel creators remove members and can allow them back, and anyone can report a member. Blocks and kicks against Admin I/II, or an Admin III inside their own channel, file a report instead.
-- **Ban Votes**: Admin I and II vote on bans for 72 hours; the member is read-only meanwhile. A strict majority decides, Admin I breaks ties, and a ban signs the member out everywhere and removes their passkeys.
+- **Ban Votes**: Admin I and II vote on bans for 72 hours; the member is read-only meanwhile. A strict majority decides, Admin I breaks ties, and a ban signs the member out everywhere and removes their passkeys. Lifting a ban takes a vote with the same rules.
 - **Five Ranks**: Admin I (owner), Admin II (appointed, needs biometrics), Admin III, User I and User II (computed from active channels with 10+ verified members). Other members only ever see "Admin" or "Member".
 - **User Tags & Mentions**: Every member has a unique `@tag` used to find them and to mention them. Mentions of channel members are highlighted and open their member card. All formatted messages are sanitized with DOMPurify.
 - **Encrypted Message Stream**: Messages and attachments are encrypted at rest on the server (not end-to-end), with inline audio, video, photos, and media attachments.
@@ -41,8 +41,8 @@
 - **High-Precision GPS Synchronization**: In-chat GPS sync using browser geolocation with automated reverse geocoding to city, country, and ISO country code.
 - **Cross-Platform Parity**: GPS synchronization reflects across user profiles, session access logs, channel headers, and the Admin Network Map simultaneously.
 
-### 4. Location-Based Localization & Language Overrides (15 Languages)
-- **Extensive Multi-Language Support**: Full localization across 15 languages: English (`en`), Italian (`it`), French (`fr`), Russian (`ru`), Spanish (`es`), German (`de`), Portuguese (`pt`), Japanese (`ja`), Korean (`ko`), Chinese (`zh`), Uzbek (`uz`), Arabic (`ar`), Turkish (`tr`), Dutch (`nl`), and Polish (`pl`).
+### 4. Location-Based Localization & Language Overrides (16 Languages)
+- **Extensive Multi-Language Support**: Full localization across 16 languages: English (`en`), Italian (`it`), French (`fr`), Russian (`ru`), Spanish (`es`), German (`de`), Portuguese (`pt`), Japanese (`ja`), Korean (`ko`), Chinese (`zh`), Uzbek (`uz`), Arabic (`ar`), Turkish (`tr`), Dutch (`nl`), Polish (`pl`), and Malay (`ms`).
 - **Bidirectional Support**: Full RTL (right-to-left) text direction formatting for Arabic (`ar`).
 - **Automated Location Detection**: The interface automatically detects and applies the common language of the member's registered location.
 - **User Preference Override**: Members can select an explicit language preference in their profile that permanently overrides location-based detection across all devices.

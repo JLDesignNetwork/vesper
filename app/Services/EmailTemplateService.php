@@ -13,7 +13,7 @@ class EmailTemplateService
     ) {}
 
     /**
-     * Master registry of all 10 tactical email templates.
+     * Master registry of all 13 tactical email templates.
      *
      * @return array<string, array<string, mixed>>
      */
@@ -143,6 +143,56 @@ class EmailTemplateService
                     'reason' => 'Repeated harassment reported by three members.',
                     'closes_at' => 'Mon, Oct 19, 2026 2:00 PM UTC',
                     'action_url' => config('app.url', 'https://vesper.jldn').'/moderation/bans',
+                ],
+            ],
+
+            'ban_lift_opened' => [
+                'name' => 'Lift-Ban Vote Opened',
+                'category' => 'Moderation',
+                'description' => 'Dispatched to Admin I and Admin II voters when a vote is opened on lifting a member\'s ban.',
+                'subject' => 'Vote to lift a ban: @{{subject_tag}}',
+                'preheader' => '{{opened_by}} opened a vote on lifting a ban. Voting closes {{closes_at}}.',
+                'body_markdown' => "Hello **{{voter_name}}**,\n\n**{{opened_by}}** opened a vote on lifting the ban on **{{subject_name}}** (@{{subject_tag}}). The member stays banned while the vote is open.\n\n### Reason given:\n\"{{reason}}\"\n\nVoting closes **{{closes_at}}**. A strict majority of the votes cast decides; Admin I breaks ties. Without a decision the ban stays.",
+                'button_text' => 'Review and Vote',
+                'button_color' => 'amber',
+                'footer_text' => 'Vesper Moderation • Confidential',
+                'variables' => [
+                    'voter_name' => 'Name of the admin receiving the email',
+                    'subject_name' => 'Name of the banned member',
+                    'subject_tag' => 'Tag of the banned member',
+                    'opened_by' => 'Name of the admin who opened the vote',
+                    'reason' => 'Reason given when the vote was opened',
+                    'closes_at' => 'When voting closes',
+                    'action_url' => 'Link to the ban review page',
+                ],
+                'sample_data' => [
+                    'voter_name' => 'Alex Sterling',
+                    'subject_name' => 'Jordan Pike',
+                    'subject_tag' => 'jordan_pike',
+                    'opened_by' => 'Sam Rivera',
+                    'reason' => 'The reports were filed in error.',
+                    'closes_at' => 'Mon, Oct 19, 2026 2:00 PM UTC',
+                    'action_url' => config('app.url', 'https://vesper.jldn').'/moderation/bans',
+                ],
+            ],
+
+            'ban_lifted' => [
+                'name' => 'Ban Lifted',
+                'category' => 'Moderation',
+                'description' => 'Dispatched to a member when a vote lifts their ban.',
+                'subject' => 'Your Vesper account is active again',
+                'preheader' => 'The admins voted to lift the ban on your account.',
+                'body_markdown' => "Hello **{{member_name}}**,\n\nThe admins voted to lift the ban on your **Vesper** account. You can sign in again.\n\nYour passkeys were removed when the account was banned. Sign in with your password, a linked account or account recovery, then add a passkey again from your profile.",
+                'button_text' => 'Sign In',
+                'button_color' => 'success',
+                'footer_text' => 'Vesper Moderation • Confidential',
+                'variables' => [
+                    'member_name' => 'Name of the member',
+                    'login_url' => 'Sign-in page URL',
+                ],
+                'sample_data' => [
+                    'member_name' => 'Jordan Pike',
+                    'login_url' => config('app.url', 'https://vesper.jldn').'/login',
                 ],
             ],
 

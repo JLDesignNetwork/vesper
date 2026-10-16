@@ -47,6 +47,8 @@ Full plan: [`2610/channels-refactor-plan.md`](2610/channels-refactor-plan.md). B
 - [x] **Phase 6:** Ban vote system.
 - [x] **Phase 7:** Admin I / II / III panels and channel profile modal.
 - [x] **Phase 8:** Biometric entry rules and release gate.
+- [x] **Post-review:** Lifting bans by vote (`MOD-ISSUE-02`), the older English-only strings translated (`ROOT-TODO-03`), Malay as the 16th language (`ROOT-TODO-04`), escaped translations in scripts (`ROOT-ISSUE-04`), packages linked from the global pnpm store (`ROOT-ISSUE-03`).
+- [ ] End-to-end encryption wording or design (`ROOT-ISSUE-01`, owner to revisit); translation review (`ROOT-TODO-05`).
 
 ### Future Horizons
 - [ ] Verified phone numbers as a biometric precondition (deferred: SMS provider cost).

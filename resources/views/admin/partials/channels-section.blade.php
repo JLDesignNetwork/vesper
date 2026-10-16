@@ -185,7 +185,7 @@
                                 @endcan
 
                                 @can('destroy', $room)
-                                <form method="POST" action="{{ route('admin.channels.destroy', ['id' => $room->id]) }}" class="inline" onsubmit="return confirm('{{ __('Are you sure you want to permanently erase this channel and all its data?') }}')">
+                                <form method="POST" action="{{ route('admin.channels.destroy', ['id' => $room->id]) }}" class="inline" onsubmit="return confirm({{ Js::from(__('Are you sure you want to permanently erase this channel and all its data?')) }})">
                                     @csrf
                                     @method('DELETE')
                                     <button

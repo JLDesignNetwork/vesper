@@ -1,0 +1,10 @@
+# Link packages from the global pnpm store instead of copying them into node_modules
+# (JLDN zero-local policy, ROOT-ISSUE-03). The project and the store are on different
+# volumes, so hard links are impossible and symlinks into the global virtual store are used.
+enableGlobalVirtualStore: true
+
+packageExtensions:
+  # Imports vite without declaring it, which breaks outside a flat node_modules.
+  vite-plugin-full-reload:
+    peerDependencies:
+      vite: '*'

@@ -445,7 +445,7 @@
         async function loginWithBiometrics() {
             const btnText = document.getElementById('biometric-btn-text');
             const originalText = btnText.textContent;
-            btnText.textContent = '{{ __("Awaiting Biometrics...") }}';
+            btnText.textContent = {{ Js::from(__("Awaiting Biometrics...")) }};
 
             try {
                 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -485,17 +485,17 @@
 
                 const result = await verifyRes.json();
                 if (result.success) {
-                    btnText.textContent = '{{ __("Clearance Verified...") }}';
+                    btnText.textContent = {{ Js::from(__("Clearance Verified...")) }};
                     window.location.href = result.redirect;
                 } else {
-                    alert(result.message || '{{ __("Biometric verification failed.") }}');
+                    alert(result.message || {{ Js::from(__("Biometric verification failed.")) }});
                     btnText.textContent = originalText;
                 }
             } catch (err) {
                 console.error(err);
                 btnText.textContent = originalText;
                 if (err.name !== 'NotAllowedError') {
-                    alert('{{ __("Biometric authentication error or canceled.") }}');
+                    alert({{ Js::from(__("Biometric authentication error or canceled.")) }});
                 }
             }
         }

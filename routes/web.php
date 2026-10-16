@@ -154,6 +154,7 @@ Route::middleware(['auth', EnsureAdmin::class])->prefix('admin')->group(function
 Route::middleware(['auth', 'can:voteOnBans'])->prefix('moderation/bans')->group(function () {
     Route::get('/', [BanCaseController::class, 'index'])->name('moderation.bans.index');
     Route::post('/', [BanCaseController::class, 'store'])->name('moderation.bans.store');
+    Route::post('/lift', [BanCaseController::class, 'lift'])->name('moderation.bans.lift');
     Route::post('/direct', [BanCaseController::class, 'banAdminTwo'])->name('moderation.bans.direct')->middleware('can:banAdminTwo');
     Route::post('/{banCase}/vote', [BanCaseController::class, 'vote'])->name('moderation.bans.vote');
 });

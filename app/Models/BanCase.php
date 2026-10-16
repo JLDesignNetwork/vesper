@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\BanCaseKind;
 use App\Enums\BanCaseStatus;
 use App\Enums\BanDecision;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * A vote by Admin I and II on whether to ban a member. See BanVoteService.
+ * A vote by Admin I and II on whether to ban a member or lift their ban. See BanVoteService.
  */
 class BanCase extends Model
 {
@@ -22,6 +23,7 @@ class BanCase extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'kind',
         'subject_user_id',
         'opened_by_user_id',
         'report_id',
@@ -38,6 +40,7 @@ class BanCase extends Model
      * @var array<string, mixed>
      */
     protected $attributes = [
+        'kind' => 'ban',
         'status' => 'open',
     ];
 
@@ -49,6 +52,7 @@ class BanCase extends Model
     protected function casts(): array
     {
         return [
+            'kind' => BanCaseKind::class,
             'status' => BanCaseStatus::class,
             'decision' => BanDecision::class,
             'closes_at' => 'datetime',
@@ -65,6 +69,25 @@ class BanCase extends Model
     public function scopeOpen(Builder $query): Builder
     {
         return $query->where('status', BanCaseStatus::Open);
+    }
+
+    /**
+     * Limit to cases of one kind.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeOfKind(Builder $query, BanCaseKind $kind): Builder
+    {
+        return $query->where('kind', $kind);
+    }
+
+    /**
+     * Whether the case votes on lifting a ban rather than imposing one.
+     */
+    public function isLiftVote(): bool
+    {
+        return $this->kind === BanCaseKind::Lift;
     }
 
     /**

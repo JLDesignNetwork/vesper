@@ -45,10 +45,16 @@
                     $myBallot = $case->votes->firstWhere('voter_id', $viewer->id);
                     $forBan = $case->votes->where('ban', true)->count();
                     $against = $case->votes->count() - $forBan;
+                    $isLift = $case->isLiftVote();
                 @endphp
-                <article id="ban-case-{{ $case->id }}" class="rounded-xl border border-amber-500/25 bg-slate-950/60 p-4 space-y-3 text-xs">
+                <article id="ban-case-{{ $case->id }}" class="rounded-xl border {{ $isLift ? 'border-emerald-500/25' : 'border-amber-500/25' }} bg-slate-950/60 p-4 space-y-3 text-xs">
                     <div class="flex flex-wrap items-baseline justify-between gap-2">
-                        <p class="text-sm text-white">{{ $case->subject?->name }} <span class="font-mono text-emerald-300">{{ '@'.$case->subject?->tag }}</span></p>
+                        <p class="text-sm text-white">
+                            @if($isLift)
+                                <span class="me-1 px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-200 font-mono text-[10px] uppercase tracking-wider">{{ __('Lift ban') }}</span>
+                            @endif
+                            {{ $case->subject?->name }} <span class="font-mono text-emerald-300">{{ '@'.$case->subject?->tag }}</span>
+                        </p>
                         <p class="font-mono text-amber-200">{{ __('Closes :when', ['when' => $case->closes_at->diffForHumans()]) }}</p>
                     </div>
                     <p class="text-slate-300 whitespace-pre-line break-words">{{ $case->reason }}</p>
@@ -59,22 +65,40 @@
                         @endif
                     </p>
                     <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800">
-                        <p class="font-mono text-slate-300">{{ __('Ban :for · Don\'t ban :against', ['for' => $forBan, 'against' => $against]) }}
+                        <p class="font-mono text-slate-300">
+                            @if($isLift)
+                                {{ __('Lift ban :for · Keep ban :against', ['for' => $against, 'against' => $forBan]) }}
+                            @else
+                                {{ __('Ban :for · Don\'t ban :against', ['for' => $forBan, 'against' => $against]) }}
+                            @endif
                             @if($myBallot)
-                                <span class="text-slate-500">· {{ $myBallot->ban ? __('You voted to ban') : __('You voted not to ban') }}</span>
+                                <span class="text-slate-500">· @if($isLift){{ $myBallot->ban ? __('You voted to keep the ban') : __('You voted to lift the ban') }}@else{{ $myBallot->ban ? __('You voted to ban') : __('You voted not to ban') }}@endif</span>
                             @endif
                         </p>
                         <div class="flex gap-2">
-                            <form method="POST" action="{{ route('moderation.bans.vote', $case) }}">
-                                @csrf
-                                <input type="hidden" name="ban" value="1">
-                                <button type="submit" class="px-3 py-1.5 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white font-mono cursor-pointer">{{ __('Ban') }}</button>
-                            </form>
-                            <form method="POST" action="{{ route('moderation.bans.vote', $case) }}">
-                                @csrf
-                                <input type="hidden" name="ban" value="0">
-                                <button type="submit" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono cursor-pointer">{{ __('Don\'t ban') }}</button>
-                            </form>
+                            @if($isLift)
+                                <form method="POST" action="{{ route('moderation.bans.vote', $case) }}">
+                                    @csrf
+                                    <input type="hidden" name="ban" value="0">
+                                    <button type="submit" class="px-3 py-1.5 rounded-lg bg-emerald-600/80 hover:bg-emerald-500 text-white font-mono cursor-pointer">{{ __('Lift ban') }}</button>
+                                </form>
+                                <form method="POST" action="{{ route('moderation.bans.vote', $case) }}">
+                                    @csrf
+                                    <input type="hidden" name="ban" value="1">
+                                    <button type="submit" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono cursor-pointer">{{ __('Keep ban') }}</button>
+                                </form>
+                            @else
+                                <form method="POST" action="{{ route('moderation.bans.vote', $case) }}">
+                                    @csrf
+                                    <input type="hidden" name="ban" value="1">
+                                    <button type="submit" class="px-3 py-1.5 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white font-mono cursor-pointer">{{ __('Ban') }}</button>
+                                </form>
+                                <form method="POST" action="{{ route('moderation.bans.vote', $case) }}">
+                                    @csrf
+                                    <input type="hidden" name="ban" value="0">
+                                    <button type="submit" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono cursor-pointer">{{ __('Don\'t ban') }}</button>
+                                </form>
+                            @endif
                         </div>
                     </div>
                 </article>
@@ -151,13 +175,45 @@
         </section>
         @endcan
 
+        <!-- Banned members -->
+        <section class="rounded-2xl bg-slate-900/60 border border-slate-800 p-5 space-y-4" aria-labelledby="banned-members-heading">
+            <div class="space-y-1">
+                <h2 id="banned-members-heading" class="text-sm font-semibold text-white tracking-tight">{{ __('Banned members') }} <span class="font-mono text-slate-400">({{ $bannedMembers->count() }})</span></h2>
+                <p class="text-[11px] text-slate-400">{{ __('Lifting a ban takes a vote with the same rules. The member stays banned until the vote decides to lift it.') }}</p>
+            </div>
+            @php
+                $openLiftSubjectIds = $openCases->filter->isLiftVote()->pluck('subject_user_id');
+            @endphp
+            @forelse($bannedMembers as $member)
+                <article id="banned-member-{{ $member->id }}" class="rounded-xl border border-slate-800 bg-slate-950/60 p-4 space-y-2 text-xs">
+                    <p class="text-slate-200">
+                        {{ $member->name }} <span class="font-mono text-emerald-300">{{ '@'.$member->tag }}</span>
+                        <span class="text-slate-500">· {{ __('Banned :when', ['when' => $member->banned_at->diffForHumans()]) }}</span>
+                    </p>
+                    @if($openLiftSubjectIds->contains($member->id))
+                        <p class="text-emerald-200">{{ __('A vote to lift this ban is open.') }}</p>
+                    @else
+                        <form method="POST" action="{{ route('moderation.bans.lift') }}" class="flex flex-col sm:flex-row gap-2 pt-1">
+                            @csrf
+                            <input type="hidden" name="tag" value="{{ $member->tag }}">
+                            <label for="lift-{{ $member->id }}-reason" class="sr-only">{{ __('Reason for lifting the ban') }}</label>
+                            <input id="lift-{{ $member->id }}-reason" name="reason" required maxlength="1000" placeholder="{{ __('Reason for lifting the ban') }}" class="flex-1 px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 focus:outline-none focus:border-emerald-500/60">
+                            <button type="submit" class="px-3 py-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-200 font-mono cursor-pointer">{{ __('Open vote to lift ban') }}</button>
+                        </form>
+                    @endif
+                </article>
+            @empty
+                <p class="text-xs text-slate-500">{{ __('No members are banned.') }}</p>
+            @endforelse
+        </section>
+
         <!-- Recent decisions -->
         <section class="rounded-2xl bg-slate-900/60 border border-slate-800 p-5 space-y-3" aria-labelledby="recent-decisions-heading">
             <h2 id="recent-decisions-heading" class="text-sm font-semibold text-white tracking-tight">{{ __('Recent decisions') }}</h2>
             @forelse($recentDecisions as $case)
                 <p class="text-xs text-slate-300 flex flex-wrap gap-x-2">
                     <span class="font-mono text-emerald-300">{{ '@'.$case->subject?->tag }}</span>
-                    <span class="{{ $case->status === \App\Enums\BanCaseStatus::Banned ? 'text-rose-300' : 'text-slate-200' }}">{{ $case->status === \App\Enums\BanCaseStatus::Banned ? __('Banned') : __('Not banned') }}</span>
+                    <span class="{{ $case->status->leftMemberBanned() ? 'text-rose-300' : 'text-slate-200' }}">{{ $case->status->label() }}</span>
                     <span class="text-slate-500">{{ $case->decision?->label() }} · {{ $case->closed_at?->diffForHumans() }}</span>
                 </p>
             @empty

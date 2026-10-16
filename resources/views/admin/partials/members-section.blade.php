@@ -60,7 +60,7 @@
                                         <span class="truncate max-w-[180px]" title="{{ $regUser->email }}">{{ $regUser->email }}</span>
                                         <button
                                             type="button"
-                                            onclick="copyText('{{ $regUser->email }}', this, '{{ __('Email copied!') }}')"
+                                            onclick="copyText('{{ $regUser->email }}', this, {{ Js::from(__('Email copied!')) }})"
                                             title="{{ __('Copy email') }}"
                                             class="p-0.5 rounded hover:bg-slate-800 text-slate-400 hover:text-emerald-300 transition-colors cursor-pointer shrink-0"
                                         >
@@ -109,7 +109,7 @@
                                     <span class="text-emerald-400 font-semibold text-[11px]">{{ $regUser->latestIp() }}</span>
                                     <button
                                         type="button"
-                                        onclick="copyText('{{ $regUser->latestIp() }}', this, '{{ __('IP copied!') }}')"
+                                        onclick="copyText('{{ $regUser->latestIp() }}', this, {{ Js::from(__('IP copied!')) }})"
                                         title="{{ __('Copy IP address') }}"
                                         class="p-0.5 rounded hover:bg-slate-800 text-slate-400 hover:text-emerald-300 transition-colors cursor-pointer"
                                     >
@@ -239,7 +239,7 @@
                                         @endif
                                     @endcan
                                     @can('manageMembers')
-                                    <form method="POST" action="{{ route('admin.users.destroy', ['id' => $regUser->id]) }}" class="inline" onsubmit="return confirm('{{ __('Permanently delete this member account?') }}')">
+                                    <form method="POST" action="{{ route('admin.users.destroy', ['id' => $regUser->id]) }}" class="inline" onsubmit="return confirm({{ Js::from(__('Permanently delete this member account?')) }})">
                                         @csrf
                                         @method('DELETE')
                                         <button

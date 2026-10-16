@@ -337,6 +337,12 @@ class Room extends Model
             return LanguageService::codes();
         }
 
+        // A channel that allowed all 15 languages before Malay was added keeps allowing all of them
+        $allBeforeMalay = ['en', 'it', 'fr', 'ru', 'es', 'de', 'pt', 'ja', 'ko', 'zh', 'uz', 'ar', 'tr', 'nl', 'pl'];
+        if (empty(array_diff($allBeforeMalay, $this->allowed_languages))) {
+            return LanguageService::codes();
+        }
+
         return array_values($this->allowed_languages);
     }
 

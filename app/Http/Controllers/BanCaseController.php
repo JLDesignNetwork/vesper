@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
- * The ban review page for Admin I and II: open votes, open reports, and recent decisions.
+ * The ban review page for Admin I and II: open votes, open reports, banned members and recent decisions.
  */
 class BanCaseController extends Controller
 {
@@ -27,7 +27,7 @@ class BanCaseController extends Controller
     ) {}
 
     /**
-     * Show open ban votes, open reports and recent decisions.
+     * Show open votes, open reports, banned members and recent decisions.
      */
     public function index(Request $request): View
     {
@@ -44,6 +44,9 @@ class BanCaseController extends Controller
                 ->latest()
                 ->limit(25)
                 ->get(),
+            'bannedMembers' => User::whereNotNull('banned_at')
+                ->orderByDesc('banned_at')
+                ->get(['id', 'name', 'tag', 'banned_at']),
             'recentDecisions' => BanCase::where('status', '!=', BanCaseStatus::Open)
                 ->with(['subject:id,name,tag', 'openedBy:id,name'])
                 ->latest('closed_at')
@@ -73,6 +76,22 @@ class BanCaseController extends Controller
         $this->bans->open($request->user(), $subject, trim($validated['reason']), $report);
 
         return redirect()->route('moderation.bans.index')->with('status', __('Ban vote opened for @:tag. They are restricted until it closes.', ['tag' => $subject->tag]));
+    }
+
+    /**
+     * Open a vote on lifting a banned member's ban (owner decision Q13).
+     */
+    public function lift(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'tag' => ['required', 'string', 'max:40'],
+            'reason' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $subject = $this->memberByTag($validated['tag']);
+        $this->bans->openLift($request->user(), $subject, trim($validated['reason']));
+
+        return redirect()->route('moderation.bans.index')->with('status', __('Vote to lift the ban on @:tag opened. They stay banned until it is decided.', ['tag' => $subject->tag]));
     }
 
     /**

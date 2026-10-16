@@ -109,5 +109,12 @@ return [
             'flag' => '🇵🇱',
             'dir' => 'ltr',
         ],
+        'ms' => [
+            'code' => 'ms',
+            'name' => 'Malay',
+            'native' => 'Bahasa Melayu',
+            'flag' => '🇲🇾',
+            'dir' => 'ltr',
+        ],
     ],
 ];

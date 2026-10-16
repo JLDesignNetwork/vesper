@@ -504,7 +504,7 @@
     function handleEditorInput() {
         const subject = document.getElementById('input-subject').value;
         document.getElementById('preview-subject-text').innerText = subject;
-        document.getElementById('preview-sync-status').innerText = '{{ __("Drafting...") }}';
+        document.getElementById('preview-sync-status').innerText = {{ Js::from(__("Drafting...")) }};
         document.getElementById('preview-sync-status').className = 'text-[10px] font-mono text-amber-400';
 
         clearTimeout(previewDebounceTimer);
@@ -538,12 +538,12 @@
             if (res.ok) {
                 const html = await res.text();
                 iframe.srcdoc = html;
-                document.getElementById('preview-sync-status').innerText = '{{ __("Synced") }}';
+                document.getElementById('preview-sync-status').innerText = {{ Js::from(__("Synced")) }};
                 document.getElementById('preview-sync-status').className = 'text-[10px] font-mono text-emerald-400';
             }
         } catch (err) {
             console.error('Preview refresh failed:', err);
-            document.getElementById('preview-sync-status').innerText = '{{ __("Sync error") }}';
+            document.getElementById('preview-sync-status').innerText = {{ Js::from(__("Sync error")) }};
             document.getElementById('preview-sync-status').className = 'text-[10px] font-mono text-rose-400';
         }
     }
@@ -574,14 +574,14 @@
         const allTargetLocales = @json(array_values(array_diff(array_keys($supportedLanguages), ['en'])));
         const targetCount = allTargetLocales.length;
 
-        if (!confirm('{{ __("Auto-translate this template from English into all other ") }}' + targetCount + '{{ __(" supported languages? Dynamic variables will be automatically protected.") }}')) {
+        if (!confirm({{ Js::from(__('Auto-translate this template from English into all other :count supported languages? Dynamic variables will be automatically protected.')) }}.replace(':count', targetCount))) {
             return;
         }
 
         btn.disabled = true;
         spinner.classList.remove('hidden');
         icon.classList.add('hidden');
-        text.innerText = '{{ __("Translating Preserving Variables...") }}';
+        text.innerText = {{ Js::from(__("Translating Preserving Variables...")) }};
 
         try {
             const res = await fetch(autoTranslateUrl, {
@@ -599,19 +599,19 @@
 
             const data = await res.json();
             if (data.success) {
-                alert(data.message || '{{ __("Auto-translation complete!") }}');
+                alert(data.message || {{ Js::from(__("Auto-translation complete!")) }});
                 window.location.reload();
             } else {
-                alert(data.message || '{{ __("Translation encountered an error.") }}');
+                alert(data.message || {{ Js::from(__("Translation encountered an error.")) }});
             }
         } catch (err) {
             console.error('Translation error:', err);
-            alert('{{ __("Translation service request failed.") }}');
+            alert({{ Js::from(__("Translation service request failed.")) }});
         } finally {
             btn.disabled = false;
             spinner.classList.add('hidden');
             icon.classList.remove('hidden');
-            text.innerText = '{{ __("Auto-Translate All Languages (:count)", ["count" => count($supportedLanguages) - 1]) }}';
+            text.innerText = {{ Js::from(__("Auto-Translate All Languages (:count)", ["count" => count($supportedLanguages) - 1])) }};
         }
     }
 
@@ -639,13 +639,13 @@
 
             const data = await res.json();
             if (data.success) {
-                alert(data.message || '{{ __("Test email dispatched successfully.") }}');
+                alert(data.message || {{ Js::from(__("Test email dispatched successfully.")) }});
             } else {
-                alert(data.message || '{{ __("Failed to dispatch test email.") }}');
+                alert(data.message || {{ Js::from(__("Failed to dispatch test email.")) }});
             }
         } catch (err) {
             console.error('Test dispatch error:', err);
-            alert('{{ __("Test dispatch network error.") }}');
+            alert({{ Js::from(__("Test dispatch network error.")) }});
         } finally {
             btn.disabled = false;
             btn.innerHTML = originalText;
@@ -653,7 +653,7 @@
     }
 
     function resetToFactoryDefault(key) {
-        if (confirm('{{ __("Reset this template in the current language back to factory defaults? All custom text will be removed.") }}')) {
+        if (confirm({{ Js::from(__("Reset this template in the current language back to factory defaults? All custom text will be removed.")) }})) {
             document.getElementById('reset-template-form').submit();
         }
     }

@@ -294,11 +294,12 @@
   {
     "id": "ROOT-TODO-03",
     "title": "Translate the UI strings that predate Gen 2610",
-    "status": "pending",
+    "status": "completed",
     "priority": "medium-1",
     "existed_since": "2609.11.0-bs",
     "created_at": "2026-10-16T16:30:00+02:00",
-    "details": "About 240 strings used with __() in views and controllers before the channels refactor have no entry in lang/*.json, so they show in English in every language (for example 'ADMIN CONSOLE', '2FA is not enabled.', ':provider account linked successfully.'). Found while translating the Phase 1-7 strings; out of scope for ADMN-TODO-01."
+    "details": "About 240 strings used with __() in views and controllers before the channels refactor have no entry in lang/*.json, so they show in English in every language (for example 'ADMIN CONSOLE', '2FA is not enabled.', ':provider account linked successfully.'). Found while translating the Phase 1-7 strings; out of scope for ADMN-TODO-01. Scan on 2026-10-16: 240 keys used in app/, resources/views/ and routes/ are missing from lang/en.json (including a few added in Phases 5-8). Plan: add them to en.json and translate into the 14 other languages; replace the split JS confirm text on the email templates page with one string. Done 2026-10-16: 256 keys (the 240 older strings plus the new lift-vote strings) added to en.json and translated into the 14 other languages; the email templates page's two-part confirm text is now one string with :count. A scan of app/, resources/views/, routes/ and config/ finds no key missing from en.json.",
+    "protected": "open"
   },
   {
     "id": "AUTH-ISSUE-06",
@@ -388,17 +389,18 @@
   {
     "id": "MOD-ISSUE-02",
     "title": "A ban cannot be lifted",
-    "status": "pending",
+    "status": "completed",
     "severity": "medium",
     "priority": "medium-1",
     "existed_since": "2610 Phase 6",
     "created_at": "2026-10-16T18:15:00+02:00",
-    "details": "There is no way to reverse a ban: banned_at stays set, and the member's passkeys and sessions are already gone. A ban decided by mistake (or a direct Admin II ban) is permanent unless someone edits the database. Needs an owner decision: who may lift a ban (Admin I alone, or a vote), and whether it is audited and announced.",
+    "details": "There is no way to reverse a ban: banned_at stays set, and the member's passkeys and sessions are already gone. A ban decided by mistake (or a direct Admin II ban) is permanent unless someone edits the database. Needs an owner decision: who may lift a ban (Admin I alone, or a vote), and whether it is audited and announced. Owner decision Q13 (2026-10-16): lifting a ban takes a majority vote. Plan: a ban case gains a kind (ban or lift); a lift vote uses the same voters, 72-hour window and tie rules, and the ban stays unless the vote decides to lift it. Fixed 2026-10-16: ban_cases.kind (ban or lift), BanVoteService::openLift, outcomes lifted and upheld, a Banned members list with a lift-vote form on /moderation/bans, ban_lift_opened and ban_lifted emails, and the BanLifted audit action. Covered by the lift-vote tests in BanVoteTest (14 of 14 mutations caught).",
     "source_audit_run": {
       "generation": "2610",
       "color": "blue",
       "run_at": "2026-10-16T18:15:00+02:00"
-    }
+    },
+    "protected": "open"
   },
   {
     "id": "MOD-ISSUE-03",
@@ -451,16 +453,47 @@
   {
     "id": "ROOT-ISSUE-03",
     "title": "node_modules holds a local pnpm store",
-    "status": "pending",
+    "status": "completed",
     "severity": "low",
     "priority": "low-1",
     "existed_since": "2609.11.0-bs",
     "created_at": "2026-10-16T18:20:00+02:00",
-    "details": "node_modules/.pnpm is a full local package store (created 2026-09-05; dompurify was re-linked into it at 14:03 on 2026-10-16 by a pnpm install outside this session), which the JLDN zero-local pnpm policy forbids. Not changed by the audit because it is the owner's working environment; fixing it means re-linking packages from the global store.",
+    "details": "node_modules/.pnpm is a full local package store (created 2026-09-05; dompurify was re-linked into it at 14:03 on 2026-10-16 by a pnpm install outside this session), which the JLDN zero-local pnpm policy forbids. Not changed by the audit because it is the owner's working environment; fixing it means re-linking packages from the global store. Cause found 2026-10-16: the project is on the Kingston volume and the pnpm store is on the internal disk, so pnpm cannot hard-link and copies every file (all files have link count 1, 83 MB). Recommendation, tested in a throwaway copy: set enableGlobalVirtualStore: true in a pnpm-workspace.yaml, plus a packageExtensions entry declaring vite as a peer of vite-plugin-full-reload (it imports vite without declaring it). node_modules then holds only symlinks into the global store (about 290 KB), pnpm build succeeds, and the lockfile gains only the peer entry. Waiting for the owner to approve applying it. Applied 2026-10-16 with owner approval: pnpm-workspace.yaml added, node_modules deleted and reinstalled from the global store. node_modules is now 148 KB of links (was 83 MB of copies); pnpm build produces the same bundle and the suite passes.",
     "source_audit_run": {
       "generation": "2610",
       "color": "red",
       "run_at": "2026-10-16T18:20:00+02:00"
-    }
+    },
+    "protected": "open"
+  },
+  {
+    "id": "ROOT-TODO-04",
+    "title": "Add Malay as the 16th language",
+    "status": "completed",
+    "priority": "medium-1",
+    "existed_since": "2610.0.0-bs",
+    "created_at": "2026-10-16T19:55:00+02:00",
+    "details": "Owner request 2026-10-16. Add ms (Bahasa Melayu, flag 🇲🇾) to config/languages.php, a complete lang/ms.json, plural forms (one form, like Indonesian), and location detection for Malaysia and Brunei (Singapore stays English, its working language). Email templates need no files: they are auto-translated per locale from the admin page, which reads the language list from config. Tests that assert 15 languages move to 16. Done 2026-10-16: config entry, complete lang/ms.json (1,136 keys, one plural form), detection for MY and BN by country code, country name and city, and channels whose stored language list covered all 15 earlier languages now allow Malay too. Language tests cover the count, plural form, location detection and a Malay profile page.",
+    "protected": "open"
+  },
+  {
+    "id": "ROOT-ISSUE-04",
+    "title": "Translated text in JavaScript shows HTML escape codes",
+    "status": "completed",
+    "severity": "low",
+    "priority": "medium-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T20:20:00+02:00",
+    "details": "Views put translated strings into JavaScript as '{{ __(...) }}'. Blade escapes them for HTML, but text inside a <script> is never HTML-decoded, so an apostrophe or ampersand shows as &#039; or &amp; in alerts and button labels (for example 26 places in French, Italian, Turkish and Uzbek today, such as 'Verify &amp; Enable 2FA'). Inside an onclick attribute the decoded apostrophe ends the JavaScript string instead. Found while preparing ROOT-TODO-03, which would add more such strings. Fix: whole-string uses in scripts and event attributes become {{ Js::from(__(...)) }}; partial uses are checked one by one. Fixed 2026-10-16: 148 whole-string uses in scripts and event attributes now use Js::from, as do the merged email-template confirm text and the one partial use whose text could show escape codes (the invite copy message). Partial uses inside innerHTML strings already display correctly. Regression test renders the sign-in page in French.",
+    "protected": "open"
+  },
+  {
+    "id": "ROOT-TODO-05",
+    "title": "Review the machine-translated strings from before Gen 2610",
+    "status": "pending",
+    "priority": "low-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T21:10:00+02:00",
+    "details": "Noticed while translating ROOT-TODO-03: some older entries in lang/*.json came from the lang:generate machine translation and use wrong terms, for example passkey as 'Hauptschlüssel' (de), 'Wachtwoord' (nl) and '万能钥匙' (zh), channels as '渠道' (zh), 'Clearance Verified...' as 'Liquidation vérifiée...' (fr), and 'Members' as 'Члены' (ru). Arabic uses حظر for both block and ban, so 'Blocked Members' and 'Banned members' read the same. Needs a pass by a reviewer per language; the new strings use the correct terms."
   }
 ]

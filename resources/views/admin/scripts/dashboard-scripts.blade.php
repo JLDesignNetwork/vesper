@@ -103,10 +103,10 @@
             }
 
             const genderLabels = {
-                'Male': "{{ __('Male') }}",
-                'Female': "{{ __('Female') }}",
-                'Non-binary': "{{ __('Non-binary') }}",
-                'Other': "{{ __('Other') }}"
+                'Male': {{ Js::from(__('Male')) }},
+                'Female': {{ Js::from(__('Female')) }},
+                'Non-binary': {{ Js::from(__('Non-binary')) }},
+                'Other': {{ Js::from(__('Other')) }}
             };
             document.getElementById('dossier-gender').textContent = user.gender ? (genderLabels[user.gender] || user.gender) : '—';
 
@@ -115,7 +115,7 @@
             if (locEl) {
                 // Built with textContent: the location is free text the member typed (ADMN-ISSUE-03).
                 const locText = document.createElement('span');
-                locText.textContent = user.location || (user.hide_location ? "{{ __('Hidden') }}" : '—');
+                locText.textContent = user.location || (user.hide_location ? {{ Js::from(__('Hidden')) }} : '—');
                 locEl.replaceChildren(locText);
                 if (user.hide_location) {
                     const locBadge = document.createElement('span');
@@ -125,16 +125,16 @@
                 }
             }
 
-            document.getElementById('dossier-alerts').textContent = user.email_notifications ? "{{ __('Enabled') }}" : "{{ __('Disabled') }}";
+            document.getElementById('dossier-alerts').textContent = user.email_notifications ? {{ Js::from(__('Enabled')) }} : {{ Js::from(__('Disabled')) }};
 
             // Language
             const langEl = document.getElementById('dossier-language');
             if (langEl) {
                 const langNames = {
-                    'en': "{{ __('English (EN)') }}",
-                    'ru': "{{ __('Russian (RU)') }}",
-                    'fr': "{{ __('French (FR)') }}",
-                    'it': "{{ __('Italian (IT)') }}"
+                    'en': {{ Js::from(__('English (EN)')) }},
+                    'ru': {{ Js::from(__('Russian (RU)')) }},
+                    'fr': {{ Js::from(__('French (FR)')) }},
+                    'it': {{ Js::from(__('Italian (IT)')) }}
                 };
                 if (user.preferred_locale) {
                     const name = escapeDossierText(langNames[user.preferred_locale] || user.preferred_locale.toUpperCase());
@@ -152,7 +152,7 @@
             const bioEl = document.getElementById('dossier-bio');
             const bioBadgeEl = document.getElementById('dossier-bio-badge');
             if (bioEl) {
-                bioEl.textContent = user.bio || "{{ __('No intelligence notes or biography recorded.') }}";
+                bioEl.textContent = user.bio || {{ Js::from(__('No intelligence notes or biography recorded.')) }};
             }
             if (bioBadgeEl) {
                 if (user.hide_bio) {
@@ -166,10 +166,10 @@
             const privacyEl = document.getElementById('dossier-privacy-summary');
             if (privacyEl) {
                 const hiddenItems = [];
-                if (user.hide_age) hiddenItems.push(user.hide_birthday ? "{{ __('Age') }}" : "{{ __('Age (Year concealed)') }}");
-                if (user.hide_birthday) hiddenItems.push("{{ __('Birthday') }}");
-                if (user.hide_location) hiddenItems.push("{{ __('Location') }}");
-                if (user.hide_bio) hiddenItems.push("{{ __('Bio') }}");
+                if (user.hide_age) hiddenItems.push(user.hide_birthday ? {{ Js::from(__('Age')) }} : {{ Js::from(__('Age (Year concealed)')) }});
+                if (user.hide_birthday) hiddenItems.push({{ Js::from(__('Birthday')) }});
+                if (user.hide_location) hiddenItems.push({{ Js::from(__('Location')) }});
+                if (user.hide_bio) hiddenItems.push({{ Js::from(__('Bio')) }});
 
                 if (hiddenItems.length > 0) {
                     privacyEl.innerHTML = `<span class="text-amber-400 font-mono">🔒 {{ __('Concealed from members') }}: <strong>${hiddenItems.join(', ')}</strong> ${user.hidden_fields_visible ? "({{ __('Admin overrides and sees all') }})" : "({{ __('Hidden from you too') }})"}</span>`;
@@ -193,7 +193,7 @@
         function copyDossierIp() {
             const ip = document.getElementById('dossier-ip-val')?.textContent?.trim();
             if (ip && ip !== '—') {
-                copyText(ip, document.getElementById('dossier-copy-ip-btn'), '{{ __("IP copied!") }}');
+                copyText(ip, document.getElementById('dossier-copy-ip-btn'), {{ Js::from(__("IP copied!")) }});
             }
         }
 
@@ -216,7 +216,7 @@
             if (input.files && input.files[0]) {
                 const file = input.files[0];
                 if (file.size > 5 * 1024 * 1024) {
-                    showToast('{{ __("Image exceeds the 5MB file size limit.") }}');
+                    showToast({{ Js::from(__("Image exceeds the 5MB file size limit.")) }});
                     input.value = '';
                     return;
                 }
@@ -311,7 +311,7 @@
                     const removeFlag = document.getElementById('remove-avatar-flag');
                     if (removeFlag) removeFlag.value = '0';
 
-                    showToast('{{ __("Profile updated successfully!") }}');
+                    showToast({{ Js::from(__("Profile updated successfully!")) }});
                     setTimeout(() => {
                         closeProfileModal();
                         window.location.reload();
@@ -333,12 +333,12 @@
 
         function detectProfileGps() {
             if (!navigator.geolocation) {
-                showToast('{{ __("Geolocation is not supported by your browser.") }}');
+                showToast({{ Js::from(__("Geolocation is not supported by your browser.")) }});
                 return;
             }
 
             const btnText = document.getElementById('profile-detect-gps-text');
-            if (btnText) btnText.textContent = '{{ __("Detecting...") }}';
+            if (btnText) btnText.textContent = {{ Js::from(__("Detecting...")) }};
 
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
@@ -368,7 +368,7 @@
                     } catch (err) {
                         showToast('Error sending GPS data.');
                     } finally {
-                        if (btnText) btnText.textContent = '{{ __("Detect GPS") }}';
+                        if (btnText) btnText.textContent = {{ Js::from(__("Detect GPS")) }};
                     }
                 },
                 (err) => {
@@ -377,7 +377,7 @@
                     else if (err.code === 2) msg = 'Position unavailable.';
                     else if (err.code === 3) msg = 'GPS acquisition timed out.';
                     showToast(msg);
-                    if (btnText) btnText.textContent = '{{ __("Detect GPS") }}';
+                    if (btnText) btnText.textContent = {{ Js::from(__("Detect GPS")) }};
                 },
                 { enableHighAccuracy: true, timeout: 8000 }
             );
@@ -473,14 +473,14 @@
         // Admin GPS Synchronization
         function syncAdminGps() {
             if (!navigator.geolocation) {
-                showToast('{{ __("Geolocation is not supported by your browser.") }}');
+                showToast({{ Js::from(__("Geolocation is not supported by your browser.")) }});
                 return;
             }
 
             const btn = document.getElementById('admin-gps-sync-btn');
             const btnText = document.getElementById('admin-gps-btn-text');
             if (btn) btn.disabled = true;
-            if (btnText) btnText.textContent = '{{ __("LOCATING...") }}';
+            if (btnText) btnText.textContent = {{ Js::from(__("LOCATING...")) }};
 
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
@@ -538,7 +538,7 @@
                         showToast('Error sending GPS telemetry to server.');
                     } finally {
                         if (btn) btn.disabled = false;
-                        if (btnText) btnText.textContent = '{{ __("SYNC GPS") }}';
+                        if (btnText) btnText.textContent = {{ Js::from(__("SYNC GPS")) }};
                     }
                 },
                 (err) => {
@@ -548,7 +548,7 @@
                     else if (err.code === 3) msg = 'Location request timed out.';
                     showToast(msg);
                     if (btn) btn.disabled = false;
-                    if (btnText) btnText.textContent = '{{ __("SYNC GPS") }}';
+                    if (btnText) btnText.textContent = {{ Js::from(__("SYNC GPS")) }};
                 },
                 { enableHighAccuracy: true, timeout: 8000 }
             );
@@ -588,7 +588,7 @@
             }
         }
 
-        function copyText(text, btnElement = null, successMsg = '{{ __("Copied to clipboard!") }}') {
+        function copyText(text, btnElement = null, successMsg = {{ Js::from(__("Copied to clipboard!")) }}) {
             function onCopied() {
                 showToast(successMsg);
                 if (btnElement) {
@@ -622,7 +622,7 @@
         function copyFullInvite(roomCode, roomTitle, pin, btnElement = null) {
             const url = window.location.origin + `/c/${encodeURIComponent(roomCode)}`;
             const packageText = `Channel: ${roomTitle}\nLink: ${url}\nPIN: ${pin}`;
-            copyText(packageText, btnElement, `{{ __('Link & PIN package copied!') }}`);
+            copyText(packageText, btnElement, {{ Js::from(__('Link & PIN package copied!')) }});
         }
 
         /* -------------------------------------------------------------
@@ -634,13 +634,13 @@
 
         async function enrollCurrentDeviceBiometrics() {
             if (!window.PublicKeyCredential) {
-                alert('{{ __("WebAuthn biometrics are not supported by this browser.") }}');
+                alert({{ Js::from(__("WebAuthn biometrics are not supported by this browser.")) }});
                 return;
             }
 
             const btn = document.getElementById('enroll-bio-btn');
             const originalText = btn.textContent;
-            btn.textContent = '{{ __("Awaiting Touch ID...") }}';
+            btn.textContent = {{ Js::from(__("Awaiting Touch ID...")) }};
 
             try {
                 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -650,7 +650,7 @@
                 const options = await optRes.json();
                 if (!optRes.ok) {
                     btn.textContent = originalText;
-                    alert(options.message || '{{ __("Passkeys cannot be enrolled yet.") }}');
+                    alert(options.message || {{ Js::from(__("Passkeys cannot be enrolled yet.")) }});
                     return;
                 }
 
@@ -668,7 +668,7 @@
                     throw new Error('Credential creation rejected');
                 }
 
-                const deviceLabel = prompt('{{ __("Enter a label for this device (e.g. MacBook Touch ID):") }}', 'Touch ID / Platform Key') || 'Touch ID Key';
+                const deviceLabel = prompt({{ Js::from(__("Enter a label for this device (e.g. MacBook Touch ID):")) }}, 'Touch ID / Platform Key') || 'Touch ID Key';
 
                 const payload = {
                     id: credential.id,
@@ -685,15 +685,15 @@
 
                 const result = await regRes.json();
                 if (result.success) {
-                    showToast(result.message || '{{ __("Device registered successfully.") }}');
+                    showToast(result.message || {{ Js::from(__("Device registered successfully.")) }});
                     setTimeout(() => window.location.reload(), 800);
                 } else {
-                    alert(result.message || '{{ __("Biometric registration failed.") }}');
+                    alert(result.message || {{ Js::from(__("Biometric registration failed.")) }});
                 }
             } catch (err) {
                 console.error(err);
                 if (err.name !== 'NotAllowedError') {
-                    alert('{{ __("Biometric enrollment error: ") }}' + err.message);
+                    alert({{ Js::from(__("Biometric enrollment error: ")) }} + err.message);
                 }
             } finally {
                 btn.textContent = originalText;
@@ -701,7 +701,7 @@
         }
 
         async function revokeBiometricKey(id, btnElement) {
-            if (!confirm('{{ __("Are you sure you want to revoke this biometric passkey?") }}')) {
+            if (!confirm({{ Js::from(__("Are you sure you want to revoke this biometric passkey?")) }})) {
                 return;
             }
 
@@ -714,10 +714,10 @@
                 const result = await res.json();
                 if (result.success) {
                     btnElement.closest('div').remove();
-                    showToast('{{ __("Biometric passkey revoked.") }}');
+                    showToast({{ Js::from(__("Biometric passkey revoked.")) }});
                 }
             } catch (err) {
-                alert('{{ __("Failed to revoke biometric key.") }}');
+                alert({{ Js::from(__("Failed to revoke biometric key.")) }});
             }
         }
 
@@ -752,11 +752,11 @@
                     secretCode.textContent = data.secret;
                     qrWrap.innerHTML = data.qr_code_svg;
                 } else {
-                    alert('{{ __("Failed to initialize 2FA setup.") }}');
+                    alert({{ Js::from(__("Failed to initialize 2FA setup.")) }});
                     closeTwoFactorSetupModal();
                 }
             } catch (err) {
-                alert('{{ __("Failed to contact server.") }}');
+                alert({{ Js::from(__("Failed to contact server.")) }});
                 closeTwoFactorSetupModal();
             }
         }
@@ -773,13 +773,13 @@
 
             if (code.length !== 6) {
                 alertBox.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/40 border border-rose-500/30 text-rose-300';
-                alertBox.textContent = '{{ __("Please enter a 6-digit code.") }}';
+                alertBox.textContent = {{ Js::from(__("Please enter a 6-digit code.")) }};
                 alertBox.classList.remove('hidden');
                 return;
             }
 
             btn.disabled = true;
-            btn.textContent = '{{ __("Verifying...") }}';
+            btn.textContent = {{ Js::from(__("Verifying...")) }};
 
             try {
                 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -799,28 +799,28 @@
                     document.getElementById('two-factor-step-2').classList.remove('hidden');
                 } else {
                     alertBox.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/40 border border-rose-500/30 text-rose-300';
-                    alertBox.textContent = data.message || '{{ __("Invalid verification code.") }}';
+                    alertBox.textContent = data.message || {{ Js::from(__("Invalid verification code.")) }};
                     alertBox.classList.remove('hidden');
                 }
             } catch (err) {
                 alertBox.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/40 border border-rose-500/30 text-rose-300';
-                alertBox.textContent = '{{ __("Verification request failed.") }}';
+                alertBox.textContent = {{ Js::from(__("Verification request failed.")) }};
                 alertBox.classList.remove('hidden');
             } finally {
                 btn.disabled = false;
-                btn.textContent = '{{ __("Verify & Enable 2FA") }}';
+                btn.textContent = {{ Js::from(__("Verify & Enable 2FA")) }};
             }
         }
 
         function copyRecoveryCodes() {
             if (currentRecoveryCodes.length === 0) return;
             const text = currentRecoveryCodes.join('\n');
-            copyText(text, document.getElementById('copy-recovery-codes-btn'), '{{ __("Recovery codes copied to clipboard!") }}');
+            copyText(text, document.getElementById('copy-recovery-codes-btn'), {{ Js::from(__("Recovery codes copied to clipboard!")) }});
         }
 
         function finishTwoFactorSetup() {
             closeTwoFactorSetupModal();
-            showToast('{{ __("Two-factor authentication active.") }}');
+            showToast({{ Js::from(__("Two-factor authentication active.")) }});
             setTimeout(() => window.location.reload(), 800);
         }
 
@@ -841,7 +841,7 @@
 
             if (!password) {
                 alertBox.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/40 border border-rose-500/30 text-rose-300';
-                alertBox.textContent = '{{ __("Please enter your current password.") }}';
+                alertBox.textContent = {{ Js::from(__("Please enter your current password.")) }};
                 alertBox.classList.remove('hidden');
                 return;
             }
@@ -859,16 +859,16 @@
 
                 if (data.success) {
                     closeDisable2faModal();
-                    showToast('{{ __("Two-factor authentication deactivated.") }}');
+                    showToast({{ Js::from(__("Two-factor authentication deactivated.")) }});
                     setTimeout(() => window.location.reload(), 800);
                 } else {
                     alertBox.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/40 border border-rose-500/30 text-rose-300';
-                    alertBox.textContent = data.message || '{{ __("Failed to disable 2FA.") }}';
+                    alertBox.textContent = data.message || {{ Js::from(__("Failed to disable 2FA.")) }};
                     alertBox.classList.remove('hidden');
                 }
             } catch (err) {
                 alertBox.className = 'p-2.5 rounded-xl text-xs font-mono bg-rose-950/40 border border-rose-500/30 text-rose-300';
-                alertBox.textContent = '{{ __("Server request failed.") }}';
+                alertBox.textContent = {{ Js::from(__("Server request failed.")) }};
                 alertBox.classList.remove('hidden');
             } finally {
                 btn.disabled = false;
@@ -884,12 +884,12 @@
             const email = input.value.trim();
 
             if (!email) {
-                alert('{{ __("Please enter a valid recovery email address.") }}');
+                alert({{ Js::from(__("Please enter a valid recovery email address.")) }});
                 return;
             }
 
             btn.disabled = true;
-            btn.textContent = '{{ __("Saving...") }}';
+            btn.textContent = {{ Js::from(__("Saving...")) }};
 
             try {
                 const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -901,15 +901,15 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    showToast(data.message || '{{ __("Recovery email saved. Please confirm via link in inbox.") }}');
+                    showToast(data.message || {{ Js::from(__("Recovery email saved. Please confirm via link in inbox.")) }});
                 } else {
-                    alert(data.message || '{{ __("Failed to save recovery email.") }}');
+                    alert(data.message || {{ Js::from(__("Failed to save recovery email.")) }});
                 }
             } catch (err) {
-                alert('{{ __("Request failed.") }}');
+                alert({{ Js::from(__("Request failed.")) }});
             } finally {
                 btn.disabled = false;
-                btn.textContent = '{{ __("Save") }}';
+                btn.textContent = {{ Js::from(__("Save")) }};
             }
         }
     

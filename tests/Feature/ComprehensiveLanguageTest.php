@@ -10,10 +10,10 @@ use App\Services\LanguageService;
 use App\Services\TranslationService;
 use Illuminate\Support\Facades\Hash;
 
-test('all 15 supported languages have complete 642-key translation dictionaries', function () {
+test('all 16 supported languages have complete translation dictionaries', function () {
     $codes = LanguageService::codes();
-    expect($codes)->toHaveCount(15);
-    expect($codes)->toContain('en', 'it', 'fr', 'ru', 'es', 'de', 'pt', 'ja', 'ko', 'zh', 'uz', 'ar', 'tr', 'nl', 'pl');
+    expect($codes)->toHaveCount(16);
+    expect($codes)->toContain('en', 'it', 'fr', 'ru', 'es', 'de', 'pt', 'ja', 'ko', 'zh', 'uz', 'ar', 'tr', 'nl', 'pl', 'ms');
 
     $enPath = base_path('lang/en.json');
     expect(file_exists($enPath))->toBeTrue();
@@ -73,7 +73,7 @@ test('user profile update validates and persists all supported languages', funct
         'preferred_locale' => 'en',
     ]);
 
-    foreach (['es', 'de', 'pt', 'ko', 'zh', 'ar', 'tr', 'nl', 'pl'] as $targetLang) {
+    foreach (['es', 'de', 'pt', 'ko', 'zh', 'ar', 'tr', 'nl', 'pl', 'ms'] as $targetLang) {
         $response = $this->actingAs($user)->post(route('profile.update'), [
             'name' => 'PolyglotUser',
             'email' => 'polyglot@vesper.test',
@@ -100,6 +100,11 @@ test('geolocation maps country codes to newly supported languages accurately', f
     expect($geo->resolveLanguageFromLocation('TR'))->toBe('tr');
     expect($geo->resolveLanguageFromLocation('NL'))->toBe('nl');
     expect($geo->resolveLanguageFromLocation('PL'))->toBe('pl');
+    expect($geo->resolveLanguageFromLocation('MY'))->toBe('ms');
+    expect($geo->resolveLanguageFromLocation('BN'))->toBe('ms');
+    expect($geo->resolveLanguageFromLocation('SG'))->toBe('en');
+    expect($geo->resolveLanguageFromLocation(null, 'Malaysia'))->toBe('ms');
+    expect($geo->resolveLanguageFromLocation(null, null, 'Kuala Lumpur'))->toBe('ms');
 });
 
 test('translation service accurately translates text into newly supported languages', function () {
@@ -204,6 +209,7 @@ test('plural forms of the refactor strings follow each language\'s rules', funct
     'Polish few' => ['pl', 3, '3 członkowie'],
     'Arabic two' => ['ar', 2, 'عضوان'],
     'Japanese' => ['ja', 7, 'メンバー 7 人'],
+    'Malay' => ['ms', 5, '5 ahli'],
 ]);
 
 test('a restricted member sees the restriction notice in their language', function () {
@@ -215,3 +221,31 @@ test('a restricted member sees the restriction notice in their language', functi
         ->assertOk()
         ->assertSee('Dein Konto ist bis zu einer Admin-Prüfung eingeschränkt.');
 });
+
+test('translated text inside page scripts is escaped for JavaScript, not HTML', function () {
+    $response = $this->get(route('login', ['lang' => 'fr']))->assertOk();
+
+    $response->assertSee("alert('Erreur d\\u0027authentification biométrique ou annulée.')", false);
+    $response->assertDontSee('Erreur d&#039;authentification', false);
+});
+
+test('a member in Malaysia sees the interface in Malay', function () {
+    $member = User::factory()->create(['preferred_locale' => null, 'country_code' => 'MY', 'country' => 'Malaysia']);
+
+    expect($member->effectiveLocale())->toBe('ms');
+
+    $this->actingAs($member)
+        ->get(route('profile.show'))
+        ->assertOk()
+        ->assertSee('lang="ms"', false)
+        ->assertSee('Saluran Anda');
+});
+
+test('a channel that allowed every language before Malay also allows Malay', function (array $allowed, bool $allowsMalay) {
+    $room = Room::create(['code' => 'MS-'.count($allowed), 'title' => 'Languages', 'status' => 'active', 'allowed_languages' => $allowed]);
+
+    expect($room->supportsLanguage('ms'))->toBe($allowsMalay);
+})->with([
+    'all 15 earlier languages' => [['en', 'it', 'fr', 'ru', 'es', 'de', 'pt', 'ja', 'ko', 'zh', 'uz', 'ar', 'tr', 'nl', 'pl'], true],
+    'a chosen subset' => [['en', 'uz', 'ru'], false],
+]);

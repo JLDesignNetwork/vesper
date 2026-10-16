@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\AuditAction;
+use App\Enums\BanCaseKind;
 use App\Enums\BanCaseStatus;
 use App\Enums\BanDecision;
 use App\Enums\Rank;
 use App\Enums\ReportStatus;
 use App\Mail\BanCaseOpenedNotification;
+use App\Mail\BanLiftedNotification;
 use App\Models\AdminAuditLog;
 use App\Models\BanCase;
 use App\Models\BanVote;
@@ -33,6 +35,9 @@ use Illuminate\Validation\ValidationException;
  *   means not banned. While no Admin II exists, Admin I's ballot decides at once.
  * - An Admin II is never voted on: only Admin I may ban them, directly. Admin I cannot be banned.
  * - A ban revokes the member's sessions and passkeys and blocks sign-in.
+ * - Lifting a ban is also a vote (owner decision Q13), with the same voters, window and
+ *   tie rules. Without a decision (no ballots, or a tie without Admin I) the ban stays.
+ *   Lifting clears the ban only: rank is unchanged and passkeys and sessions stay revoked.
  * - Every step is written to the audit log with moderation visibility.
  */
 class BanVoteService
@@ -90,7 +95,48 @@ class BanVoteService
     }
 
     /**
-     * Cast or change a ballot. While no Admin II exists, Admin I's ballot closes the case.
+     * Open a vote on lifting a member's ban. Nothing changes until the vote is decided.
+     *
+     * @throws ValidationException when the member is not banned or a vote is already open
+     */
+    public function openLift(User $opener, User $subject, string $reason): BanCase
+    {
+        if (! $subject->isBanned()) {
+            throw ValidationException::withMessages(['tag' => __('This member is not banned.')]);
+        }
+
+        $case = DB::transaction(function () use ($opener, $subject, $reason): BanCase {
+            // Lock the subject so two admins opening a vote at once cannot create two open cases.
+            User::whereKey($subject->id)->lockForUpdate()->first();
+
+            if ($subject->banCases()->open()->exists()) {
+                throw ValidationException::withMessages(['tag' => __('A vote to lift this member\'s ban is already open.')]);
+            }
+
+            $case = BanCase::create([
+                'kind' => BanCaseKind::Lift,
+                'subject_user_id' => $subject->id,
+                'opened_by_user_id' => $opener->id,
+                'reason' => $reason,
+                'closes_at' => now()->addHours(self::VOTING_HOURS),
+            ]);
+
+            AdminAuditLog::record(AuditAction::BanCaseOpened, actor: $opener, subject: $subject, details: [
+                'ban_case_id' => $case->id,
+                'kind' => BanCaseKind::Lift->value,
+            ]);
+
+            return $case;
+        });
+
+        $this->notifyVoters($case, $opener);
+
+        return $case;
+    }
+
+    /**
+     * Cast or change a ballot. `$ban` is true for "the member should be banned": in a ban
+     * vote that means ban, in a lift vote it means keep the ban. While no Admin II exists, Admin I's ballot closes the case.
      *
      * @throws ValidationException when the case is no longer open
      */
@@ -107,6 +153,7 @@ class BanVoteService
 
         AdminAuditLog::record(AuditAction::BanVoteCast, actor: $voter, subject: $case->subject, details: [
             'ban_case_id' => $case->id,
+            'kind' => $case->kind->value,
             'ban' => $ban,
         ]);
 
@@ -129,29 +176,41 @@ class BanVoteService
     }
 
     /**
-     * Decide and close a case, banning the subject when the decision is to ban.
+     * Decide and close a case: a ban vote bans the subject when the decision is to ban,
+     * a lift vote lifts the ban when the decision is to lift it.
      */
     public function close(BanCase $case): BanCase
     {
         [$ban, $decision] = $this->decide($case);
+        $lifted = $case->isLiftVote() && ! $ban;
 
-        DB::transaction(function () use ($case, $ban, $decision): void {
+        DB::transaction(function () use ($case, $ban, $decision, $lifted): void {
             $case->update([
-                'status' => $ban ? BanCaseStatus::Banned : BanCaseStatus::Cleared,
+                'status' => match (true) {
+                    $case->isLiftVote() => $ban ? BanCaseStatus::Upheld : BanCaseStatus::Lifted,
+                    default => $ban ? BanCaseStatus::Banned : BanCaseStatus::Cleared,
+                },
                 'decision' => $decision,
                 'closed_at' => now(),
             ]);
 
             AdminAuditLog::record(AuditAction::BanCaseClosed, subject: $case->subject, details: [
                 'ban_case_id' => $case->id,
+                'kind' => $case->kind->value,
                 'banned' => $ban,
                 'decision' => $decision->value,
             ]);
 
-            if ($ban) {
+            if ($lifted) {
+                $this->liftBan($case->subject);
+            } elseif ($ban && ! $case->isLiftVote()) {
                 $this->applyBan($case->subject, null);
             }
         });
+
+        if ($lifted) {
+            $this->notifyBanLifted($case->subject);
+        }
 
         return $case;
     }
@@ -185,16 +244,18 @@ class BanVoteService
     }
 
     /**
-     * The outcome of a case from its ballots: [ban?, how it was decided].
+     * The outcome of a case from its ballots: [banned?, how it was decided].
+     * Without a decision nothing changes: a ban vote does not ban, a lift vote keeps the ban.
      *
      * @return array{0: bool, 1: BanDecision}
      */
     public function decide(BanCase $case): array
     {
         $ballots = $case->votes()->with('voter:id,rank')->get();
+        $bannedWithoutDecision = $case->kind->bannedWithoutDecision();
 
         if ($ballots->isEmpty()) {
-            return [false, BanDecision::NoBallots];
+            return [$bannedWithoutDecision, BanDecision::NoBallots];
         }
 
         $adminOneBallot = $ballots->first(fn (BanVote $ballot): bool => $ballot->voter?->hasRank(Rank::AdminOne) ?? false);
@@ -212,7 +273,7 @@ class BanVoteService
 
         return $adminOneBallot
             ? [$adminOneBallot->ban, BanDecision::TieBreak]
-            : [false, BanDecision::TiedWithoutTieBreak];
+            : [$bannedWithoutDecision, BanDecision::TiedWithoutTieBreak];
     }
 
     /**
@@ -244,13 +305,23 @@ class BanVoteService
         AdminAuditLog::record(AuditAction::MemberBanned, actor: $actor, subject: $subject);
     }
 
+    /**
+     * Lift the member's ban. Their rank is unchanged; revoked passkeys and sessions stay revoked.
+     */
+    protected function liftBan(User $subject): void
+    {
+        $subject->forceFill(['banned_at' => null])->save();
+
+        AdminAuditLog::record(AuditAction::BanLifted, subject: $subject);
+    }
+
     protected function adminTwoExists(): bool
     {
         return User::where('rank', Rank::AdminTwo)->whereNull('banned_at')->exists();
     }
 
     /**
-     * Email every voter except the opener that a case is waiting for their ballot.
+     * Email every voter except the opener that a ban or lift vote is waiting for their ballot.
      */
     protected function notifyVoters(BanCase $case, User $opener): void
     {
@@ -263,5 +334,21 @@ class BanVoteService
                     Log::warning("Failed to queue ban case notification: {$e->getMessage()}");
                 }
             });
+    }
+
+    /**
+     * Email the member that their ban has been lifted.
+     */
+    protected function notifyBanLifted(User $member): void
+    {
+        if (empty($member->email)) {
+            return;
+        }
+
+        try {
+            Mail::to($member->email)->queue(new BanLiftedNotification($member));
+        } catch (\Throwable $e) {
+            Log::warning("Failed to queue ban lifted notification: {$e->getMessage()}");
+        }
     }
 }

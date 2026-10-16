@@ -168,13 +168,13 @@
                 recoveryBox.classList.remove('hidden');
                 document.getElementById('code').value = '';
                 document.getElementById('recovery_code').focus();
-                toggleBtn.textContent = '{{ __("Use authenticator app code instead") }}';
+                toggleBtn.textContent = {{ Js::from(__("Use authenticator app code instead")) }};
             } else {
                 recoveryBox.classList.add('hidden');
                 totpBox.classList.remove('hidden');
                 document.getElementById('recovery_code').value = '';
                 document.getElementById('code').focus();
-                toggleBtn.textContent = '{{ __("Use an emergency backup recovery code") }}';
+                toggleBtn.textContent = {{ Js::from(__("Use an emergency backup recovery code")) }};
             }
         }
     </script>

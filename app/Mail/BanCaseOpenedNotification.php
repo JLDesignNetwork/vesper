@@ -15,7 +15,7 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Tells an Admin I or II voter that a ban case is waiting for their ballot.
+ * Tells an Admin I or II voter that a ban vote or a vote to lift a ban is waiting for their ballot.
  */
 class BanCaseOpenedNotification extends Mailable implements ShouldQueue
 {
@@ -27,7 +27,7 @@ class BanCaseOpenedNotification extends Mailable implements ShouldQueue
     ) {}
 
     /**
-     * Render the ban_case_opened template in the voter's language.
+     * Render the ban_case_opened (or ban_lift_opened) template in the voter's language.
      *
      * @return array<string, mixed>
      */
@@ -35,7 +35,7 @@ class BanCaseOpenedNotification extends Mailable implements ShouldQueue
     {
         $locale = $this->recipient->preferred_locale ?: app()->getLocale();
 
-        return app(EmailTemplateService::class)->render('ban_case_opened', [
+        return app(EmailTemplateService::class)->render($this->banCase->isLiftVote() ? 'ban_lift_opened' : 'ban_case_opened', [
             'voter_name' => $this->recipient->name,
             'subject_name' => $this->banCase->subject?->name ?? '',
             'subject_tag' => $this->banCase->subject?->tag ?? '',
