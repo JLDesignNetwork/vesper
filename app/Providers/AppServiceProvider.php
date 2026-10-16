@@ -40,5 +40,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::define('accessAdminPanel', fn (User $user): bool => $user->hasRank(Rank::AdminOne));
         Gate::define('viewGeolocation', fn (User $user): bool => $user->hasRank(Rank::AdminOne));
+        Gate::define('voteOnBans', fn (User $user): bool => $user->displaysAsAdmin() && ! $user->isBanned());
+        Gate::define('banAdminTwo', fn (User $user): bool => $user->hasRank(Rank::AdminOne));
     }
 }

@@ -116,6 +116,36 @@ class EmailTemplateService
                 ],
             ],
 
+            'ban_case_opened' => [
+                'name' => 'Ban Vote Opened',
+                'category' => 'Moderation',
+                'description' => 'Dispatched to Admin I and Admin II voters when a ban vote is opened about a member.',
+                'subject' => 'Ban vote opened: @{{subject_tag}}',
+                'preheader' => '{{opened_by}} opened a ban vote. Voting closes {{closes_at}}.',
+                'body_markdown' => "Hello **{{voter_name}}**,\n\n**{{opened_by}}** opened a ban vote about **{{subject_name}}** (@{{subject_tag}}). The member is restricted to read-only until the vote closes.\n\n### Reason given:\n\"{{reason}}\"\n\nVoting closes **{{closes_at}}**. A strict majority of the votes cast decides; Admin I breaks ties.",
+                'button_text' => 'Review and Vote',
+                'button_color' => 'amber',
+                'footer_text' => 'Vesper Moderation • Confidential',
+                'variables' => [
+                    'voter_name' => 'Name of the admin receiving the email',
+                    'subject_name' => 'Name of the member being voted on',
+                    'subject_tag' => 'Tag of the member being voted on',
+                    'opened_by' => 'Name of the admin who opened the vote',
+                    'reason' => 'Reason given when the vote was opened',
+                    'closes_at' => 'When voting closes',
+                    'action_url' => 'Link to the ban review page',
+                ],
+                'sample_data' => [
+                    'voter_name' => 'Alex Sterling',
+                    'subject_name' => 'Jordan Pike',
+                    'subject_tag' => 'jordan_pike',
+                    'opened_by' => 'Sam Rivera',
+                    'reason' => 'Repeated harassment reported by three members.',
+                    'closes_at' => 'Mon, Oct 19, 2026 2:00 PM UTC',
+                    'action_url' => config('app.url', 'https://vesper.jldn').'/moderation/bans',
+                ],
+            ],
+
             'new_message' => [
                 'name' => 'New Message Notification',
                 'category' => 'Operations',

@@ -4,6 +4,7 @@ use App\Http\Controllers\AccountRecoveryController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminEmailController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BanCaseController;
 use App\Http\Controllers\ChannelController;
 use App\Http\Controllers\ChannelHubController;
 use App\Http\Controllers\ChannelInviteController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\TwoFactorController;
 use App\Http\Controllers\WebAuthnController;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureChannelClearance;
+use App\Http\Middleware\EnsureNotRestricted;
 use App\Services\LanguageService;
 use Illuminate\Support\Facades\Route;
 
@@ -54,12 +56,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/channels/invites/{roomId}/accept', [ChannelHubController::class, 'acceptInvite'])->name('channels.invites.accept');
     Route::post('/channels/invites/{roomId}/decline', [ChannelHubController::class, 'declineInvite'])->name('channels.invites.decline');
     Route::post('/channels/redeem', [ChannelHubController::class, 'redeemCode'])->name('channels.redeem')->middleware('throttle:5,1');
-    Route::post('/channels', [ChannelController::class, 'store'])->name('channels.store');
-    Route::put('/channels/{room}/settings', [ChannelController::class, 'update'])->name('channels.update');
+    Route::post('/channels', [ChannelController::class, 'store'])->name('channels.store')->middleware(EnsureNotRestricted::class);
+    Route::put('/channels/{room}/settings', [ChannelController::class, 'update'])->name('channels.update')->middleware(EnsureNotRestricted::class);
     Route::get('/members/search', [MemberSearchController::class, 'index'])->name('members.search')->middleware('throttle:30,1');
     Route::post('/members/{tag}/block', [ModerationController::class, 'block'])->name('members.block')->middleware('throttle:20,1');
     Route::delete('/members/{tag}/block', [ModerationController::class, 'unblock'])->name('members.unblock');
-    Route::post('/members/{tag}/report', [ModerationController::class, 'report'])->name('members.report')->middleware('throttle:5,10');
+    Route::post('/members/{tag}/report', [ModerationController::class, 'report'])->name('members.report')->middleware(['throttle:5,10', EnsureNotRestricted::class]);
 
     // WebAuthn registration
     Route::get('/webauthn/register/options', [WebAuthnController::class, 'optionsRegister'])->name('webauthn.register.options');
@@ -146,6 +148,14 @@ Route::middleware(['auth', EnsureAdmin::class])->prefix('admin')->group(function
     Route::delete('/users/{id}/admin-two', [AdminController::class, 'revokeAdminTwo'])->name('admin.users.admin-two.revoke');
 });
 
+// Ban Votes (Admin I and II)
+Route::middleware(['auth', 'can:voteOnBans'])->prefix('moderation/bans')->group(function () {
+    Route::get('/', [BanCaseController::class, 'index'])->name('moderation.bans.index');
+    Route::post('/', [BanCaseController::class, 'store'])->name('moderation.bans.store');
+    Route::post('/direct', [BanCaseController::class, 'banAdminTwo'])->name('moderation.bans.direct')->middleware('can:banAdminTwo');
+    Route::post('/{banCase}/vote', [BanCaseController::class, 'vote'])->name('moderation.bans.vote');
+});
+
 // Channel Invitation Links (Acceptance flow)
 Route::get('/invite/{token}', [ChannelInviteController::class, 'showInvite'])->name('invites.show');
 Route::post('/invite/{token}/accept', [ChannelInviteController::class, 'acceptInviteLink'])->name('invites.accept')->middleware(['auth', 'throttle:10,1']);
@@ -160,15 +170,15 @@ Route::middleware('auth')->group(function () {
 
         Route::middleware(EnsureChannelClearance::class)->group(function () {
             Route::post('/heartbeat', [RoomController::class, 'heartbeat'])->name('rooms.heartbeat');
-            Route::post('/nuke', [RoomController::class, 'nuke'])->name('rooms.nuke');
+            Route::post('/nuke', [RoomController::class, 'nuke'])->name('rooms.nuke')->middleware(EnsureNotRestricted::class);
             Route::get('/member-profile', [RoomController::class, 'memberProfile'])->name('rooms.member-profile');
 
             Route::get('/messages', [MessageController::class, 'index'])->name('messages.index');
-            Route::post('/messages', [MessageController::class, 'store'])->name('messages.store');
-            Route::post('/messages/{message}/react', [MessageController::class, 'toggleReaction'])->name('messages.react');
-            Route::post('/messages/{message}/pin', [RoomController::class, 'togglePin'])->name('rooms.pin');
-            Route::post('/members/{tag}/kick', [ModerationController::class, 'kick'])->name('rooms.kick');
-            Route::delete('/members/{tag}/kick', [ModerationController::class, 'allowBack'])->name('rooms.kick.lift');
+            Route::post('/messages', [MessageController::class, 'store'])->name('messages.store')->middleware(EnsureNotRestricted::class);
+            Route::post('/messages/{message}/react', [MessageController::class, 'toggleReaction'])->name('messages.react')->middleware(EnsureNotRestricted::class);
+            Route::post('/messages/{message}/pin', [RoomController::class, 'togglePin'])->name('rooms.pin')->middleware(EnsureNotRestricted::class);
+            Route::post('/members/{tag}/kick', [ModerationController::class, 'kick'])->name('rooms.kick')->middleware(EnsureNotRestricted::class);
+            Route::delete('/members/{tag}/kick', [ModerationController::class, 'allowBack'])->name('rooms.kick.lift')->middleware(EnsureNotRestricted::class);
             Route::get('/attachments/{message}', [MessageController::class, 'streamAttachment'])->name('messages.attachment');
             Route::post('/translate', [MessageController::class, 'translate'])->name('messages.translate');
             Route::post('/translate-batch', [MessageController::class, 'translateBatch'])->name('messages.translate-batch');

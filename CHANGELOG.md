@@ -9,6 +9,7 @@ This project adheres to the **JLDN Generational Versioning Schema (GVS)** (`[YYM
 ## [Unreleased]
 
 ### Added
+- **Ban Votes (Phase 6)**: Admin I and II open ban votes about members by tag or from a report, at `/moderation/bans`. The member is read-only while the vote is open and sees only that an admin review is pending. Votes close after 72 hours; a strict majority of the votes cast decides and Admin I breaks ties. Admin I bans an Admin II directly. A ban signs the member out everywhere, removes their passkeys and blocks sign-in.
 - **Blocking (Phase 5)**: members block each other by tag from the in-channel member card and manage their block list on the profile. Blocked members are hidden from each other in both directions: messages, replies, reactions, pins, presence, mentions, search, member cards and email notifications. Admin I and II cannot be blocked, and an Admin III cannot be blocked inside channels they created; those attempts file a report.
 - **Kicking**: a channel's creator can remove a member, who cannot rejoin by link, code, public entry or direct invite until the creator allows them back from the channel's Removed members list. Admin I and II cannot be kicked; the attempt files a report.
 - **Reporting**: members report others with a reason and optional details, channel and message. Reports and kicks are recorded in the audit log for Admin I and II.

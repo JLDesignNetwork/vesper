@@ -137,3 +137,14 @@ Backlog items live in [`backlog.json`](backlog.json).
 - Admin III (Q11): blocked and kicked like anyone else (they can never be kicked from their own channel because only its creator kicks). Inside a channel they created, blocks against them are ignored in both directions; a block the Admin III placed still applies. Blocking them from inside their channel files a report with the normal confirmation.
 - Reports: `reports` table (reporter, subject, optional channel and message, reason, details, status). Reports and kicks are written to the audit log with moderation visibility, readable by Admin I and II. The review screens are Phase 7.
 - Found and fixed `MSG-ISSUE-03`: a reply could quote a message from any channel.
+
+## Phase 6 implementation notes (2026-10-16)
+
+- `ban_cases`, `ban_votes`, `users.banned_at`, `BanVoteService`. Cases are opened by Admin I or II by tag or from an open report.
+- Restriction (AU-6) is derived from an open case, not stored, so it ends the moment the case closes. `EnsureNotRestricted` guards posting, reacting, pinning, kicking and allowing back, creating/editing/purging channels and reporting; the profile refuses a tag change. Reading, locking, blocking and joining are still allowed.
+- Decision rules (Q6, AU-7): strict majority of ballots cast. On a tie, Admin I's ballot decides; **if Admin I did not vote on a tied case, the member is not banned** (interpretation: no ban without a decision). No ballots = not banned.
+- While no Admin II exists, Admin I's ballot closes the case immediately instead of waiting 72 hours (interpretation of "Admin I decides alone").
+- Ballots can be changed until the case closes. Voting is refused after 72 hours even if the scheduler has not run yet.
+- A ban clears the remember token and deletes passkeys and database sessions. `EnsureAccountNotBanned` (web middleware) signs a banned member out on their next request, which covers password, 2FA, passkey, OAuth and recovery sign-ins. Banned members no longer count toward channel ranks.
+- The review page is a standalone `/moderation/bans` page for Admin I/II because the admin panel is still Admin I only; Phase 7 moves it into the Admin I/II panels.
+- Not changed: a banned member's channels and messages stay as they are.

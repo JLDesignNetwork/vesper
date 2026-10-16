@@ -42,7 +42,7 @@ class RankService
             ->whereHas('messages', fn (Builder $query) => $query->where('created_at', '>=', now()->subDays(self::ACTIVITY_WINDOW_DAYS)))
             ->whereHas(
                 'members',
-                fn (Builder $query) => $query->whereNotNull('users.email_verified_at')->where('users.id', '!=', $user->id),
+                fn (Builder $query) => $query->whereNotNull('users.email_verified_at')->whereNull('users.banned_at')->where('users.id', '!=', $user->id),
                 '>=',
                 self::MIN_VERIFIED_MEMBERS,
             )

@@ -135,6 +135,26 @@
             </div>
         @endif
 
+        @if($user->isRestricted())
+            <div id="restricted-banner" role="status" class="p-4 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-rose-200 text-xs">
+                {{ __('Your account is restricted pending an admin review.') }} {{ __('You can still read your channels, but you cannot post, react, create channels or change your tag until the review ends.') }}
+            </div>
+        @endif
+
+        @error('restricted')
+            <div role="alert" class="p-3 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-rose-200 text-xs">{{ $message }}</div>
+        @enderror
+
+        @can('voteOnBans')
+            @php
+                $openBanVotes = \App\Models\BanCase::open()->count();
+            @endphp
+            <a id="ban-reviews-link" href="{{ route('moderation.bans.index') }}" class="p-4 rounded-2xl bg-slate-900/60 border border-amber-500/30 text-amber-200 text-xs flex items-center justify-between gap-3 hover:border-amber-500/60 transition-colors">
+                <span>{{ __('Ban reviews') }}</span>
+                <span class="font-mono">{{ trans_choice(':count open vote|:count open votes', $openBanVotes, ['count' => $openBanVotes]) }}</span>
+            </a>
+        @endcan
+
         @unless($user->hasVerifiedEmail())
             <div id="email-verification-banner" class="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-amber-200 text-xs flex flex-col sm:flex-row sm:items-center gap-3 shadow-lg shadow-amber-950/30 backdrop-blur-sm">
                 <svg class="w-5 h-5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>

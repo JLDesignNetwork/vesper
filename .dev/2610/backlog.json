@@ -114,11 +114,12 @@
   {
     "id": "MOD-TODO-02",
     "title": "Add ban vote system",
-    "status": "pending",
+    "status": "completed",
     "priority": "high-2",
     "existed_since": "2609.11.0-bs",
     "created_at": "2026-10-16T12:25:00+02:00",
-    "details": "Ban cases with 72h window, strict majority of cast ballots, Admin I tie-break, Admin I alone when no Admin IIs, zero ballots = not banned, opener votes separately (AU-7). Subject muted read-only platform-wide (AU-6) and shown a general restriction notice (A3). Visible in every Admin I/II panel on open (Q6). Admin II bannable only by Admin I. Phase 6."
+    "details": "Added ban_cases, ban_votes and users.banned_at with BanVoteService. Admin I or II opens a case by tag or from an open report (the report becomes reviewed); Admin I/II subjects are refused. The subject is restricted at once (EnsureNotRestricted: no posting, reacting, pinning, kicking/allowing back, creating or editing channels, purging, reporting or changing their tag; reading still works) and sees only 'Your account is restricted pending an admin review' (A3). Every other voter is emailed (ban_case_opened template). Voters are Admin I and every Admin II; opening is not a ballot (AU-7) and ballots can be changed until close. vesper:close-ban-cases runs every five minutes and decides cases after 72 hours: strict majority of ballots cast; a tie is decided by Admin I's ballot, or not banned if Admin I did not vote; no ballots = not banned. While no Admin II exists, Admin I's ballot decides at once. Admin I bans an Admin II directly (confirmed, recorded as a closed case). A ban sets banned_at, clears the remember token, deletes passkeys and database sessions; EnsureAccountNotBanned signs a banned member out on any request, whatever the sign-in method. Banned members no longer count toward ranks. Review page at /moderation/bans (Admin I/II; linked from the profile and the admin header) until Phase 7 folds it into the panels. Every step is audited with moderation visibility. Covered by BanVoteTest; 33 of 34 mutants killed, the survivor (> vs >= after a tie check) is equivalent.",
+    "protected": "open"
   },
   {
     "id": "ADMN-TODO-01",

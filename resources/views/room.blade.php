@@ -445,6 +445,12 @@
         </div>
     </header>
 
+    @if($isRestricted)
+    <div id="restricted-banner" role="status" class="shrink-0 px-4 py-2 bg-rose-950/60 border-b border-rose-500/30 text-rose-200 text-xs text-center">
+        {{ __('Your account is restricted pending an admin review.') }} {{ __('You can read this channel but cannot post or react.') }}
+    </div>
+    @endif
+
     <!-- Main Workspace: Chat Stream + Overlay/Drawers -->
     <div class="flex-1 flex overflow-hidden relative" id="chat-container">
 

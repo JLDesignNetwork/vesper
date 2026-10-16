@@ -68,6 +68,12 @@
                 <span>{{ __('Logs') }}</span>
             </a>
             <a
+                href="{{ route('moderation.bans.index') }}"
+                class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-slate-400 hover:text-white hover:bg-slate-800/80"
+            >
+                <span>{{ __('Ban Reviews') }}</span>
+            </a>
+            <a
                 href="{{ route('admin.emails.index') }}"
                 class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all {{ request()->routeIs('admin.emails.*') ? 'bg-violet-500/15 text-violet-300 border border-violet-500/30 shadow-sm shadow-violet-950/50 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/80' }}"
             >
@@ -221,6 +227,9 @@
             <a href="{{ route('admin.logs.index') }}" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl border flex items-center gap-2 {{ request()->routeIs('admin.logs.*') ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 font-semibold' : 'bg-slate-900 border-slate-800 text-slate-200' }}">
                 <span class="text-amber-400">📜</span>
                 <span>{{ __('Logs') }}</span>
+            </a>
+            <a href="{{ route('moderation.bans.index') }}" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl border flex items-center gap-2 bg-slate-900 border-slate-800 text-slate-200">
+                <span>{{ __('Ban Reviews') }}</span>
             </a>
             <a href="{{ route('admin.emails.index') }}" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl border flex items-center gap-2 {{ request()->routeIs('admin.emails.*') ? 'bg-violet-500/15 border-violet-500/40 text-violet-300 font-semibold' : 'bg-slate-900 border-slate-800 text-slate-200' }}">
                 <span class="text-violet-400">✉️</span>

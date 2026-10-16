@@ -75,6 +75,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'rank' => Rank::class,
             'rank_computed_at' => 'datetime',
+            'banned_at' => 'datetime',
             'birthday' => 'date',
             'latitude' => 'float',
             'longitude' => 'float',
@@ -100,6 +101,30 @@ class User extends Authenticatable implements MustVerifyEmail
             ->wherePivot('status', 'active')
             ->withPivot(['role', 'alias', 'status', 'last_accessed_at'])
             ->withTimestamps();
+    }
+
+    /**
+     * Ban cases in which this member is the subject.
+     */
+    public function banCases(): HasMany
+    {
+        return $this->hasMany(BanCase::class, 'subject_user_id');
+    }
+
+    /**
+     * Whether the member has been banned from Vesper.
+     */
+    public function isBanned(): bool
+    {
+        return $this->banned_at !== null;
+    }
+
+    /**
+     * Whether the member is restricted (read-only) while a ban case about them is open.
+     */
+    public function isRestricted(): bool
+    {
+        return $this->banCases()->open()->exists();
     }
 
     /**

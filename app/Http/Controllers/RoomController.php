@@ -248,6 +248,7 @@ class RoomController extends Controller
             'canPinMessages' => $user->can('pinMessages', $room),
             'canViewRadar' => $user->can('viewGeolocation'),
             'canDestroyChannel' => $user->can('destroy', $room),
+            'isRestricted' => $user->isRestricted(),
             'removedMembers' => $user->can('kickMembers', $room) ? $room->kickedMembers()->get(['users.id', 'users.name', 'users.tag']) : collect(),
             'clearanceIdleSeconds' => $room->isSecured() ? ChannelAccessService::CLEARANCE_IDLE_MINUTES * 60 : null,
             'sessionId' => $request->session()->getId(),

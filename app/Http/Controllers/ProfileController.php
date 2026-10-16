@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -95,7 +96,12 @@ class ProfileController extends Controller
 
         $user->name = trim($validated['name']);
 
-        if (array_key_exists('tag', $validated)) {
+        if (array_key_exists('tag', $validated) && $validated['tag'] !== $user->tag) {
+            // A member under an open ban vote cannot change their tag (AU-6).
+            if ($user->isRestricted()) {
+                throw ValidationException::withMessages(['tag' => __('Your account is restricted pending an admin review.')]);
+            }
+
             $user->tag = $validated['tag'];
         }
 

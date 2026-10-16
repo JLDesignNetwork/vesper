@@ -13,7 +13,7 @@ cleanup: manual
 > **Project:** Vesper (Laravel 13 / PHP 8.4 / Blade + vanilla JS)
 > **Generation Epoch:** `2610`
 > **Author:** Jeff Langdon (JL Design Network)
-> **Status:** Active — Channels Refactor Phases 1–5 complete, Phase 6 next
+> **Status:** Active — Channels Refactor Phases 1–6 complete, Phase 7 in progress
 
 ---
 
@@ -44,7 +44,7 @@ Full plan: [`2610/channels-refactor-plan.md`](2610/channels-refactor-plan.md). B
 - [x] **Phase 3:** User tags (`@slug`) and server-confirmed mentions.
 - [x] **Phase 4:** Multi-message pinning (max 10, exempt from auto-delete).
 - [x] **Phase 5:** Blocking, kicking, reporting.
-- [ ] **Phase 6:** Ban vote system.
+- [x] **Phase 6:** Ban vote system.
 - [ ] **Phase 7:** Admin I / II / III panels and channel profile modal.
 - [ ] **Phase 8:** Biometric entry rules and release gate.
 
