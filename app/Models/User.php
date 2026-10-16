@@ -100,7 +100,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->belongsToMany(Room::class, 'room_user')
             ->wherePivot('status', 'active')
-            ->withPivot(['role', 'alias', 'status', 'last_accessed_at'])
+            ->withPivot(['role', 'alias', 'status', 'last_accessed_at', 'biometric_entry'])
             ->withTimestamps();
     }
 
@@ -288,12 +288,12 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Determine if this user is eligible for instant pinless channel re-entry.
-     * Requires active Two-Factor Authentication or Hardware Biometrics.
+     * Determine if this user may open PIN-secured channels without the PIN: with confirmed
+     * 2FA, or with an enrolled passkey once they meet the biometric precondition.
      */
     public function canUsePinlessEntry(): bool
     {
-        return $this->hasTwoFactor() || $this->hasBiometrics();
+        return $this->hasTwoFactor() || ($this->hasBiometrics() && $this->meetsBiometricPrecondition());
     }
 
     /**

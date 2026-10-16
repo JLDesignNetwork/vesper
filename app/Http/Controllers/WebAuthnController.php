@@ -21,6 +21,11 @@ class WebAuthnController extends Controller
     public function optionsRegister(Request $request): JsonResponse
     {
         $user = $request->user();
+
+        if ($refusal = $this->refuseUnlessPreconditionMet($request)) {
+            return $refusal;
+        }
+
         $options = $this->webAuthnService->generateRegisterOptions($user);
 
         return response()->json($options);
@@ -40,6 +45,10 @@ class WebAuthnController extends Controller
             'transports' => ['nullable', 'array'],
         ]);
 
+        if ($refusal = $this->refuseUnlessPreconditionMet($request)) {
+            return $refusal;
+        }
+
         try {
             $credential = $this->webAuthnService->registerCredential($request->user(), $validated);
 
@@ -58,6 +67,31 @@ class WebAuthnController extends Controller
                 'message' => $e->getMessage(),
             ], 422);
         }
+    }
+
+    /**
+     * Biometric sign-in requires a verified primary email plus a verified recovery email
+     * or confirmed 2FA (owner decisions Q5 and A1). Refuse enrollment otherwise, listing
+     * what is missing.
+     */
+    protected function refuseUnlessPreconditionMet(Request $request): ?JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->meetsBiometricPrecondition()) {
+            return null;
+        }
+
+        $missing = array_values(array_filter([
+            $user->hasVerifiedEmail() ? null : __('Verified primary email'),
+            ($user->hasVerifiedRecoveryEmail() || $user->hasTwoFactor()) ? null : __('Verified recovery email or Two-Factor Authentication'),
+        ]));
+
+        return response()->json([
+            'success' => false,
+            'message' => __('Before enrolling a passkey you need: :missing.', ['missing' => implode('; ', $missing)]),
+            'missing' => $missing,
+        ], 422);
     }
 
     /**

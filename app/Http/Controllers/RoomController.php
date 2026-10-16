@@ -15,6 +15,7 @@ use App\Services\ChannelAccessService;
 use App\Services\GeoLocationService;
 use App\Services\RankService;
 use App\Services\UserTagService;
+use App\Services\WebAuthnService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -159,6 +160,12 @@ class RoomController extends Controller
             ]);
         }
 
+        if ($entry === ChannelEntry::PasskeyAssertionRequired) {
+            return back()->withErrors([
+                'passcode' => __('This channel opens only with a passkey check. Use the passkey button to continue.'),
+            ]);
+        }
+
         $isDuress = false;
 
         if ($entry === ChannelEntry::PinRequired) {
@@ -226,6 +233,8 @@ class RoomController extends Controller
                     'roomTitle' => $room->title,
                     'authMember' => $user,
                     'requiresPasskey' => $entry === ChannelEntry::PasskeyRequired,
+                    'requiresPasskeyCheck' => $entry === ChannelEntry::PasskeyAssertionRequired,
+                    'offersPasskey' => $this->channelAccess->allowsPasskeyEntry($user, $room),
                 ]);
             }
 
@@ -255,6 +264,59 @@ class RoomController extends Controller
             'clientIp' => $this->geoLocationService->getClientIp($request),
             'userPreferredLocale' => $userPreferredLocale,
         ]);
+    }
+
+    /**
+     * Start a passkey check for opening the channel (pra, or PIN-secured channels for
+     * members eligible for passkey entry). Only the member's own passkeys are allowed.
+     */
+    public function passkeyOptions(Request $request, string $code): JsonResponse
+    {
+        $room = Room::where('code', strtoupper(trim($code)))->where('status', 'active')->first();
+        $user = $request->user();
+
+        if (! $room || ! $this->channelAccess->allowsPasskeyEntry($user, $room)) {
+            return response()->json(['error' => __('A passkey cannot be used to open this channel.')], 403);
+        }
+
+        return response()->json(app(WebAuthnService::class)->generateLoginOptions($user, $this->passkeyChallengeKey($room)));
+    }
+
+    /**
+     * Verify the passkey check and open the channel. A fresh check is needed every time
+     * the channel is opened, because clearance on secured channels lapses when idle.
+     */
+    public function passkeyVerify(Request $request, string $code): JsonResponse
+    {
+        $room = Room::where('code', strtoupper(trim($code)))->where('status', 'active')->first();
+        $user = $request->user();
+
+        if (! $room || ! $this->channelAccess->allowsPasskeyEntry($user, $room)) {
+            return response()->json(['error' => __('A passkey cannot be used to open this channel.')], 403);
+        }
+
+        $validated = $request->validate([
+            'id' => ['required', 'string', 'max:1024'],
+            'clientDataJSON' => ['required', 'string'],
+            'authenticatorData' => ['required', 'string'],
+            'signature' => ['required', 'string'],
+        ]);
+
+        try {
+            app(WebAuthnService::class)->verifyAssertion($validated, $this->passkeyChallengeKey($room), $user);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        $this->openChannel($request, $room, $user);
+        $this->recordAccess($request, $room, $user->name);
+
+        return response()->json(['success' => true, 'redirect' => route('rooms.show', ['room' => $room->code])]);
+    }
+
+    protected function passkeyChallengeKey(Room $room): string
+    {
+        return "webauthn_channel_challenge_{$room->id}";
     }
 
     /**
@@ -383,7 +445,14 @@ class RoomController extends Controller
                 ?? ($room->creator?->tag === $tag ? $room->creator : null);
             $name = $tag;
         } elseif ($name !== '') {
-            $user = User::where('name', $name)->first();
+            // Names are not unique and cards must not reveal people outside the channel:
+            // look the name up among the channel's members, creator and message authors only.
+            $user = User::where('name', $name)
+                ->where(fn ($query) => $query
+                    ->whereIn('id', DB::table('room_user')->where('room_id', $room->id)->where('status', 'active')->select('user_id'))
+                    ->orWhere('id', $room->created_by_user_id)
+                    ->orWhereIn('id', Message::where('room_id', $room->id)->whereNotNull('user_id')->select('user_id')))
+                ->first();
         } else {
             return response()->json(['found' => false]);
         }

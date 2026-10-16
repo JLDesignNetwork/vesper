@@ -240,3 +240,18 @@ test('the profile shows the member their tag', function () {
         ->assertSee('@night_owl')
         ->assertSee(route('members.search'));
 });
+
+test('the member card looks names up only among the channel\'s members', function () {
+    $creator = User::factory()->create();
+    $room = Room::create(['code' => 'CARD-1', 'type' => ChannelType::PrivateFreeEntry, 'status' => 'active', 'created_by_user_id' => $creator->id]);
+    $room->addMember($creator, 'owner');
+    $member = memberOf($room, ['name' => 'Inside Member']);
+    User::factory()->create(['name' => 'Outside Person', 'bio' => 'Not your business']);
+
+    $card = fn (string $name) => $this->actingAs($member)
+        ->withSession(["room_clearance_{$room->id}" => true])
+        ->getJson(route('rooms.member-profile', ['room' => $room->code, 'name' => $name]));
+
+    $card('Inside Member')->assertJsonPath('found', true);
+    $card('Outside Person')->assertJsonPath('found', false)->assertJsonMissing(['bio' => 'Not your business']);
+});

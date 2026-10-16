@@ -86,7 +86,27 @@
                         <p class="text-amber-300/80">{{ __('Enroll Touch ID, Face ID or another passkey in your profile, then open the channel again. A PIN cannot be used here.') }}</p>
                         <a href="{{ route('profile.show') }}" class="inline-block mt-1 px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-200 font-mono">{{ __('Go to profile') }}</a>
                     </div>
-                @elseif(!empty($authMember))
+                @endif
+
+                @if(!empty($offersPasskey))
+                    <!-- Passkey check (required for pra, an alternative to the PIN elsewhere) -->
+                    <div class="space-y-2">
+                        <button
+                            type="button"
+                            id="passkey-entry-btn"
+                            data-options-url="{{ route('rooms.passkey.options', ['room' => $targetRoomCode]) }}"
+                            data-verify-url="{{ route('rooms.passkey.verify', ['room' => $targetRoomCode]) }}"
+                            class="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-emerald-500/40 text-emerald-200 font-medium text-sm transition-colors cursor-pointer"
+                        >
+                            {{ __('Open with passkey') }}
+                        </button>
+                        <p id="passkey-entry-status" role="status" class="text-xs text-slate-400 text-center">
+                            {{ !empty($requiresPasskeyCheck) ? __('This channel needs a passkey check every time you open it.') : __('Or enter the channel PIN below.') }}
+                        </p>
+                    </div>
+                @endif
+
+                @if(empty($requiresPasskey) && empty($requiresPasskeyCheck) && !empty($authMember))
                     <!-- Logged-in Member Quick PIN Unlock -->
                     <form method="POST" action="{{ route('rooms.verify', ['room' => $targetRoomCode]) }}" class="space-y-4">
                         @csrf
@@ -145,5 +165,52 @@
         &copy; {{ date('Y') }} Vesper. All rights reserved.
     </footer>
 
+    @if(!empty($offersPasskey))
+    <script>
+        (() => {
+            const button = document.getElementById('passkey-entry-btn');
+            const status = document.getElementById('passkey-entry-status');
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const fromBase64Url = (value) => Uint8Array.from(atob(value.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+            const toBase64 = (buffer) => btoa(String.fromCharCode(...new Uint8Array(buffer)));
+            const post = (url, body) => fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
+                body: JSON.stringify(body || {}),
+            });
+
+            button.addEventListener('click', async () => {
+                if (!window.PublicKeyCredential || !navigator.credentials) {
+                    status.textContent = @json(__('This browser cannot use passkeys. Use a device with Touch ID, Face ID or Windows Hello.'));
+                    return;
+                }
+                button.disabled = true;
+                status.textContent = @json(__('Waiting for your passkey…'));
+                try {
+                    const optionsRes = await post(button.dataset.optionsUrl);
+                    const options = await optionsRes.json();
+                    if (!optionsRes.ok) throw new Error(options.error);
+                    options.challenge = fromBase64Url(options.challenge);
+                    options.allowCredentials = (options.allowCredentials || []).map(c => ({ ...c, id: fromBase64Url(c.id) }));
+                    const assertion = await navigator.credentials.get({ publicKey: options });
+                    const verifyRes = await post(button.dataset.verifyUrl, {
+                        id: assertion.id,
+                        clientDataJSON: toBase64(assertion.response.clientDataJSON),
+                        authenticatorData: toBase64(assertion.response.authenticatorData),
+                        signature: toBase64(assertion.response.signature),
+                    });
+                    const result = await verifyRes.json();
+                    if (!verifyRes.ok) throw new Error(result.error);
+                    window.location.href = result.redirect;
+                } catch (error) {
+                    status.textContent = (error && error.name !== 'NotAllowedError' && error.message)
+                        ? error.message
+                        : @json(__('The passkey check was cancelled. Try again.'));
+                    button.disabled = false;
+                }
+            });
+        })();
+    </script>
+    @endif
 </body>
 </html>

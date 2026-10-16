@@ -661,6 +661,17 @@
                                             {{ __('Channel Settings') }}
                                         </button>
                                     @endcan
+                                    @if($canUsePinlessEntry && $channel->isSecured() && ! $channel->type->isPasskeyOnly())
+                                        @php
+                                            $pinlessOn = $channel->pivot->biometric_entry === null || (bool) $channel->pivot->biometric_entry;
+                                        @endphp
+                                        <form method="POST" action="{{ route('channels.pinless-entry', $channel->id) }}" class="pinless-entry-form flex items-center justify-between gap-2 text-[11px]">
+                                            @csrf
+                                            <input type="hidden" name="enabled" value="{{ $pinlessOn ? 0 : 1 }}">
+                                            <span class="text-slate-400">{{ $pinlessOn ? __('Opens with 2FA or passkey') : __('Always asks for the PIN') }}</span>
+                                            <button type="submit" class="px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 font-mono cursor-pointer">{{ $pinlessOn ? __('Require PIN') : __('Allow 2FA or passkey') }}</button>
+                                        </form>
+                                    @endif
                                     <form method="POST" action="{{ route('channels.enter', $channel->id) }}">
                                         @csrf
                                         @if($canUsePinlessEntry)
@@ -1138,6 +1149,10 @@
                     headers: { 'Accept': 'application/json' }
                 });
                 const options = await optRes.json();
+                if (!optRes.ok) {
+                    window.alert(options.message || 'Passkeys cannot be enrolled yet.');
+                    return;
+                }
 
                 if (!navigator.credentials || !navigator.credentials.create) {
                     window.alert('Hardware biometrics / passkeys are not supported on this browser or device.');
@@ -1147,6 +1162,10 @@
                 // Decode challenge & user ID
                 options.challenge = Uint8Array.from(atob(options.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
                 options.user.id = new TextEncoder().encode(options.user.id);
+                options.excludeCredentials = (options.excludeCredentials || []).map(c => ({
+                    ...c,
+                    id: Uint8Array.from(atob(c.id.replace(/-/g, '+').replace(/_/g, '/')), ch => ch.charCodeAt(0)),
+                }));
 
                 const credential = await navigator.credentials.create({ publicKey: options });
 
@@ -1166,17 +1185,12 @@
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                         'Accept': 'application/json'
                     },
+                    // Flat payload expected by WebAuthnController::register.
                     body: JSON.stringify({
-                        name: keyName || 'Hardware Passkey',
-                        credential: {
-                            id: credential.id,
-                            rawId: rawId,
-                            type: credential.type,
-                            response: {
-                                clientDataJSON: clientDataJSON,
-                                attestationObject: attestationObject
-                            }
-                        }
+                        id: credential.id,
+                        clientDataJSON: clientDataJSON,
+                        attestationObject: attestationObject,
+                        deviceName: keyName || 'Hardware Passkey'
                     })
                 });
 

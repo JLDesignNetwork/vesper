@@ -37,14 +37,14 @@ Route::get('/directory', [ChannelController::class, 'directory'])->name('channel
 // Public Root & Authentication Entry Point
 Route::get('/', [AuthController::class, 'showLogin'])->name('portal');
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::post('/login', [AuthController::class, 'login'])->name('login.post')->middleware('throttle:10,1');
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-Route::post('/register', [AuthController::class, 'register'])->name('register.post');
+Route::post('/register', [AuthController::class, 'register'])->name('register.post')->middleware('throttle:5,1');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // WebAuthn / Biometrics (Passkeys)
-Route::post('/webauthn/login/options', [WebAuthnController::class, 'optionsLogin'])->name('webauthn.login.options');
-Route::post('/webauthn/login/verify', [WebAuthnController::class, 'verifyLogin'])->name('webauthn.login.verify');
+Route::post('/webauthn/login/options', [WebAuthnController::class, 'optionsLogin'])->name('webauthn.login.options')->middleware('throttle:20,1');
+Route::post('/webauthn/login/verify', [WebAuthnController::class, 'verifyLogin'])->name('webauthn.login.verify')->middleware('throttle:10,1');
 
 Route::middleware('auth')->group(function () {
     // Member Profile & Channels Dashboard
@@ -57,6 +57,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/channels/invites/{roomId}/decline', [ChannelHubController::class, 'declineInvite'])->name('channels.invites.decline');
     Route::post('/channels/redeem', [ChannelHubController::class, 'redeemCode'])->name('channels.redeem')->middleware('throttle:5,1');
     Route::post('/channels', [ChannelController::class, 'store'])->name('channels.store')->middleware(EnsureNotRestricted::class);
+    Route::post('/channels/{room}/pinless-entry', [ChannelController::class, 'updatePinlessEntry'])->name('channels.pinless-entry');
     Route::put('/channels/{room}/settings', [ChannelController::class, 'update'])->name('channels.update')->middleware(EnsureNotRestricted::class);
     Route::get('/members/search', [MemberSearchController::class, 'index'])->name('members.search')->middleware('throttle:30,1');
     Route::post('/members/{tag}/block', [ModerationController::class, 'block'])->name('members.block')->middleware('throttle:20,1');
@@ -86,7 +87,7 @@ Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 've
 
 // Two-Factor Challenge Gate
 Route::get('/two-factor/challenge', [TwoFactorController::class, 'showChallenge'])->name('2fa.challenge');
-Route::post('/two-factor/challenge', [TwoFactorController::class, 'verifyChallenge'])->name('2fa.verify');
+Route::post('/two-factor/challenge', [TwoFactorController::class, 'verifyChallenge'])->name('2fa.verify')->middleware('throttle:10,1');
 
 // Social / OAuth Providers (Google, Apple)
 Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])->name('oauth.redirect');
@@ -96,9 +97,9 @@ Route::post('/auth/{provider}/callback', [SocialAuthController::class, 'callback
 // Emergency Account Recovery Pipeline
 Route::get('/recovery/email/verify/{id}/{hash}', [AccountRecoveryController::class, 'verifyEmail'])->name('recovery.email.verify');
 Route::get('/recovery/request', [AccountRecoveryController::class, 'showRequestForm'])->name('recovery.request');
-Route::post('/recovery/request', [AccountRecoveryController::class, 'sendRecoveryLink'])->name('recovery.send');
+Route::post('/recovery/request', [AccountRecoveryController::class, 'sendRecoveryLink'])->name('recovery.send')->middleware('throttle:5,10');
 Route::get('/recovery/reset/{token}', [AccountRecoveryController::class, 'showResetForm'])->name('recovery.reset.form');
-Route::post('/recovery/reset', [AccountRecoveryController::class, 'resetPassword'])->name('recovery.reset');
+Route::post('/recovery/reset', [AccountRecoveryController::class, 'resetPassword'])->name('recovery.reset')->middleware('throttle:10,1');
 
 // Member Profile Settings
 Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -137,13 +138,13 @@ Route::middleware(['auth', EnsureAdmin::class])->prefix('admin')->group(function
     Route::post('/emails/{key}/reset', [AdminEmailController::class, 'reset'])->name('admin.emails.reset')->middleware('can:manageEmailTemplates');
 
     Route::post('/gps', [AdminController::class, 'updateGps'])->name('admin.gps')->middleware('can:viewGeolocation');
-    Route::post('/channels', [AdminController::class, 'storeChannel'])->name('admin.channels.store')->middleware('can:createConsoleChannels');
+    Route::post('/channels', [AdminController::class, 'storeChannel'])->name('admin.channels.store')->middleware(['can:createConsoleChannels', EnsureNotRestricted::class]);
     Route::get('/channels/{id}/profile', [AdminController::class, 'channelProfile'])->name('admin.channels.profile');
-    Route::put('/channels/{id}', [AdminController::class, 'updateChannel'])->name('admin.channels.update');
-    Route::post('/channels/{id}/toggle', [AdminController::class, 'toggleChannel'])->name('admin.channels.toggle');
-    Route::post('/channels/{id}/toggle-notifications', [AdminController::class, 'toggleNotifications'])->name('admin.channels.toggle-notifications');
-    Route::post('/channels/{id}/invite', [AdminController::class, 'createInvite'])->name('admin.channels.invite');
-    Route::delete('/channels/{id}', [AdminController::class, 'destroyChannel'])->name('admin.channels.destroy');
+    Route::put('/channels/{id}', [AdminController::class, 'updateChannel'])->name('admin.channels.update')->middleware(EnsureNotRestricted::class);
+    Route::post('/channels/{id}/toggle', [AdminController::class, 'toggleChannel'])->name('admin.channels.toggle')->middleware(EnsureNotRestricted::class);
+    Route::post('/channels/{id}/toggle-notifications', [AdminController::class, 'toggleNotifications'])->name('admin.channels.toggle-notifications')->middleware(EnsureNotRestricted::class);
+    Route::post('/channels/{id}/invite', [AdminController::class, 'createInvite'])->name('admin.channels.invite')->middleware(EnsureNotRestricted::class);
+    Route::delete('/channels/{id}', [AdminController::class, 'destroyChannel'])->name('admin.channels.destroy')->middleware(EnsureNotRestricted::class);
     Route::delete('/users/{id}', [AdminController::class, 'destroyUser'])->name('admin.users.destroy')->middleware('can:manageMembers');
     Route::post('/users/{id}/admin-two', [AdminController::class, 'appointAdminTwo'])->name('admin.users.admin-two.appoint');
     Route::delete('/users/{id}/admin-two', [AdminController::class, 'revokeAdminTwo'])->name('admin.users.admin-two.revoke');
@@ -164,6 +165,8 @@ Route::post('/invite/{token}/accept', [ChannelInviteController::class, 'acceptIn
 // Channel Access (sign-in required; guests were retired in Phase 2)
 Route::middleware('auth')->group(function () {
     Route::post('/rooms/{room}/verify', [RoomController::class, 'verify'])->name('rooms.verify');
+    Route::post('/rooms/{room}/passkey/options', [RoomController::class, 'passkeyOptions'])->name('rooms.passkey.options')->middleware('throttle:20,1');
+    Route::post('/rooms/{room}/passkey/verify', [RoomController::class, 'passkeyVerify'])->name('rooms.passkey.verify')->middleware('throttle:10,1');
 
     Route::prefix('c/{room}')->group(function () {
         Route::get('/', [RoomController::class, 'show'])->name('rooms.show');

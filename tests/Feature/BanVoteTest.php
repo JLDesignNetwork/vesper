@@ -393,3 +393,15 @@ test('Admin II cannot ban another Admin II directly', function () {
 
     expect($target->fresh()->isBanned())->toBeFalse();
 });
+
+test('an Admin III under a ban vote cannot change their channels from the admin panel', function () {
+    $adminThree = User::factory()->rank(Rank::AdminThree)->create();
+    $room = banChannel($adminThree);
+    openCaseAbout($adminThree);
+
+    $this->actingAs($adminThree)->deleteJson(route('admin.channels.destroy', ['id' => $room->id]))->assertForbidden();
+    $this->actingAs($adminThree)->postJson(route('admin.channels.invite', ['id' => $room->id]), ['max_uses' => 1])->assertForbidden();
+    $this->actingAs($adminThree)->putJson(route('admin.channels.update', ['id' => $room->id]), ['title' => 'x', 'allowed_languages' => ['en']])->assertForbidden();
+
+    expect(Room::find($room->id))->not->toBeNull();
+});

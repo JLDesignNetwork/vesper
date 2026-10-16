@@ -4310,6 +4310,11 @@
                     headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN }
                 });
                 const options = await optRes.json();
+                if (!optRes.ok) {
+                    btn.textContent = originalText;
+                    alert(options.message || '{{ __("Passkeys cannot be enrolled yet.") }}');
+                    return;
+                }
 
                 options.challenge = bufferDecode(options.challenge);
                 options.user.id = bufferDecode(options.user.id);

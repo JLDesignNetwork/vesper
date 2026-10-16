@@ -118,7 +118,7 @@ test('members without an admin rank are sent from the admin panel to their profi
 
 test('admin two does not see fields a member has hidden in the channel profile card', function () {
     $viewer = User::factory()->adminTwo()->create();
-    User::factory()->create([
+    $subject = User::factory()->create([
         'name' => 'QuietMember',
         'birthday' => '1990-06-20',
         'hide_age' => true,
@@ -127,6 +127,7 @@ test('admin two does not see fields a member has hidden in the channel profile c
         'preferred_locale' => 'fr',
     ]);
     $room = Room::create(['code' => 'CARD-1', 'passcode_hash' => Hash::make('secret'), 'status' => 'active']);
+    $room->addMember($subject); // The card only looks up people connected to the channel.
 
     $response = $this->actingAs($viewer)
         ->withSession(["room_clearance_{$room->id}" => true])
@@ -142,7 +143,7 @@ test('admin two does not see fields a member has hidden in the channel profile c
 
 test('admin one sees fields a member has hidden in the channel profile card', function () {
     $viewer = User::factory()->adminOne()->create();
-    User::factory()->create([
+    $subject = User::factory()->create([
         'name' => 'QuietMember',
         'birthday' => now()->subYears(36)->subDay()->toDateString(),
         'hide_age' => true,
@@ -150,6 +151,7 @@ test('admin one sees fields a member has hidden in the channel profile card', fu
         'bio' => 'Private bio',
     ]);
     $room = Room::create(['code' => 'CARD-2', 'passcode_hash' => Hash::make('secret'), 'status' => 'active']);
+    $room->addMember($subject); // The card only looks up people connected to the channel.
 
     $this->actingAs($viewer)
         ->withSession(["room_clearance_{$room->id}" => true])

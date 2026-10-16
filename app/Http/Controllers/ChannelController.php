@@ -89,6 +89,27 @@ class ChannelController extends Controller
     }
 
     /**
+     * Turn pin-free entry (2FA or passkey instead of the PIN) on or off for one of the
+     * member's channels. `pra` always needs a passkey check and has no switch.
+     */
+    public function updatePinlessEntry(Request $request, Room $room): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($room->isMember($user), 404);
+
+        if ($room->type->isPasskeyOnly() || ! $room->isSecured()) {
+            return back()->withErrors(['channel' => __('This channel has no PIN, so there is nothing to switch.')]);
+        }
+
+        $validated = $request->validate(['enabled' => ['required', 'boolean']]);
+        app(ChannelAccessService::class)->setPinlessEntry($user, $room, (bool) $validated['enabled']);
+
+        return back()->with('status', $validated['enabled']
+            ? __('Pin-free entry is on for :title.', ['title' => $room->title ?: $room->code])
+            : __(':title now always asks for its PIN.', ['title' => $room->title ?: $room->code]));
+    }
+
+    /**
      * Save the creator's changes to a channel's settings.
      */
     public function update(Request $request, Room $room): RedirectResponse

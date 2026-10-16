@@ -17,9 +17,12 @@ use Illuminate\Support\Facades\DB;
  * - Visibility: public channels are listed for everyone; private channels only for
  *   their members, creator and pending invitees; admin channels only for admitted ranks.
  * - Entry: guests never enter. Private channels need membership; public channels are
- *   joined on entry. Members kicked from a channel never enter it again. Secured channels need a PIN unless the member has 2FA or a passkey
- *   and has not turned that off for the channel. `pra` opens only with a passkey.
- *   Admin I may open any channel (audited by the caller).
+ *   joined on entry. Members kicked from a channel never enter it again. Secured
+ *   channels need a PIN, except that members with confirmed 2FA enter without one (A1) and members who meet the biometric
+ *   precondition may use a passkey check instead of the PIN, unless they turned
+ *   pin-free entry off for that channel. `pra` opens only with a fresh passkey check,
+ *   for every rank including Admin I (AU-10). Admin I may open any other channel
+ *   without membership or PIN (audited by the caller).
  * - Clearance: once opened, a secured channel stays open for 15 minutes after the
  *   member's last action. Polling for messages does not count as an action.
  */
@@ -66,6 +69,14 @@ class ChannelAccessService
             return ChannelEntry::Denied;
         }
 
+        if ($room->type->isPasskeyOnly()) {
+            if (! $user->hasRank(Rank::AdminOne) && ! $room->type->admitsRank($user->rank)) {
+                return ChannelEntry::Denied;
+            }
+
+            return $user->hasBiometrics() ? ChannelEntry::PasskeyAssertionRequired : ChannelEntry::PasskeyRequired;
+        }
+
         if ($user->hasRank(Rank::AdminOne)) {
             return ChannelEntry::Granted;
         }
@@ -90,15 +101,39 @@ class ChannelAccessService
             return ChannelEntry::Granted;
         }
 
-        if ($room->type->isPasskeyOnly()) {
-            return $user->hasBiometrics() ? ChannelEntry::Granted : ChannelEntry::PasskeyRequired;
-        }
-
-        if ($user->canUsePinlessEntry() && $this->allowsPinlessEntry($user, $room)) {
+        if ($user->hasTwoFactor() && $this->allowsPinlessEntry($user, $room)) {
             return ChannelEntry::Granted;
         }
 
         return ChannelEntry::PinRequired;
+    }
+
+    /**
+     * Whether the member may open the channel now with a passkey check: always for
+     * `pra` once a passkey is enrolled, and for other PIN-secured channels when the
+     * member meets the biometric precondition and has pin-free entry on for the channel.
+     */
+    public function allowsPasskeyEntry(User $user, Room $room): bool
+    {
+        return match ($this->entryFor($user, $room)) {
+            ChannelEntry::PasskeyAssertionRequired => true,
+            ChannelEntry::PinRequired => $user->hasBiometrics()
+                && $user->meetsBiometricPrecondition()
+                && $this->allowsPinlessEntry($user, $room),
+            default => false,
+        };
+    }
+
+    /**
+     * Turn pin-free entry (2FA or passkey instead of the PIN) on or off for one of the
+     * member's channels. `pra` is always passkey-only and is not affected.
+     */
+    public function setPinlessEntry(User $user, Room $room, bool $enabled): void
+    {
+        DB::table('room_user')
+            ->where('room_id', $room->id)
+            ->where('user_id', $user->id)
+            ->update(['biometric_entry' => $enabled, 'updated_at' => now()]);
     }
 
     /**
@@ -217,9 +252,9 @@ class ChannelAccessService
     }
 
     /**
-     * Whether the member has left 2FA / passkey entry switched on for this channel.
+     * Whether the member has left pin-free (2FA / passkey) entry switched on for this channel.
      */
-    protected function allowsPinlessEntry(User $user, Room $room): bool
+    public function allowsPinlessEntry(User $user, Room $room): bool
     {
         $setting = DB::table('room_user')
             ->where('room_id', $room->id)

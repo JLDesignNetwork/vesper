@@ -174,6 +174,7 @@ test('member profile endpoint returns user profile details and avatar url for ch
         'created_by_ip' => '127.0.0.1',
         'status' => 'active',
     ]);
+    $room->addMember($user); // The card only looks up people connected to the channel.
 
     // Without clearance -> 403
     $unauthResponse = $this->actingAs(User::factory()->create())->getJson(route('rooms.member-profile', ['room' => $room->code, 'name' => 'AgentCardTest']));

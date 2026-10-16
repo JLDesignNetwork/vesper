@@ -72,6 +72,7 @@ test('member card endpoint hides age, birthday, location, and bio from other reg
         'created_by_ip' => '127.0.0.1',
         'status' => 'active',
     ]);
+    $room->addMember($privateUser); // The card only looks up people connected to the channel.
 
     // Regular member viewing private user
     $this->actingAs($otherUser);
@@ -120,6 +121,7 @@ test('admin center and admin viewer can see all information regardless of user p
         'created_by_ip' => '127.0.0.1',
         'status' => 'active',
     ]);
+    $room->addMember($privateUser); // The card only looks up people connected to the channel.
 
     // Create access log with IP for the user
     AccessLog::create([
@@ -281,6 +283,7 @@ test('hiding age while allowing birthday conceals the birth year and shows only 
         'created_by_ip' => '127.0.0.1',
         'status' => 'active',
     ]);
+    $room->addMember($user); // The card only looks up people connected to the channel.
 
     Message::create([
         'room_id' => $room->id,

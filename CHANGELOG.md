@@ -8,7 +8,13 @@ This project adheres to the **JLDN Generational Versioning Schema (GVS)** (`[YYM
 
 ## [Unreleased]
 
+## [2610.0.0-bs] - 2026-10-16
+
+Generation 2610: the Channels Refactor (member-run channels, ranks, moderation and admin panels).
+
 ### Added
+- **Passkey Entry Rules (Phase 8)**: `pra` opens only with a fresh passkey check, for every rank. On other PIN-secured channels a passkey check can replace the PIN for members who meet the biometric precondition; 2FA members enter without a PIN. Members can require the PIN per channel from their profile.
+- **Passkey Precondition**: enrolling a passkey requires a verified email plus a verified recovery email or confirmed 2FA.
 - **Admin Panels (Phase 7)**: Admin II gets the admin panel without geolocation, IP addresses or access-log locations; Admin III gets a panel limited to the channels they created. Every channel has a profile overview (settings, members, pending invitations, invite links, removed members). The audit log is visible to Admin I (all entries) and Admin II (moderation entries).
 - **Translations**: all new channel, moderation and admin strings are available in the 15 supported languages.
 - **Ban Votes (Phase 6)**: Admin I and II open ban votes about members by tag or from a report, at `/moderation/bans`. The member is read-only while the vote is open and sees only that an admin review is pending. Votes close after 72 hours; a strict majority of the votes cast decides and Admin I breaks ties. Admin I bans an Admin II directly. A ban signs the member out everywhere, removes their passkeys and blocks sign-in.
@@ -36,6 +42,10 @@ This project adheres to the **JLDN Generational Versioning Schema (GVS)** (`[YYM
 - The in-channel network map (`/c/{room}/radar`) is restricted to Admin I.
 
 ### Security
+- Fixed passkey sign-in accepting any request that named a valid credential: signatures were never verified and the challenge check could be skipped. Passkeys are now fully verified on the server, credentials cannot be re-registered by another account, and older passkeys are upgraded on first use.
+- Added rate limits to password sign-in, registration, passkey sign-in, the 2FA challenge and account recovery.
+- Members under a ban vote can no longer change their channels through the admin panel.
+- The in-channel member card now looks up names only among the channel's members and message authors.
 - Fixed stored XSS in the admin member dossier through the profile location field. The dossier no longer receives the member's full record.
 - Fixed replies quoting messages from other channels: a reply could reference any message id and show its sender and opening text. Replies must now point at a message in the same channel.
 - Fixed stored XSS in chat messages: a crafted link could add an event handler to the rendered `<a>`. Messages are now sanitized with DOMPurify and quotes are escaped.
@@ -45,6 +55,8 @@ This project adheres to the **JLDN Generational Versioning Schema (GVS)** (`[YYM
 - Fixed an account takeover in the OAuth callback: a forged Apple `id_token` in the callback URL could sign in as any user. The callback now requires a configured provider and the single-use OAuth state, and Apple identities come only from Apple's token endpoint with `aud`/`iss` checked.
 
 ### Fixed
+- Enrolling a passkey from the profile page always failed.
+- Two simultaneous ban votes about the same member could both open.
 - Generating an invitation link or code from the admin console crashed with an unknown named argument.
 - The "Enter Secure Channel" button in invitation emails linked to `#`.
 - Recovery-email verification and welcome emails no longer print unfilled `{{recovery_email}}`, `{{expiry_time}}` and `{{role}}` placeholders.

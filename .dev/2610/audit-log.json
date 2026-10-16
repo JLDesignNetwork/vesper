@@ -1,0 +1,39 @@
+[
+  {
+    "run_at": "2026-10-16T18:05:00+02:00",
+    "color": "white",
+    "phase_gate": "logic",
+    "finding_ids": [
+      "ROOT-ISSUE-01",
+      "ROOT-ISSUE-02"
+    ]
+  },
+  {
+    "run_at": "2026-10-16T18:10:00+02:00",
+    "color": "yellow",
+    "phase_gate": "logic",
+    "finding_ids": [
+      "MOD-ISSUE-01"
+    ]
+  },
+  {
+    "run_at": "2026-10-16T18:15:00+02:00",
+    "color": "blue",
+    "phase_gate": "defense",
+    "finding_ids": [
+      "AUTH-ISSUE-07",
+      "MOD-ISSUE-02"
+    ]
+  },
+  {
+    "run_at": "2026-10-16T18:20:00+02:00",
+    "color": "red",
+    "phase_gate": "defense",
+    "finding_ids": [
+      "MOD-ISSUE-03",
+      "MSG-ISSUE-04",
+      "MOD-ISSUE-04",
+      "ROOT-ISSUE-03"
+    ]
+  }
+]

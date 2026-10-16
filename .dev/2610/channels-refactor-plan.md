@@ -160,3 +160,12 @@ Backlog items live in [`backlog.json`](backlog.json).
 - `/moderation/bans` stays a separate page linked from the admin header for Admin I/II.
 - Translations: 218 new strings in all 15 languages. ~240 strings that predate the refactor are still English-only (`ROOT-TODO-03`).
 - Found and fixed `ADMN-ISSUE-03` (stored XSS in the admin dossier).
+
+## Phase 8 implementation notes (2026-10-16)
+
+- Found and fixed `AUTH-ISSUE-06` (critical): passkey sign-in never verified signatures. WebAuthn is now verified on the server without new dependencies (`CborDecoder`, COSE to PEM, `openssl_verify`). Existing passkeys are upgraded on first use.
+- `pra`: `ChannelEntry::PasskeyAssertionRequired`; the gate shows only a passkey button. The check applies to Admin I as well (AU-10 "pra is passkey-only"); Admin I keeps PIN-free entry to every other channel.
+- PIN-secured channels: confirmed 2FA keeps PIN-free entry (A1). A passkey no longer silently replaces the PIN; members who meet the precondition get a passkey check as an alternative. Interpretation of "biometric entry replaces PIN entry": the biometric is actually checked.
+- The per-channel switch turns off both 2FA and passkey entry for that channel; `pra` has no switch.
+- Release gate: Logic and Defense audits run (ledger `.dev/2610/audit-log.json`), coverage 85.3%, version `2610.0.0-bs` in README/CHANGELOG/package.json. Tag and GitHub Release wait for the owner.
+- Open owner decisions: `MOD-ISSUE-02` (lifting bans), `ROOT-ISSUE-01` (room page E2E wording), `ROOT-ISSUE-03` (local pnpm store), `ROOT-TODO-03` (pre-2610 strings).

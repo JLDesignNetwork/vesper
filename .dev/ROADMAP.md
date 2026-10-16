@@ -13,7 +13,7 @@ cleanup: manual
 > **Project:** Vesper (Laravel 13 / PHP 8.4 / Blade + vanilla JS)
 > **Generation Epoch:** `2610`
 > **Author:** Jeff Langdon (JL Design Network)
-> **Status:** Active — Channels Refactor Phases 1–7 complete, Phase 8 in progress
+> **Status:** Active — Channels Refactor Channels Refactor Phases 1–8 complete; release `2610.0.0-bs` prepared (tag and GitHub Release pending owner approval)
 
 ---
 
@@ -36,7 +36,7 @@ pinning, blocking and kicking, and a voted ban system.
 - [x] Member privacy controls (age, birthday, location, bio concealment).
 - [x] WebAuthn passkeys, TOTP 2FA, recovery codes, recovery email, Google/Apple OAuth.
 
-### Generation 2610 (Channels Refactor — active)
+### Generation 2610 (Channels Refactor — `2610.0.0-bs`)
 Full plan: [`2610/channels-refactor-plan.md`](2610/channels-refactor-plan.md). Backlog: [`2610/backlog.json`](2610/backlog.json).
 
 - [x] **Phase 1:** Primary email verification, five-rank model, permission policies, audit log.
@@ -46,7 +46,7 @@ Full plan: [`2610/channels-refactor-plan.md`](2610/channels-refactor-plan.md). B
 - [x] **Phase 5:** Blocking, kicking, reporting.
 - [x] **Phase 6:** Ban vote system.
 - [x] **Phase 7:** Admin I / II / III panels and channel profile modal.
-- [ ] **Phase 8:** Biometric entry rules and release gate.
+- [x] **Phase 8:** Biometric entry rules and release gate.
 
 ### Future Horizons
 - [ ] Verified phone numbers as a biometric precondition (deferred: SMS provider cost).

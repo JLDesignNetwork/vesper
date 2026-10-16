@@ -54,11 +54,14 @@ class BanVoteService
             throw ValidationException::withMessages(['tag' => __('This member is already banned.')]);
         }
 
-        if ($subject->isRestricted()) {
-            throw ValidationException::withMessages(['tag' => __('A ban vote about this member is already open.')]);
-        }
-
         $case = DB::transaction(function () use ($opener, $subject, $reason, $report): BanCase {
+            // Lock the subject so two admins opening a vote at once cannot create two open cases.
+            User::whereKey($subject->id)->lockForUpdate()->first();
+
+            if ($subject->isRestricted()) {
+                throw ValidationException::withMessages(['tag' => __('A ban vote about this member is already open.')]);
+            }
+
             $case = BanCase::create([
                 'subject_user_id' => $subject->id,
                 'opened_by_user_id' => $opener->id,

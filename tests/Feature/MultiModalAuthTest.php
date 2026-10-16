@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Tests\Support\FakePasskey;
 
 /* -------------------------------------------------------------
  * 1. WebAuthn Biometrics / Passkeys Tests
@@ -24,10 +25,9 @@ test('guest cannot request webauthn registration options', function () {
 });
 
 test('authenticated user receives valid webauthn registration options', function () {
-    $user = User::create([
+    $user = User::factory()->withVerifiedRecoveryEmail()->create([
         'name' => 'Agent007',
         'email' => 'agent007@vesper.test',
-        'password' => Hash::make('secret-pass'),
     ]);
 
     $response = $this->actingAs($user)->getJson(route('webauthn.register.options'));
@@ -42,42 +42,12 @@ test('authenticated user receives valid webauthn registration options', function
         ]);
 });
 
-test('user can register a mock webauthn biometric credential', function () {
-    $user = User::create([
-        'name' => 'BioAgent',
-        'email' => 'bio@vesper.test',
-        'password' => Hash::make('secret-pass'),
-    ]);
+test('user can register a webauthn biometric credential', function () {
+    $user = User::factory()->withVerifiedRecoveryEmail()->create(['name' => 'BioAgent']);
+    $passkey = new FakePasskey;
 
-    // Populate registration challenge in session
-    $challenge = random_bytes(32);
-    $challengeBase64 = rtrim(strtr(base64_encode($challenge), '+/', '-_'), '=');
-    session(['webauthn_register_challenge' => $challengeBase64]);
-
-    $clientData = [
-        'type' => 'webauthn.create',
-        'challenge' => $challengeBase64,
-        'origin' => config('app.url'),
-    ];
-    $clientDataJSON = base64_encode(json_encode($clientData));
-
-    // Construct raw mock authenticatorData (37 bytes minimum)
-    $rpIdHash = hash('sha256', parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost', true);
-    $flags = chr(0x45); // UP (1) | UV (4) | AT (64)
-    $signCount = pack('N', 0);
-    $aaguid = str_repeat("\0", 16);
-    $credId = random_bytes(16);
-    $credIdLen = pack('n', 16);
-    // Minimal COSE EC2 public key representation
-    $coseKey = hex2bin('a5010203262001215820'.bin2hex(random_bytes(32)).'225820'.bin2hex(random_bytes(32)));
-    $authData = $rpIdHash.$flags.$signCount.$aaguid.$credIdLen.$credId.$coseKey;
-
-    $payload = [
-        'id' => rtrim(strtr(base64_encode($credId), '+/', '-_'), '='),
-        'clientDataJSON' => $clientDataJSON,
-        'attestationObject' => base64_encode($authData),
-        'deviceName' => 'MacBook Pro Touch ID',
-    ];
+    $challenge = $this->actingAs($user)->getJson(route('webauthn.register.options'))->assertOk()->json('challenge');
+    $payload = array_merge($passkey->attestation($challenge), ['deviceName' => 'MacBook Pro Touch ID']);
 
     $response = $this->actingAs($user)->postJson(route('webauthn.register'), $payload);
 
@@ -86,6 +56,8 @@ test('user can register a mock webauthn biometric credential', function () {
     $credential = WebAuthnCredential::where('user_id', $user->id)->first();
     expect($credential)->not->toBeNull();
     expect($credential->device_name)->toBe('MacBook Pro Touch ID');
+    expect($credential->credential_id)->toBe($passkey->id());
+    expect($credential->public_key)->toStartWith('-----BEGIN PUBLIC KEY-----');
     expect($user->fresh()->hasBiometrics())->toBeTrue();
 });
 

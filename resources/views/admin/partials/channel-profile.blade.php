@@ -1,5 +1,5 @@
 {{-- Channel profile overview, loaded into the admin panel's channel profile modal. All values are escaped by Blade. --}}
-<div class="space-y-5 text-xs" data-channel-profile="{{ $room->id }}">
+<div class="space-y-5 text-xs break-words" data-channel-profile="{{ $room->id }}">
     <div>
         <div class="flex flex-wrap items-baseline gap-2">
             <h4 class="text-base font-semibold text-white">{{ $room->title ?: $room->code }}</h4>
@@ -8,7 +8,7 @@
             <span class="px-2 py-0.5 rounded font-mono {{ $room->status === 'active' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' : 'bg-slate-800 border border-slate-700 text-slate-400' }}">{{ $room->status === 'active' ? __('Active') : __('Archived') }}</span>
         </div>
         @if($room->description)
-            <p class="mt-2 text-slate-300 whitespace-pre-line">{{ $room->description }}</p>
+            <p class="mt-2 text-slate-300 whitespace-pre-line break-words">{{ $room->description }}</p>
         @endif
     </div>
 

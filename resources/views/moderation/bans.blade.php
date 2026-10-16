@@ -51,7 +51,7 @@
                         <p class="text-sm text-white">{{ $case->subject?->name }} <span class="font-mono text-emerald-300">{{ '@'.$case->subject?->tag }}</span></p>
                         <p class="font-mono text-amber-200">{{ __('Closes :when', ['when' => $case->closes_at->diffForHumans()]) }}</p>
                     </div>
-                    <p class="text-slate-300 whitespace-pre-line">{{ $case->reason }}</p>
+                    <p class="text-slate-300 whitespace-pre-line break-words">{{ $case->reason }}</p>
                     <p class="text-slate-500">
                         {{ __('Opened by :name', ['name' => $case->openedBy?->name ?? __('a former admin')]) }}
                         @if($case->report)
@@ -99,7 +99,7 @@
                         <span class="text-slate-500">· {{ $report->created_at->diffForHumans() }}</span>
                     </p>
                     @if($report->details)
-                        <p class="text-slate-400 whitespace-pre-line">{{ $report->details }}</p>
+                        <p class="text-slate-400 whitespace-pre-line break-words">{{ $report->details }}</p>
                     @endif
                     @if($report->subject && ! $report->subject->displaysAsAdmin() && ! $report->subject->isBanned())
                         <form method="POST" action="{{ route('moderation.bans.store') }}" class="flex flex-col sm:flex-row gap-2 pt-1">

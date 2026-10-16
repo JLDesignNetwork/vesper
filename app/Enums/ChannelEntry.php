@@ -18,6 +18,9 @@ enum ChannelEntry: string
     /** The channel opens only with a biometric passkey, which the member has not enrolled. */
     case PasskeyRequired = 'passkey_required';
 
+    /** The channel opens only with a fresh passkey check, which the member must perform now. */
+    case PasskeyAssertionRequired = 'passkey_assertion_required';
+
     /** The member may not open the channel. Callers must not reveal whether it exists. */
     case Denied = 'denied';
 }

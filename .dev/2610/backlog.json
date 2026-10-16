@@ -134,20 +134,22 @@
   {
     "id": "AUTH-TODO-02",
     "title": "Enforce biometric and 2FA entry rules",
-    "status": "pending",
+    "status": "completed",
     "priority": "high-3",
     "existed_since": "2609.11.0-bs",
     "created_at": "2026-10-16T12:25:00+02:00",
-    "details": "Biometric setup requires verified primary email plus verified recovery email or confirmed 2FA (Q5, A1). Passkey or TOTP replaces PIN on prs, pus, pra-2 with per-channel opt-out; pra is passkey-only (AU-10). Phase 8. Phase 2 interim: pra admits Admin I/II who have an enrolled passkey; a fresh passkey assertion on each entry is still to be built here. The per-channel opt-out is stored in room_user.biometric_entry and honoured by ChannelAccessService; its toggle UI belongs here."
+    "details": "Enforced the biometric precondition (verified primary email plus verified recovery email or confirmed 2FA) on passkey enrollment, with a refusal that lists what is missing. pra now needs a fresh passkey check (WebAuthn assertion bound to the member and the channel, single-use challenge) every time it is opened, for every rank including Admin I; its PIN form is gone. On prs/pus/pra-2, confirmed 2FA keeps PIN-free entry (A1) and members who meet the precondition get a passkey check as an alternative to the PIN instead of the old silent pass. The per-channel switch (room_user.biometric_entry) has a profile toggle and turns both off for that channel. Built on the rewritten, server-verified WebAuthn flow (AUTH-ISSUE-06). Covered by PasskeyEntryTest (35 tests) with a software passkey; 24 guard mutations checked, 2 equivalent survivors (empty-signature short-circuit, missing-challenge TypeError fails closed).",
+    "protected": "open"
   },
   {
     "id": "ROOT-TODO-02",
     "title": "Run release gate audits and update documentation",
-    "status": "pending",
+    "status": "completed",
     "priority": "medium-1",
     "existed_since": "2609.11.0-bs",
     "created_at": "2026-10-16T12:25:00+02:00",
-    "details": "Run jldn-audit-phase-logic and jldn-audit-phase-defense, hold Pest coverage at 80% or above, and update README, CHANGELOG, and GVS version in the same commit as the release. Phase 8."
+    "details": "Ran the Logic audit (White, Yellow) and Defense audit (Blue, Red) on Gen 2610; ledger entries in .dev/2610/audit-log.json. Findings: ROOT-ISSUE-01 (E2E encryption claim, pending owner wording), ROOT-ISSUE-02 (stale README, fixed), MOD-ISSUE-01 (ban-vote race, fixed), AUTH-ISSUE-07 (no auth rate limits, fixed), MOD-ISSUE-02 (bans cannot be lifted, pending owner decision), MOD-ISSUE-03 (restricted Admin III via admin panel, fixed), MSG-ISSUE-04 (platform-wide card lookup, fixed), MOD-ISSUE-04 (text overflow, fixed), ROOT-ISSUE-03 (local pnpm store, pending owner). Line coverage 85.3% (Xdebug loaded for the run only; no config change). README, CHANGELOG and package.json set to 2610.0.0-bs. The annotated tag v2610.0.0-bs and the GitHub Release are not created yet: they publish, so they wait for owner approval.",
+    "protected": "open"
   },
   {
     "id": "AUTH-ISSUE-03",
@@ -297,5 +299,168 @@
     "existed_since": "2609.11.0-bs",
     "created_at": "2026-10-16T16:30:00+02:00",
     "details": "About 240 strings used with __() in views and controllers before the channels refactor have no entry in lang/*.json, so they show in English in every language (for example 'ADMIN CONSOLE', '2FA is not enabled.', ':provider account linked successfully.'). Found while translating the Phase 1-7 strings; out of scope for ADMN-TODO-01."
+  },
+  {
+    "id": "AUTH-ISSUE-06",
+    "title": "Passkey sign-in never verified the signature",
+    "status": "completed",
+    "severity": "critical",
+    "priority": "critical-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T17:00:00+02:00",
+    "details": "Fixed (found while building AUTH-TODO-02): WebAuthnService::verifyLogin looked the credential up by its ID and returned its owner without checking the assertion signature, and skipped the challenge check whenever no challenge was in the session. Anyone who knew a credential ID could sign in as that member. Registration stored the raw attestation object instead of a public key, never required the challenge, and reassigned an existing credential ID to whoever registered it. Rewritten without new dependencies: a small CBOR decoder, COSE (ES256/RS256) to PEM conversion and openssl_verify. Registration and assertion now check the single-use challenge, type, origin, relying-party ID hash, user presence, signature and signature counter; credential IDs cannot be re-registered. Legacy credentials are upgraded on first use from their stored attestation object. Covered by PasskeyEntryTest with a software passkey (tests/Support/FakePasskey).",
+    "protected": "open"
+  },
+  {
+    "id": "AUTH-ISSUE-08",
+    "title": "Passkey enrollment from the profile always failed",
+    "status": "completed",
+    "severity": "medium",
+    "priority": "high-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T17:00:00+02:00",
+    "details": "Fixed: the profile page posted the new credential nested under credential/response while WebAuthnController::register validated top-level id/clientDataJSON/attestationObject, so every profile enrollment was refused. The profile client now sends the flat payload and decodes excludeCredentials. All three enrollment clients show the precondition refusal message.",
+    "protected": "open"
+  },
+  {
+    "id": "ROOT-ISSUE-01",
+    "title": "Product text claims end-to-end encryption",
+    "status": "pending",
+    "severity": "medium",
+    "priority": "medium-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T18:05:00+02:00",
+    "details": "README and the room page described channels as end-to-end encrypted. Messages are encrypted at rest on the server (SafeEncryptedCast) and the server can read them, so the claim overstates the protection. The README wording is corrected in the release commit; the room page string 'End-to-end verified communication via Ghostwire Protocol…' still says it and needs new wording (and retranslation in 15 languages) chosen by the owner.",
+    "source_audit_run": {
+      "generation": "2610",
+      "color": "white",
+      "run_at": "2026-10-16T18:05:00+02:00"
+    }
+  },
+  {
+    "id": "ROOT-ISSUE-02",
+    "title": "README described an older Vesper",
+    "status": "completed",
+    "severity": "low",
+    "priority": "medium-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T18:05:00+02:00",
+    "details": "Fixed in the release commit: README listed Laravel 12 (the app runs Laravel 13), counted 9 email templates, and did not mention tags, pinning, blocking, kicking, reports, ban votes, the Admin II/III panels or passkey rules.",
+    "source_audit_run": {
+      "generation": "2610",
+      "color": "white",
+      "run_at": "2026-10-16T18:05:00+02:00"
+    },
+    "protected": "open"
+  },
+  {
+    "id": "MOD-ISSUE-01",
+    "title": "Two admins could open two ban votes about the same member",
+    "status": "completed",
+    "severity": "low",
+    "priority": "medium-1",
+    "existed_since": "2610 Phase 6",
+    "created_at": "2026-10-16T18:10:00+02:00",
+    "details": "Fixed: BanVoteService::open checked for an open case before its transaction, so two simultaneous requests could both create one. The check now runs inside the transaction after locking the subject's user row. Not reproducible on SQLite in tests (no row locks); covered for the sequential case by BanVoteTest.",
+    "source_audit_run": {
+      "generation": "2610",
+      "color": "yellow",
+      "run_at": "2026-10-16T18:10:00+02:00"
+    },
+    "protected": "open"
+  },
+  {
+    "id": "AUTH-ISSUE-07",
+    "title": "Sign-in and recovery endpoints had no rate limits",
+    "status": "completed",
+    "severity": "high",
+    "priority": "critical-2",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T18:15:00+02:00",
+    "details": "Fixed: password sign-in, registration, passkey sign-in (options and verify), the 2FA challenge and the recovery request/reset endpoints accepted unlimited attempts, allowing password and 2FA-code guessing. Throttles added (login, passkey verify, 2FA, reset: 10/min; registration: 5/min; recovery request: 5 per 10 min; passkey options: 20/min). Covered by AuthRateLimitTest.",
+    "source_audit_run": {
+      "generation": "2610",
+      "color": "blue",
+      "run_at": "2026-10-16T18:15:00+02:00"
+    },
+    "protected": "open"
+  },
+  {
+    "id": "MOD-ISSUE-02",
+    "title": "A ban cannot be lifted",
+    "status": "pending",
+    "severity": "medium",
+    "priority": "medium-1",
+    "existed_since": "2610 Phase 6",
+    "created_at": "2026-10-16T18:15:00+02:00",
+    "details": "There is no way to reverse a ban: banned_at stays set, and the member's passkeys and sessions are already gone. A ban decided by mistake (or a direct Admin II ban) is permanent unless someone edits the database. Needs an owner decision: who may lift a ban (Admin I alone, or a vote), and whether it is audited and announced.",
+    "source_audit_run": {
+      "generation": "2610",
+      "color": "blue",
+      "run_at": "2026-10-16T18:15:00+02:00"
+    }
+  },
+  {
+    "id": "MOD-ISSUE-03",
+    "title": "Members under a ban vote could still act through the admin panel",
+    "status": "completed",
+    "severity": "high",
+    "priority": "critical-2",
+    "existed_since": "2610 Phase 7",
+    "created_at": "2026-10-16T18:20:00+02:00",
+    "details": "Fixed: EnsureNotRestricted guarded the member-facing routes but not the admin panel, so a restricted Admin III could still purge their channels, change their settings and create invite links from /admin. The admin channel routes are now behind EnsureNotRestricted. Covered by BanVoteTest.",
+    "source_audit_run": {
+      "generation": "2610",
+      "color": "red",
+      "run_at": "2026-10-16T18:20:00+02:00"
+    },
+    "protected": "open"
+  },
+  {
+    "id": "MSG-ISSUE-04",
+    "title": "The member card looked up anyone on the platform by name",
+    "status": "completed",
+    "severity": "medium",
+    "priority": "high-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T18:20:00+02:00",
+    "details": "Fixed: rooms.member-profile?name= returned the public profile (avatar, age, location, bio as visible to the viewer) of any member with that name, not only people in the channel, so a member could probe for anyone. Lookups by name are now limited to the channel's active members, its creator and its message authors. Six existing card tests enrolled their subject in the channel (fixtures only, assertions unchanged). Covered by UserTagsTest.",
+    "source_audit_run": {
+      "generation": "2610",
+      "color": "red",
+      "run_at": "2026-10-16T18:20:00+02:00"
+    },
+    "protected": "open"
+  },
+  {
+    "id": "MOD-ISSUE-04",
+    "title": "Long report and ban texts overflowed the review page",
+    "status": "completed",
+    "severity": "low",
+    "priority": "low-1",
+    "existed_since": "2610 Phase 6",
+    "created_at": "2026-10-16T18:20:00+02:00",
+    "details": "Fixed: a 1,000-character reason or report with no spaces ran out of its card on /moderation/bans and in the channel profile modal. Those blocks now wrap long words.",
+    "source_audit_run": {
+      "generation": "2610",
+      "color": "red",
+      "run_at": "2026-10-16T18:20:00+02:00"
+    },
+    "protected": "open"
+  },
+  {
+    "id": "ROOT-ISSUE-03",
+    "title": "node_modules holds a local pnpm store",
+    "status": "pending",
+    "severity": "low",
+    "priority": "low-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T18:20:00+02:00",
+    "details": "node_modules/.pnpm is a full local package store (created 2026-09-05; dompurify was re-linked into it at 14:03 on 2026-10-16 by a pnpm install outside this session), which the JLDN zero-local pnpm policy forbids. Not changed by the audit because it is the owner's working environment; fixing it means re-linking packages from the global store.",
+    "source_audit_run": {
+      "generation": "2610",
+      "color": "red",
+      "run_at": "2026-10-16T18:20:00+02:00"
+    }
   }
 ]

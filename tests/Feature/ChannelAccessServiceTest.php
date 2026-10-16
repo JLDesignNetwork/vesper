@@ -93,12 +93,12 @@ test('admin channels admit only the ranks allowed in them', function (ChannelTyp
 
     expect(app(ChannelAccessService::class)->entryFor($admin, $room))->toBe($expected);
 })->with([
-    'pra admits Admin II with a passkey' => [ChannelType::PrivateAdmin, Rank::AdminTwo, true, ChannelEntry::Granted],
+    'pra asks Admin II with a passkey for a passkey check' => [ChannelType::PrivateAdmin, Rank::AdminTwo, true, ChannelEntry::PasskeyAssertionRequired],
     'pra asks Admin II without a passkey to enroll one' => [ChannelType::PrivateAdmin, Rank::AdminTwo, false, ChannelEntry::PasskeyRequired],
     'pra refuses Admin III' => [ChannelType::PrivateAdmin, Rank::AdminThree, true, ChannelEntry::Denied],
     'pra refuses User I' => [ChannelType::PrivateAdmin, Rank::UserOne, true, ChannelEntry::Denied],
     'pra-2 admits Admin III with its PIN' => [ChannelType::PrivateAdminTwo, Rank::AdminThree, false, ChannelEntry::PinRequired],
-    'pra-2 admits Admin III with a passkey' => [ChannelType::PrivateAdminTwo, Rank::AdminThree, true, ChannelEntry::Granted],
+    'pra-2 asks Admin III with a passkey for its PIN or a passkey check' => [ChannelType::PrivateAdminTwo, Rank::AdminThree, true, ChannelEntry::PinRequired],
     'pra-2 refuses User I' => [ChannelType::PrivateAdminTwo, Rank::UserOne, true, ChannelEntry::Denied],
 ]);
 
@@ -109,10 +109,22 @@ test('two factor authentication never opens the passkey-only admin channel', fun
     expect(app(ChannelAccessService::class)->entryFor($adminTwo, $room))->toBe(ChannelEntry::PasskeyRequired);
 });
 
-test('admin one may open any channel', function (ChannelType $type) {
+test('admin one may open any channel except pra without a PIN', function (ChannelType $type) {
     expect(app(ChannelAccessService::class)->entryFor(User::factory()->adminOne()->create(), channelOfType($type)))
         ->toBe(ChannelEntry::Granted);
-})->with(ChannelType::cases());
+})->with(array_values(array_filter(ChannelType::cases(), fn (ChannelType $type): bool => ! $type->isPasskeyOnly())));
+
+test('admin one also needs a passkey check to open pra', function (bool $hasPasskey, ChannelEntry $expected) {
+    $adminOne = User::factory()->adminOne()->create();
+    if ($hasPasskey) {
+        enrollPasskey($adminOne);
+    }
+
+    expect(app(ChannelAccessService::class)->entryFor($adminOne, channelOfType(ChannelType::PrivateAdmin)))->toBe($expected);
+})->with([
+    'with a passkey' => [true, ChannelEntry::PasskeyAssertionRequired],
+    'without a passkey' => [false, ChannelEntry::PasskeyRequired],
+]);
 
 test('nobody may open a closed channel', function (array $attributes) {
     $room = channelOfType(ChannelType::PublicFreeEntry, $attributes);
