@@ -8,7 +8,7 @@
                     {{ $recentVisitors->count() }}
                 </span>
             </h3>
-            <p class="text-xs text-slate-400 mt-0.5">{{ __('Audited connection telemetry and visitor network details.') }}</p>
+            <p class="text-xs text-slate-400 mt-0.5">{{ Gate::allows('viewGeolocation') ? __('Audited connection telemetry and visitor network details.') : __('Who opened which channel, and when.') }}</p>
         </div>
         <div class="font-mono text-xs text-slate-400">
             {{ __('Last 50 recorded entries') }}
@@ -20,8 +20,10 @@
             <thead>
                 <tr class="border-b border-slate-800 text-slate-400 font-mono text-[11px] uppercase bg-slate-950/40">
                     <th class="py-3 px-4">{{ __('Visitor') }}</th>
-                    <th class="py-3 px-4">{{ __('Location') }}</th>
-                    <th class="py-3 px-4">{{ __('IP Address') }}</th>
+                    @can('viewGeolocation')
+                        <th class="py-3 px-4">{{ __('Location') }}</th>
+                        <th class="py-3 px-4">{{ __('IP Address') }}</th>
+                    @endcan
                     <th class="py-3 px-4">{{ __('Channel') }}</th>
                     <th class="py-3 px-4">{{ __('Last Active') }}</th>
                 </tr>
@@ -32,13 +34,15 @@
                         <td class="py-3 px-4 font-mono text-slate-200">
                             {{ $v['alias'] }}
                         </td>
-                        <td class="py-3 px-4">
-                            <span class="mr-1.5">{{ $v['flag'] }}</span>
-                            <span class="text-slate-300">{{ $v['city'] }}, {{ $v['country'] }}</span>
-                        </td>
-                        <td class="py-3 px-4 font-mono text-slate-400 text-[11px]">
-                            {{ $v['ip_address'] }}
-                        </td>
+                        @can('viewGeolocation')
+                            <td class="py-3 px-4">
+                                <span class="mr-1.5">{{ $v['flag'] }}</span>
+                                <span class="text-slate-300">{{ $v['city'] }}, {{ $v['country'] }}</span>
+                            </td>
+                            <td class="py-3 px-4 font-mono text-slate-400 text-[11px]">
+                                {{ $v['ip_address'] }}
+                            </td>
+                        @endcan
                         <td class="py-3 px-4 font-mono text-emerald-400">
                             {{ $v['room_code'] }}
                         </td>
@@ -48,7 +52,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="py-6 text-center text-slate-500 font-mono">
+                        <td colspan="{{ Gate::allows('viewGeolocation') ? 5 : 3 }}" class="py-6 text-center text-slate-500 font-mono">
                             {{ __('No visitors recorded yet.') }}
                         </td>
                     </tr>

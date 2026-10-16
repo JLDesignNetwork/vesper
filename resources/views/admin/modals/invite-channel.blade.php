@@ -21,6 +21,7 @@
                 <span id="invite-channel-pin" class="text-emerald-400 font-bold tracking-wider px-2 py-0.5 rounded bg-slate-900 border border-slate-800"></span>
             </div>
 
+            @can('manageMembers')
             <!-- Option A: Direct Assignment to Registered Member or Email -->
             <div class="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-3">
                 <label class="block font-semibold text-emerald-400 font-mono text-[11px] uppercase tracking-wider">{{ __('Direct Member Email Invitation') }}</label>
@@ -50,6 +51,7 @@
             </div>
 
             <div class="text-center text-[10px] font-mono text-slate-500 uppercase tracking-widest">{{ __('— OR Generate Shareable Invitation Link —') }}</div>
+            @endcan
 
             <!-- Option B: Clearance Code & Link -->
             <div class="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-3">

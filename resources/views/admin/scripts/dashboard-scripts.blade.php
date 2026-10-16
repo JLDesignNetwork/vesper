@@ -50,6 +50,12 @@
             document.getElementById('edit-modal').classList.add('hidden');
         }
 
+        function escapeDossierText(value) {
+            const span = document.createElement('span');
+            span.textContent = String(value ?? '');
+            return span.innerHTML;
+        }
+
         function openUserDossier(user) {
             const avatarUrl = user.avatar_url || (user.avatar_path ? ('/storage/' + user.avatar_path) : null);
             const dossierImg = document.getElementById('dossier-avatar-img');
@@ -107,8 +113,16 @@
             // Location
             const locEl = document.getElementById('dossier-location');
             if (locEl) {
-                let locBadge = user.hide_location ? ' <span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono">🔒 {{ __('Hidden') }}</span>' : '';
-                locEl.innerHTML = `<span>${user.location || '—'}</span>${locBadge}`;
+                // Built with textContent: the location is free text the member typed (ADMN-ISSUE-03).
+                const locText = document.createElement('span');
+                locText.textContent = user.location || (user.hide_location ? "{{ __('Hidden') }}" : '—');
+                locEl.replaceChildren(locText);
+                if (user.hide_location) {
+                    const locBadge = document.createElement('span');
+                    locBadge.className = 'ml-1 text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-mono';
+                    locBadge.textContent = "🔒 {{ __('Hidden') }}";
+                    locEl.append(locBadge);
+                }
             }
 
             document.getElementById('dossier-alerts').textContent = user.email_notifications ? "{{ __('Enabled') }}" : "{{ __('Disabled') }}";
@@ -123,11 +137,11 @@
                     'it': "{{ __('Italian (IT)') }}"
                 };
                 if (user.preferred_locale) {
-                    const name = langNames[user.preferred_locale] || user.preferred_locale.toUpperCase();
+                    const name = escapeDossierText(langNames[user.preferred_locale] || user.preferred_locale.toUpperCase());
                     langEl.innerHTML = `<span class="text-sky-300 font-medium">${name}</span> <span class="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20 font-mono">{{ __('User Override') }}</span>`;
                 } else {
                     const eff = user.effective_locale || user.location_locale || 'en';
-                    const name = langNames[eff] || eff.toUpperCase();
+                    const name = escapeDossierText(langNames[eff] || eff.toUpperCase());
                     langEl.innerHTML = `<span class="text-slate-300 font-medium">${name}</span> <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 font-mono">{{ __('Auto (Location)') }}</span>`;
                 }
             }
@@ -158,7 +172,7 @@
                 if (user.hide_bio) hiddenItems.push("{{ __('Bio') }}");
 
                 if (hiddenItems.length > 0) {
-                    privacyEl.innerHTML = `<span class="text-amber-400 font-mono">🔒 {{ __('Concealed from members') }}: <strong>${hiddenItems.join(', ')}</strong> ({{ __('Admin overrides and sees all') }})</span>`;
+                    privacyEl.innerHTML = `<span class="text-amber-400 font-mono">🔒 {{ __('Concealed from members') }}: <strong>${hiddenItems.join(', ')}</strong> ${user.hidden_fields_visible ? "({{ __('Admin overrides and sees all') }})" : "({{ __('Hidden from you too') }})"}</span>`;
                 } else {
                     privacyEl.innerHTML = `<span class="text-emerald-400 font-mono">✓ {{ __('All profile fields visible to members') }}</span>`;
                 }

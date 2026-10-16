@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AdminPanelScope;
 use App\Enums\Rank;
 use App\Mail\PrimaryEmailVerification;
 use App\Services\GeoLocationService;
@@ -112,6 +113,53 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * What this member sees in the admin panel, or null when they have no admin panel.
+     */
+    public function adminPanelScope(): ?AdminPanelScope
+    {
+        return $this->isBanned() ? null : AdminPanelScope::forRank($this->rank);
+    }
+
+    /**
+     * The member as shown in the admin panel's profile dossier to the given viewer.
+     * Hidden profile fields appear only for viewers allowed to see them, and IP addresses
+     * and email addresses only for panel scopes that show them.
+     *
+     * @return array<string, mixed>
+     */
+    public function adminDossierFor(User $viewer): array
+    {
+        $scope = $viewer->adminPanelScope();
+        $seesHidden = $this->hiddenFieldsVisibleTo($viewer);
+
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'tag' => $this->tag,
+            'email' => $scope?->showsEmails() ? $this->email : null,
+            'avatar_url' => $this->avatarUrl(),
+            'avatar_path' => $this->avatar_path,
+            'rank' => $this->rank->value,
+            'birthday' => ($seesHidden || ! $this->hide_birthday) && ($seesHidden || ! $this->hide_age) ? $this->birthday?->format('Y-m-d') : null,
+            'gender' => $this->gender,
+            'location' => ($seesHidden || ! $this->hide_location) ? $this->location : null,
+            'bio' => ($seesHidden || ! $this->hide_bio) ? $this->bio : null,
+            'hide_age' => (bool) $this->hide_age,
+            'hide_birthday' => (bool) $this->hide_birthday,
+            'hide_location' => (bool) $this->hide_location,
+            'hide_bio' => (bool) $this->hide_bio,
+            'email_notifications' => (bool) $this->email_notifications,
+            'preferred_locale' => $seesHidden ? $this->preferred_locale : null,
+            'location_locale' => $this->resolveLocationLocale(),
+            'latest_ip' => $scope?->showsGeolocation() ? $this->latestIp() : null,
+            'has_two_factor' => $this->hasTwoFactor(),
+            'has_biometrics' => $this->hasBiometrics(),
+            'created_at' => $this->created_at?->toIso8601String(),
+            'hidden_fields_visible' => $seesHidden,
+        ];
+    }
+
+    /**
      * Whether the member has been banned from Vesper.
      */
     public function isBanned(): bool
@@ -208,7 +256,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function homeRoute(): string
     {
-        return $this->can('accessAdminPanel') ? route('admin.dashboard') : route('profile.show');
+        return $this->displaysAsAdmin() && $this->can('accessAdminPanel') ? route('admin.dashboard') : route('profile.show');
     }
 
     /**

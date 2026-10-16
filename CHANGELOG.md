@@ -9,6 +9,8 @@ This project adheres to the **JLDN Generational Versioning Schema (GVS)** (`[YYM
 ## [Unreleased]
 
 ### Added
+- **Admin Panels (Phase 7)**: Admin II gets the admin panel without geolocation, IP addresses or access-log locations; Admin III gets a panel limited to the channels they created. Every channel has a profile overview (settings, members, pending invitations, invite links, removed members). The audit log is visible to Admin I (all entries) and Admin II (moderation entries).
+- **Translations**: all new channel, moderation and admin strings are available in the 15 supported languages.
 - **Ban Votes (Phase 6)**: Admin I and II open ban votes about members by tag or from a report, at `/moderation/bans`. The member is read-only while the vote is open and sees only that an admin review is pending. Votes close after 72 hours; a strict majority of the votes cast decides and Admin I breaks ties. Admin I bans an Admin II directly. A ban signs the member out everywhere, removes their passkeys and blocks sign-in.
 - **Blocking (Phase 5)**: members block each other by tag from the in-channel member card and manage their block list on the profile. Blocked members are hidden from each other in both directions: messages, replies, reactions, pins, presence, mentions, search, member cards and email notifications. Admin I and II cannot be blocked, and an Admin III cannot be blocked inside channels they created; those attempts file a report.
 - **Kicking**: a channel's creator can remove a member, who cannot rejoin by link, code, public entry or direct invite until the creator allows them back from the channel's Removed members list. Admin I and II cannot be kicked; the attempt files a report.
@@ -34,6 +36,7 @@ This project adheres to the **JLDN Generational Versioning Schema (GVS)** (`[YYM
 - The in-channel network map (`/c/{room}/radar`) is restricted to Admin I.
 
 ### Security
+- Fixed stored XSS in the admin member dossier through the profile location field. The dossier no longer receives the member's full record.
 - Fixed replies quoting messages from other channels: a reply could reference any message id and show its sender and opening text. Replies must now point at a message in the same channel.
 - Fixed stored XSS in chat messages: a crafted link could add an event handler to the rendered `<a>`. Messages are now sanitized with DOMPurify and quotes are escaped.
 - Fixed stored XSS in the member card through the profile location field.

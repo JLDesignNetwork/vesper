@@ -124,11 +124,12 @@
   {
     "id": "ADMN-TODO-01",
     "title": "Build Admin I / II / III panels and channel profile modal",
-    "status": "pending",
+    "status": "completed",
     "priority": "high-3",
     "existed_since": "2609.11.0-bs",
     "created_at": "2026-10-16T12:25:00+02:00",
-    "details": "Admin I full panel plus channel list; Admin II same partials with geolocation, IP, and access-log location excluded by policy (Q9); Admin III My Channels view scoped to own channels only (Q9, AU-5); rank-scoped channel profile modal; public rank labels Member/Admin only; strings in all 15 languages. Phase 7. Also translate the new Phase 1/2 strings (verification banner, channel creation/settings, directory) into all 15 languages."
+    "details": "AdminPanelScope (Full = Admin I, Global = Admin II, OwnChannels = Admin III) drives one set of admin views; accessAdminPanel now admits every admin rank. AdminDashboardService scopes every query to the viewer: Admin III sees only channels they created, members/invitees/removed members of those channels, and their access logs. Geolocation, IPs, access-log locations, user agents, the network map and GPS sync are Admin I only, stripped in the data layer and hidden in the views (Q9). Admin II/III see hidden profile fields only as members do; the dossier is built per viewer (User::adminDossierFor), emails are hidden from Admin III, full rank labels only for Admin I and the holder. Channel actions authorize via RoomPolicy (edit/archive/notifications/invite links: creator or Admin I; delete: creator or Admin I); direct invitations by user or email, member deletion, console channel creation and email templates are Admin I only (new gates manageMembers, manageEmailTemplates, createConsoleChannels). Channels table gains type, creator, member count and a Profile button; the useless PIN column and +PIN copy button (PINs are write-only since Phase 2) are gone. Channel profile modal (admin.channels.profile, server-rendered and escaped) shows settings, members, pending invitees, open invite links/codes, declined count and removed members; creator IP only for Admin I. Audit log section on the dashboard and logs page (Admin I all, Admin II moderation, Admin III none; AU-8). Admin III keeps the profile as home and reaches the panel from a profile link. 218 new strings (all Gen 2610 UI text plus channel-type labels) translated into the 14 other languages with correct plural forms. Covered by AdminPanelsTest and new ComprehensiveLanguageTest cases; 31 guard mutations killed.",
+    "protected": "open"
   },
   {
     "id": "AUTH-TODO-02",
@@ -258,6 +259,17 @@
     "protected": "open"
   },
   {
+    "id": "ADMN-ISSUE-03",
+    "title": "Stored XSS in the admin member dossier",
+    "status": "completed",
+    "severity": "high",
+    "priority": "critical-2",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T16:30:00+02:00",
+    "details": "Fixed: openUserDossier wrote the member's free-text profile location into innerHTML, so a member could run script in Admin I's browser by setting a crafted location and waiting for the admin to open their dossier. The location is now built with textContent and language names are escaped. The dossier also no longer receives the full user model (it carried the latest IP, hidden fields and recovery data); it gets User::adminDossierFor($viewer).",
+    "protected": "open"
+  },
+  {
     "id": "AUTH-ISSUE-05",
     "title": "Changing the primary email kept it marked verified",
     "status": "completed",
@@ -276,5 +288,14 @@
     "existed_since": "2610 Phase 3",
     "created_at": "2026-10-16T19:00:00+02:00",
     "details": "Suggest channel members while typing @ in the composer (desktop input and mobile modal). Not built in Phase 3; members can find tags on member cards and with the profile member search."
+  },
+  {
+    "id": "ROOT-TODO-03",
+    "title": "Translate the UI strings that predate Gen 2610",
+    "status": "pending",
+    "priority": "medium-1",
+    "existed_since": "2609.11.0-bs",
+    "created_at": "2026-10-16T16:30:00+02:00",
+    "details": "About 240 strings used with __() in views and controllers before the channels refactor have no entry in lang/*.json, so they show in English in every language (for example 'ADMIN CONSOLE', '2FA is not enabled.', ':provider account linked successfully.'). Found while translating the Phase 1-7 strings; out of scope for ADMN-TODO-01."
   }
 ]

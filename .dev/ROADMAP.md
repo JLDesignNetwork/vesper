@@ -13,7 +13,7 @@ cleanup: manual
 > **Project:** Vesper (Laravel 13 / PHP 8.4 / Blade + vanilla JS)
 > **Generation Epoch:** `2610`
 > **Author:** Jeff Langdon (JL Design Network)
-> **Status:** Active — Channels Refactor Phases 1–6 complete, Phase 7 in progress
+> **Status:** Active — Channels Refactor Phases 1–7 complete, Phase 8 in progress
 
 ---
 
@@ -45,7 +45,7 @@ Full plan: [`2610/channels-refactor-plan.md`](2610/channels-refactor-plan.md). B
 - [x] **Phase 4:** Multi-message pinning (max 10, exempt from auto-delete).
 - [x] **Phase 5:** Blocking, kicking, reporting.
 - [x] **Phase 6:** Ban vote system.
-- [ ] **Phase 7:** Admin I / II / III panels and channel profile modal.
+- [x] **Phase 7:** Admin I / II / III panels and channel profile modal.
 - [ ] **Phase 8:** Biometric entry rules and release gate.
 
 ### Future Horizons

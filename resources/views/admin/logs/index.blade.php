@@ -16,7 +16,11 @@
                 </span>
             </h1>
             <p class="text-xs text-slate-400 mt-1 max-w-2xl">
-                {{ __('Real-time connection audit feed capturing geographic ingress locations, IP addresses, frequency room handshakes, and operative authentication footprints.') }}
+                @can('viewGeolocation')
+                    {{ __('Real-time connection audit feed capturing geographic ingress locations, IP addresses, frequency room handshakes, and operative authentication footprints.') }}
+                @else
+                    {{ __('Channel access history and the moderation audit log.') }}
+                @endcan
             </p>
         </div>
 
@@ -27,15 +31,22 @@
                 <span class="text-slate-400">{{ __('Live Window:') }}</span>
                 <strong class="text-white">{{ $recentVisitors->count() }} {{ __('Entries') }}</strong>
             </div>
+            @can('viewGeolocation')
             <div class="px-3.5 py-2 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center gap-2">
                 <span class="text-emerald-400">🌐</span>
                 <span class="text-slate-400">{{ __('Networks:') }}</span>
                 <strong class="text-white">{{ $recentVisitors->pluck('ip_address')->unique()->count() }} {{ __('Unique IPs') }}</strong>
             </div>
+            @endcan
         </div>
     </div>
 
     <!-- Logs Table -->
     @include('admin.partials.logs-section')
+
+    <!-- Audit Log (Admin I: all entries; Admin II: moderation entries) -->
+    @if($auditEntries->isNotEmpty())
+        @include('admin.partials.audit-section')
+    @endif
 </div>
 @endsection

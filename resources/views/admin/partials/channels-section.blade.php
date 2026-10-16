@@ -11,6 +11,7 @@
             <p class="text-xs text-slate-400 mt-0.5">{{ __('Encrypted communication channels and access controls') }}</p>
         </div>
         <div class="flex items-center gap-2">
+            @can('createConsoleChannels')
             <button
                 type="button"
                 onclick="openCreateModal()"
@@ -19,6 +20,9 @@
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                 <span>{{ __('Create Channel') }}</span>
             </button>
+            @else
+                <a href="{{ route('profile.show') }}" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-mono">{{ __('Create a channel from your profile') }}</a>
+            @endcan
         </div>
     </div>
 
@@ -28,7 +32,9 @@
             <thead>
                 <tr class="border-b border-slate-800 text-slate-400 font-mono text-[11px] uppercase bg-slate-950/60">
                     <th class="py-3 px-4 min-w-[160px]">{{ __('Channel') }}</th>
-                    <th class="py-3 px-4 min-w-[120px]">{{ __('PIN') }}</th>
+                    <th class="py-3 px-4 min-w-[120px]">{{ __('Type') }}</th>
+                    <th class="py-3 px-4 min-w-[140px]">{{ __('Creator') }}</th>
+                    <th class="py-3 px-4 min-w-[90px]">{{ __('Members') }}</th>
                     <th class="py-3 px-4 min-w-[130px]">{{ __('Translations') }}</th>
                     <th class="py-3 px-4 min-w-[110px]">{{ __('Status') }}</th>
                     <th class="py-3 px-4 min-w-[110px]">{{ __('Notifications') }}</th>
@@ -54,21 +60,22 @@
                             </div>
                         </td>
                         <td class="py-3.5 px-4 font-mono">
-                            <div class="flex items-center gap-1.5">
-                                <span class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-emerald-400 font-bold tracking-wider text-xs">
-                                    {{ $room->pin ?: '••••••' }}
-                                </span>
-                                @if($room->pin)
-                                    <button
-                                        type="button"
-                                        onclick="copyText('{{ $room->pin }}', this, '{{ __('PIN copied!') }}')"
-                                        title="{{ __('Copy PIN') }}"
-                                        class="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-emerald-300 transition-colors cursor-pointer"
-                                    >
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                                    </button>
-                                @endif
-                            </div>
+                            <span class="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 text-emerald-300 text-[11px]">{{ $room->type->value }}</span>
+                            <div class="text-[10px] text-slate-500 mt-1">{{ __($room->type->label()) }}</div>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            @if($room->creator)
+                                <div class="text-slate-200">{{ $room->creator->name }}</div>
+                                <div class="font-mono text-[10px] text-emerald-300">{{ '@'.$room->creator->tag }}</div>
+                            @else
+                                <span class="text-slate-500">{{ $room->is_system ? __('System') : '—' }}</span>
+                            @endif
+                        </td>
+                        <td class="py-3.5 px-4 font-mono text-slate-300">
+                            {{ $room->members_count ?? '—' }}
+                            @if(($room->pending_invites_count ?? 0) > 0)
+                                <span class="text-[10px] text-slate-500">· {{ trans_choice(':count link|:count links', $room->pending_invites_count, ['count' => $room->pending_invites_count]) }}</span>
+                            @endif
                         </td>
                         <td class="py-3.5 px-4 font-mono">
                             <div class="flex items-center gap-1 flex-wrap">
@@ -92,6 +99,7 @@
                             @endif
                         </td>
                         <td class="py-3.5 px-4 font-mono">
+                            @can('update', $room)
                             <form method="POST" action="{{ route('admin.channels.toggle-notifications', ['id' => $room->id]) }}" class="inline">
                                 @csrf
                                 <button
@@ -105,6 +113,9 @@
                                     <span>{{ $room->notify_admin ? __('Enabled') : __('Disabled') }}</span>
                                 </button>
                             </form>
+                            @else
+                                <span class="text-[11px] {{ $room->notify_admin ? 'text-emerald-300' : 'text-slate-400' }}">{{ $room->notify_admin ? __('Enabled') : __('Disabled') }}</span>
+                            @endcan
                         </td>
                         <td class="py-3.5 px-4 font-mono text-slate-300">
                             {{ $room->messages_count }}
@@ -120,16 +131,7 @@
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                                     <span>{{ __('Copy Link') }}</span>
                                 </button>
-                                @if($room->pin)
-                                    <button
-                                        type="button"
-                                        onclick="copyFullInvite('{{ $room->code }}', '{{ addslashes($room->title ?: $room->code) }}', '{{ $room->pin }}', this)"
-                                        class="px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200 transition-colors text-[10px] cursor-pointer"
-                                        title="{{ __('Copy Link + PIN package') }}"
-                                    >
-                                        + {{ __('PIN') }}
-                                    </button>
-                                @endif
+
                             </div>
                             <div class="text-[10px] font-mono text-slate-500 mt-1 truncate max-w-[180px]" title="/c/{{ $room->code }}">
                                 /c/{{ $room->code }}
@@ -139,7 +141,16 @@
                             <div class="flex items-center justify-end gap-1.5 font-mono">
                                 <button
                                     type="button"
-                                    onclick="openEditModal('{{ $room->id }}', '{{ $room->code }}', '{{ addslashes($room->title ?? '') }}', '{{ $room->pin }}', {{ json_encode($room->allowed_languages ?? \App\Services\LanguageService::codes()) }}, '{{ $room->status }}', {{ $room->notify_admin ? 'true' : 'false' }})"
+                                    data-channel-profile-url="{{ route('admin.channels.profile', ['id' => $room->id]) }}"
+                                    class="channel-profile-btn px-2.5 py-1 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 text-violet-200 border border-violet-500/30 transition-colors text-[11px] cursor-pointer"
+                                >
+                                    {{ __('Profile') }}
+                                </button>
+
+                                @can('update', $room)
+                                <button
+                                    type="button"
+                                    onclick="openEditModal('{{ $room->id }}', '{{ $room->code }}', '{{ addslashes($room->title ?? '') }}', '', {{ json_encode($room->allowed_languages ?? \App\Services\LanguageService::codes()) }}, '{{ $room->status }}', {{ $room->notify_admin ? 'true' : 'false' }})"
                                     class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors text-[11px] cursor-pointer"
                                 >
                                     {{ __('Edit') }}
@@ -147,11 +158,12 @@
 
                                 <button
                                     type="button"
-                                    onclick="openInviteModal('{{ $room->id }}', '{{ $room->code }}', '{{ addslashes($room->title ?: $room->code) }}', '{{ $room->pin }}')"
+                                    onclick="openInviteModal('{{ $room->id }}', '{{ $room->code }}', '{{ addslashes($room->title ?: $room->code) }}', '')"
                                     class="px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-colors text-[11px] cursor-pointer"
                                 >
                                     {{ __('Invite') }}
                                 </button>
+                                @endcan
 
                                 <a
                                     href="{{ route('rooms.show', ['room' => $room->code]) }}"
@@ -160,6 +172,7 @@
                                     {{ __('Enter') }}
                                 </a>
 
+                                @can('update', $room)
                                 <form method="POST" action="{{ route('admin.channels.toggle', ['id' => $room->id]) }}" class="inline">
                                     @csrf
                                     <button
@@ -169,7 +182,9 @@
                                         {{ $room->status === 'active' ? __('Archive') : __('Activate') }}
                                     </button>
                                 </form>
+                                @endcan
 
+                                @can('destroy', $room)
                                 <form method="POST" action="{{ route('admin.channels.destroy', ['id' => $room->id]) }}" class="inline" onsubmit="return confirm('{{ __('Are you sure you want to permanently erase this channel and all its data?') }}')">
                                     @csrf
                                     @method('DELETE')
@@ -180,12 +195,13 @@
                                         {{ __('Delete') }}
                                     </button>
                                 </form>
+                                @endcan
                             </div>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="py-8 text-center text-slate-500 font-mono">
+                        <td colspan="10" class="py-8 text-center text-slate-500 font-mono">
                             {{ __('No channels exist yet. Click "Create Channel" to create your first secure channel.') }}
                         </td>
                     </tr>

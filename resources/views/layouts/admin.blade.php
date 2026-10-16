@@ -123,6 +123,43 @@
     @include('admin.modals.profile')
     @include('admin.modals.disable-2fa')
 
+    <!-- Channel Profile Overview Modal (content loaded from admin.channels.profile) -->
+    <div id="channel-profile-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden p-3 sm:p-4 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="channel-profile-heading">
+        <div class="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl">
+            <div class="sticky top-0 flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900">
+                <h3 id="channel-profile-heading" class="text-xs font-mono uppercase text-slate-400 tracking-wider">{{ __('Channel profile') }}</h3>
+                <button type="button" id="channel-profile-close" class="text-slate-400 hover:text-white cursor-pointer" aria-label="{{ __('Close') }}">✕</button>
+            </div>
+            <div id="channel-profile-body" class="p-5" aria-live="polite"></div>
+        </div>
+    </div>
+    <script>
+        (() => {
+            const modal = document.getElementById('channel-profile-modal');
+            const body = document.getElementById('channel-profile-body');
+            const close = () => modal.classList.add('hidden');
+
+            document.addEventListener('click', async (event) => {
+                const button = event.target.closest('[data-channel-profile-url]');
+                if (!button) return;
+                body.textContent = @json(__('Loading…'));
+                modal.classList.remove('hidden');
+                try {
+                    const res = await fetch(button.dataset.channelProfileUrl, { headers: { 'Accept': 'text/html' } });
+                    if (!res.ok) throw new Error(String(res.status));
+                    // Server-rendered Blade partial; every value in it is escaped.
+                    body.innerHTML = await res.text();
+                } catch (e) {
+                    body.textContent = @json(__('This channel profile could not be loaded. Refresh the page and try again.'));
+                }
+            });
+
+            document.getElementById('channel-profile-close').addEventListener('click', close);
+            modal.addEventListener('click', (event) => { if (event.target === modal) close(); });
+            document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !modal.classList.contains('hidden')) close(); });
+        })();
+    </script>
+
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 

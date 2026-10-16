@@ -148,3 +148,15 @@ Backlog items live in [`backlog.json`](backlog.json).
 - A ban clears the remember token and deletes passkeys and database sessions. `EnsureAccountNotBanned` (web middleware) signs a banned member out on their next request, which covers password, 2FA, passkey, OAuth and recovery sign-ins. Banned members no longer count toward channel ranks.
 - The review page is a standalone `/moderation/bans` page for Admin I/II because the admin panel is still Admin I only; Phase 7 moves it into the Admin I/II panels.
 - Not changed: a banned member's channels and messages stay as they are.
+
+## Phase 7 implementation notes (2026-10-16)
+
+- `AdminPanelScope` (`Full` Admin I, `Global` Admin II, `OwnChannels` Admin III) drives one set of admin views. Every `AdminDashboardService` method takes the viewer and scopes its queries; geolocation, IPs, access-log locations and user agents are removed in the data layer, not only hidden in Blade.
+- Admin II can view every channel and member but changes only channels they created (RoomPolicy), like any member. Interpretation of "otherwise the view will function the same": same views, no extra powers over other people's channels. Member deletion, direct invitations (which can create accounts), console channel creation, email templates, the network map and GPS sync are Admin I only.
+- Admin III: own channels, their members, invitees and removed members, and their access logs. No emails, IPs or locations. Their home stays the profile (they display as members); a profile link opens the panel.
+- Hidden profile fields are shown in the panel only to Admin I (and the member), matching Phase 1. Full rank names are shown only to Admin I and the holder.
+- Channel profile modal: server-rendered partial loaded into one modal; creator IP only for Admin I.
+- Audit log section: Admin I all entries, Admin II moderation entries, Admin III none (AU-8).
+- `/moderation/bans` stays a separate page linked from the admin header for Admin I/II.
+- Translations: 218 new strings in all 15 languages. ~240 strings that predate the refactor are still English-only (`ROOT-TODO-03`).
+- Found and fixed `ADMN-ISSUE-03` (stored XSS in the admin dossier).

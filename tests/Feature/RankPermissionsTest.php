@@ -43,7 +43,7 @@ test('only admin one passes the platform-wide admin gates', function (string $ab
     $user = User::factory()->rank($rank)->create();
 
     expect(Gate::forUser($user)->allows($ability))->toBe($allowed);
-})->with(['accessAdminPanel', 'viewGeolocation'])->with([
+})->with(['viewGeolocation', 'manageMembers', 'manageEmailTemplates', 'createConsoleChannels'])->with([
     'Admin I' => [Rank::AdminOne, true],
     'Admin II' => [Rank::AdminTwo, false],
     'Admin III' => [Rank::AdminThree, false],
@@ -98,8 +98,20 @@ test('only admin one may appoint or revoke admin two, and never on themself', fu
  * Endpoints apply the checks
  * ------------------------------------------------------------- */
 
-test('admin two cannot open the admin panel', function () {
-    $this->actingAs(User::factory()->adminTwo()->create())
+test('every admin rank has an admin panel, and members do not', function (Rank $rank, bool $allowed) {
+    $user = User::factory()->rank($rank)->create();
+
+    expect(Gate::forUser($user)->allows('accessAdminPanel'))->toBe($allowed);
+})->with([
+    'Admin I' => [Rank::AdminOne, true],
+    'Admin II' => [Rank::AdminTwo, true],
+    'Admin III' => [Rank::AdminThree, true],
+    'User I' => [Rank::UserOne, false],
+    'User II' => [Rank::UserTwo, false],
+]);
+
+test('members without an admin rank are sent from the admin panel to their profile', function () {
+    $this->actingAs(User::factory()->rank(Rank::UserOne)->create())
         ->get(route('admin.dashboard'))
         ->assertRedirect(route('profile.show'));
 });

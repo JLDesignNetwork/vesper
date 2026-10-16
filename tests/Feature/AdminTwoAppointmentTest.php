@@ -83,7 +83,7 @@ test('admin two cannot appoint another admin two', function () {
     $candidate = eligibleAdminTwoCandidate();
 
     $this->actingAs($adminTwo)->post(route('admin.users.admin-two.appoint', $candidate->id))
-        ->assertRedirect(route('profile.show'));
+        ->assertForbidden();
 
     expect($candidate->fresh()->rank)->toBe(Rank::UserTwo);
 });

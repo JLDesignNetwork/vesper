@@ -42,7 +42,7 @@ class AdminController extends Controller
      */
     public function index(): View
     {
-        $dashboardData = $this->dashboardService->getDashboardData();
+        $dashboardData = $this->dashboardService->getDashboardData(Auth::user());
 
         return view('admin.dashboard', array_merge([
             'adminUser' => Auth::user(),
@@ -54,7 +54,7 @@ class AdminController extends Controller
      */
     public function channels(): View
     {
-        $channelsData = $this->dashboardService->getChannelsData();
+        $channelsData = $this->dashboardService->getChannelsData(Auth::user());
 
         return view('admin.channels.index', array_merge([
             'adminUser' => Auth::user(),
@@ -66,7 +66,7 @@ class AdminController extends Controller
      */
     public function members(): View
     {
-        $membersData = $this->dashboardService->getMembersData();
+        $membersData = $this->dashboardService->getMembersData(Auth::user());
 
         return view('admin.members.index', array_merge([
             'adminUser' => Auth::user(),
@@ -86,7 +86,7 @@ class AdminController extends Controller
      */
     public function intel(): View
     {
-        $intelData = $this->dashboardService->getIntelData();
+        $intelData = $this->dashboardService->getIntelData(Auth::user());
 
         return view('admin.intel.index', array_merge([
             'adminUser' => Auth::user(),
@@ -98,11 +98,24 @@ class AdminController extends Controller
      */
     public function logs(): View
     {
-        $logsData = $this->dashboardService->getLogsData();
+        $logsData = $this->dashboardService->getLogsData(Auth::user());
 
         return view('admin.logs.index', array_merge([
             'adminUser' => Auth::user(),
         ], $logsData));
+    }
+
+    /**
+     * Render the channel profile overview (settings, members, invitations, removed
+     * members) for the admin panel's channel profile modal.
+     */
+    public function channelProfile(string $id): View
+    {
+        $room = Room::findOrFail($id);
+
+        abort_unless($this->dashboardService->canViewChannel(Auth::user(), $room), 404);
+
+        return view('admin.partials.channel-profile', $this->dashboardService->getChannelProfile(Auth::user(), $room));
     }
 
     /**
@@ -189,6 +202,7 @@ class AdminController extends Controller
     public function updateChannel(Request $request, string $id): RedirectResponse
     {
         $room = Room::findOrFail($id);
+        Gate::authorize('update', $room);
 
         $validated = $request->validate([
             'title' => ['nullable', 'string', 'max:100'],
@@ -221,6 +235,7 @@ class AdminController extends Controller
     public function toggleNotifications(string $id): RedirectResponse
     {
         $room = Room::findOrFail($id);
+        Gate::authorize('update', $room);
         $room->notify_admin = ! $room->notify_admin;
         $room->save();
 
@@ -235,6 +250,7 @@ class AdminController extends Controller
     public function toggleChannel(string $id): RedirectResponse
     {
         $room = Room::findOrFail($id);
+        Gate::authorize('update', $room);
 
         if ($room->is_system) {
             return redirect()->route('admin.channels.index')->withErrors(['channel' => __('System channels cannot be archived.')]);
@@ -260,6 +276,8 @@ class AdminController extends Controller
             return redirect()->route('admin.channels.index')->withErrors(['channel' => __('System channels cannot be deleted.')]);
         }
 
+        Gate::authorize('destroy', $room);
+
         $room->purgeAllMedia();
         $room->messages()->delete();
         $room->accessLogs()->delete();
@@ -276,6 +294,7 @@ class AdminController extends Controller
     public function createInvite(Request $request, string $id): RedirectResponse
     {
         $room = Room::findOrFail($id);
+        Gate::authorize('update', $room);
 
         $validated = $request->validate([
             'user_id' => ['nullable', 'exists:users,id'],
@@ -284,6 +303,12 @@ class AdminController extends Controller
             'max_uses' => ['nullable', 'integer', 'min:1', 'max:100'],
             'expires_in_days' => ['nullable', 'integer', 'min:1', 'max:90'],
         ]);
+
+        // Direct invitations name or create accounts, so only Admin I sends them.
+        // Other panels invite with shareable links and codes.
+        if ((! empty($validated['user_id']) || ! empty($validated['email'])) && Gate::denies('manageMembers')) {
+            abort(403);
+        }
 
         $targetUser = null;
         if (! empty($validated['user_id'])) {

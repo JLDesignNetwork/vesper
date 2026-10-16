@@ -10,8 +10,8 @@ use Symfony\Component\HttpFoundation\Response;
 class EnsureAdmin
 {
     /**
-     * Allow only users who pass the accessAdminPanel gate (Admin I until Phase 7 adds
-     * the geolocation-free Admin II view). Everyone else is sent to their profile.
+     * Allow only users who pass the accessAdminPanel gate (Admin I, II and III, each with
+     * their own scope; see AdminPanelScope). Everyone else is sent to their profile.
      *
      * @param  Closure(Request): (Response)  $next
      */

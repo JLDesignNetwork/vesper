@@ -13,7 +13,7 @@
             <h1 class="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-3">
                 <span>{{ __('Operations Overview') }}</span>
                 <span class="text-xs font-mono font-normal px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-                    {{ __('Administrator') }}
+                    {{ $panelScope?->label() ?? __('Administrator') }}
                 </span>
             </h1>
             <p class="text-xs text-slate-400 mt-1 max-w-2xl">
@@ -37,6 +37,7 @@
                 <span>👥</span>
                 <span>{{ __('Members') }}</span>
             </a>
+            @can('viewGeolocation')
             <a
                 href="{{ route('admin.intel.index') }}"
                 class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/40 text-indigo-300 transition-all flex items-center gap-2"
@@ -44,6 +45,7 @@
                 <span>🌐</span>
                 <span>{{ __('Network Map') }}</span>
             </a>
+            @endcan
             <a
                 href="{{ route('admin.logs.index') }}"
                 class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-amber-500/40 text-amber-300 transition-all flex items-center gap-2"
@@ -58,7 +60,7 @@
     @include('admin.partials.metrics')
 
     <!-- Administration Modules Matrix -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 {{ Gate::allows('viewGeolocation') ? 'lg:grid-cols-4' : 'lg:grid-cols-3' }} gap-4">
         <!-- Module 1: Encrypted Channels -->
         <a
             href="{{ route('admin.channels.index') }}"
@@ -105,6 +107,7 @@
             </div>
         </a>
 
+        @can('viewGeolocation')
         <!-- Module 3: Network Activity Map -->
         <a
             href="{{ route('admin.intel.index') }}"
@@ -127,6 +130,7 @@
                 <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
             </div>
         </a>
+        @endcan
 
         <!-- Module 4: Audit Logs -->
         <a
@@ -158,8 +162,15 @@
     <!-- Registered Member Directory -->
     @include('admin.partials.members-section')
 
-    <!-- Global Network Activity Map -->
-    @include('admin.partials.intel-section')
+    <!-- Global Network Activity Map (Admin I only) -->
+    @can('viewGeolocation')
+        @include('admin.partials.intel-section')
+    @endcan
+
+    <!-- Audit Log (Admin I: all entries; Admin II: moderation entries) -->
+    @if($auditEntries->isNotEmpty())
+        @include('admin.partials.audit-section')
+    @endif
 
     <!-- Audit & Access Logs -->
     @include('admin.partials.logs-section')

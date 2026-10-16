@@ -145,6 +145,13 @@
             <div role="alert" class="p-3 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-rose-200 text-xs">{{ $message }}</div>
         @enderror
 
+        @can('accessAdminPanel')
+            <a id="admin-panel-link" href="{{ route('admin.dashboard') }}" class="p-4 rounded-2xl bg-slate-900/60 border border-emerald-500/30 text-emerald-200 text-xs flex items-center justify-between gap-3 hover:border-emerald-500/60 transition-colors">
+                <span>{{ $user->adminPanelScope()->label() }}</span>
+                <span class="font-mono">{{ __('Open admin panel') }} &rarr;</span>
+            </a>
+        @endcan
+
         @can('voteOnBans')
             @php
                 $openBanVotes = \App\Models\BanCase::open()->count();

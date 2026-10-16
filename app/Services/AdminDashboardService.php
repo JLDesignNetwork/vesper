@@ -3,11 +3,20 @@
 namespace App\Services;
 
 use App\Models\AccessLog;
+use App\Models\AdminAuditLog;
 use App\Models\Message;
 use App\Models\Room;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
+/**
+ * Data for the admin panel, scoped to the viewer (owner decision Q9):
+ * Admin I sees everything; Admin II sees every channel and member without
+ * geolocation, IPs or access-log locations; Admin III sees only their own channels
+ * and those channels' members, without geolocation, IPs, locations or emails.
+ */
 class AdminDashboardService
 {
     public function __construct(
@@ -15,58 +24,55 @@ class AdminDashboardService
     ) {}
 
     /**
-     * Aggregate core telemetry and operational metrics for the Admin Dashboard (Overview).
+     * Aggregate core metrics for the Admin Dashboard (Overview).
      */
-    public function getDashboardData(): array
+    public function getDashboardData(User $viewer): array
     {
-        return $this->getOverviewData();
+        return $this->getOverviewData($viewer);
     }
 
     /**
      * Overview page dataset.
      */
-    public function getOverviewData(): array
+    public function getOverviewData(User $viewer): array
     {
-        $totalRooms = Room::count();
-        $activeRooms = Room::where('status', 'active')->count();
-        $totalMessages = Message::count();
-        $totalVisitors = AccessLog::count();
-        $totalUsers = User::count();
-        $registeredUsers = User::with('latestAccessLog')->latest()->get();
-
-        $totalBytes = (int) Message::sum('attachment_size');
-        $formattedStorage = $this->formatBytes($totalBytes);
-
-        $rooms = Room::withCount('messages')->latest()->get();
-
-        $recentVisitors = $this->getRecentVisitors(50);
-        $mapMarkers = $this->buildMapMarkers($registeredUsers, $recentVisitors);
+        $rooms = $this->roomsQuery($viewer)->withCount('messages')->with('creator:id,name,tag')->latest()->get();
+        $registeredUsers = $this->membersQuery($viewer)->with('latestAccessLog')->latest()->get();
+        $messages = Message::whereIn('room_id', $rooms->pluck('id'));
+        $recentVisitors = $this->getRecentVisitors($viewer, 50);
 
         return [
-            'totalRooms' => $totalRooms,
-            'activeRooms' => $activeRooms,
-            'totalMessages' => $totalMessages,
-            'totalVisitors' => $totalVisitors,
-            'totalUsers' => $totalUsers,
+            'panelScope' => $viewer->adminPanelScope(),
+            'totalRooms' => $rooms->count(),
+            'activeRooms' => $rooms->where('status', 'active')->count(),
+            'totalMessages' => (clone $messages)->count(),
+            'totalVisitors' => $this->accessLogsQuery($viewer)->count(),
+            'totalUsers' => $registeredUsers->count(),
             'registeredUsers' => $registeredUsers,
-            'formattedStorage' => $formattedStorage,
+            'formattedStorage' => $this->formatBytes((int) (clone $messages)->sum('attachment_size')),
             'rooms' => $rooms,
             'recentVisitors' => $recentVisitors,
-            'mapMarkers' => $mapMarkers,
+            'mapMarkers' => $this->showsGeolocation($viewer) ? $this->buildMapMarkers($registeredUsers, $recentVisitors) : collect(),
+            'auditEntries' => $this->getAuditEntries($viewer, 10),
         ];
     }
 
     /**
      * Channels management page dataset.
      */
-    public function getChannelsData(): array
+    public function getChannelsData(User $viewer): array
     {
-        $rooms = Room::withCount('messages')->with('creator:id,name')->latest()->get();
-        $registeredUsers = User::select('id', 'name', 'email', 'rank')->get();
+        $rooms = $this->roomsQuery($viewer)
+            ->withCount(['messages', 'members', 'pins'])
+            ->withCount(['invitations as pending_invites_count' => fn (Builder $query) => $query->where(fn (Builder $q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))])
+            ->with('creator:id,name,tag')
+            ->latest()
+            ->get();
 
         return [
+            'panelScope' => $viewer->adminPanelScope(),
             'rooms' => $rooms,
-            'registeredUsers' => $registeredUsers,
+            'registeredUsers' => $this->membersQuery($viewer)->select('id', 'name', 'email', 'rank', 'tag')->get(),
             'totalRooms' => $rooms->count(),
             'activeRooms' => $rooms->where('status', 'active')->count(),
             'archivedRooms' => $rooms->where('status', 'archived')->count(),
@@ -76,34 +82,27 @@ class AdminDashboardService
     /**
      * Members directory dataset.
      */
-    public function getMembersData(): array
+    public function getMembersData(User $viewer): array
     {
-        $registeredUsers = User::with(['latestAccessLog', 'rooms:id,code,title'])->latest()->get();
+        $registeredUsers = $this->membersQuery($viewer)->with(['latestAccessLog', 'rooms:id,code,title,created_by_user_id'])->latest()->get();
 
         return [
+            'panelScope' => $viewer->adminPanelScope(),
             'registeredUsers' => $registeredUsers,
             'totalUsers' => $registeredUsers->count(),
             'adminCount' => $registeredUsers->filter(fn (User $u): bool => $u->displaysAsAdmin())->count(),
             'memberCount' => $registeredUsers->reject(fn (User $u): bool => $u->displaysAsAdmin())->count(),
-            'gpsVerifiedCount' => $registeredUsers->filter(fn (User $u): bool => $u->hasGps())->count(),
+            'gpsVerifiedCount' => $this->showsGeolocation($viewer) ? $registeredUsers->filter(fn (User $u): bool => $u->hasGps())->count() : null,
         ];
     }
 
     /**
-     * Backward-compatibility alias for getMembersData.
+     * Global network map dataset (Admin I only; the route is gated on viewGeolocation).
      */
-    public function getOperativesData(): array
-    {
-        return $this->getMembersData();
-    }
-
-    /**
-     * Global intelligence satellite radar dataset.
-     */
-    public function getIntelData(): array
+    public function getIntelData(User $viewer): array
     {
         $registeredUsers = User::with('latestAccessLog')->latest()->get();
-        $recentVisitors = $this->getRecentVisitors(100);
+        $recentVisitors = $this->getRecentVisitors($viewer, 100);
         $mapMarkers = $this->buildMapMarkers($registeredUsers, $recentVisitors);
 
         return [
@@ -117,28 +116,77 @@ class AdminDashboardService
     }
 
     /**
-     * Transmission & connection logs dataset.
+     * Access and audit logs dataset.
      */
-    public function getLogsData(int $limit = 100): array
+    public function getLogsData(User $viewer, int $limit = 100): array
     {
-        $recentVisitors = $this->getRecentVisitors($limit);
-
         return [
-            'recentVisitors' => $recentVisitors,
-            'totalLogs' => AccessLog::count(),
+            'panelScope' => $viewer->adminPanelScope(),
+            'recentVisitors' => $this->getRecentVisitors($viewer, $limit),
+            'totalLogs' => $this->accessLogsQuery($viewer)->count(),
+            'auditEntries' => $this->getAuditEntries($viewer, $limit),
         ];
     }
 
     /**
-     * Retrieve recent visitor telemetry logs with localized flags and humanized timestamps.
+     * Everything the channel profile modal shows about one channel.
+     *
+     * @return array<string, mixed>
      */
-    public function getRecentVisitors(int $limit = 50): Collection
+    public function getChannelProfile(User $viewer, Room $room): array
     {
-        return AccessLog::with(['room:id,code,title', 'user:id,name,rank,avatar_path'])
+        $room->loadCount(['messages', 'pins'])->load('creator:id,name,tag');
+
+        $memberships = DB::table('room_user')
+            ->join('users', 'users.id', '=', 'room_user.user_id')
+            ->leftJoin('users as inviters', 'inviters.id', '=', 'room_user.invited_by_user_id')
+            ->leftJoin('users as kickers', 'kickers.id', '=', 'room_user.kicked_by_user_id')
+            ->where('room_user.room_id', $room->id)
+            ->orderByDesc('room_user.created_at')
+            ->get([
+                'users.id', 'users.name', 'users.tag', 'room_user.role', 'room_user.status',
+                'room_user.created_at as joined_at', 'room_user.last_accessed_at', 'room_user.kicked_at',
+                'inviters.name as invited_by_name', 'kickers.name as kicked_by_name',
+            ])
+            ->groupBy('status');
+
+        return [
+            'room' => $room,
+            'showsGeolocation' => $this->showsGeolocation($viewer),
+            'members' => $memberships->get('active', collect()),
+            'pendingInvitees' => $memberships->get('invited', collect()),
+            'declinedInvitees' => $memberships->get('declined', collect()),
+            'removedMembers' => $memberships->get('kicked', collect()),
+            'inviteLinks' => $room->invitations()->with('creator:id,name')->latest()->get()
+                ->filter(fn ($invitation): bool => $invitation->isValid())
+                ->values(),
+        ];
+    }
+
+    /**
+     * Whether the viewer may open this channel's profile in the admin panel.
+     */
+    public function canViewChannel(User $viewer, Room $room): bool
+    {
+        $scope = $viewer->adminPanelScope();
+
+        return $scope !== null && ($scope->seesAllChannels() || $room->isCreatedBy($viewer));
+    }
+
+    /**
+     * Recent access-log entries in the viewer's scope. IP addresses, user agents and
+     * locations are left out unless the viewer may see geolocation.
+     */
+    public function getRecentVisitors(User $viewer, int $limit = 50): Collection
+    {
+        $showsGeolocation = $this->showsGeolocation($viewer);
+
+        return $this->accessLogsQuery($viewer)
+            ->with(['room:id,code,title', 'user:id,name,rank,avatar_path'])
             ->latest('last_seen_at')
             ->limit($limit)
             ->get()
-            ->map(function (AccessLog $log): array {
+            ->map(function (AccessLog $log) use ($showsGeolocation): array {
                 $flag = $log->country_code
                     ? $this->geoLocationService->countryCodeToFlag($log->country_code)
                     : '🌐';
@@ -150,18 +198,32 @@ class AdminDashboardService
                     'alias' => $log->user?->name ?: ($log->alias ?: 'Guest'),
                     'role' => $log->user ? strtolower($log->user->rank->publicLabel()) : null,
                     'avatar_url' => $log->user?->avatarUrl(),
-                    'ip_address' => $log->ip_address,
-                    'country' => $log->country ?: 'Unknown',
-                    'city' => $log->city ?: 'Unknown',
-                    'flag' => $flag,
-                    'latitude' => (float) $log->latitude,
-                    'longitude' => (float) $log->longitude,
-                    'user_agent' => $log->user_agent,
+                    'ip_address' => $showsGeolocation ? $log->ip_address : null,
+                    'country' => $showsGeolocation ? ($log->country ?: 'Unknown') : null,
+                    'city' => $showsGeolocation ? ($log->city ?: 'Unknown') : null,
+                    'flag' => $showsGeolocation ? $flag : null,
+                    'latitude' => $showsGeolocation ? (float) $log->latitude : null,
+                    'longitude' => $showsGeolocation ? (float) $log->longitude : null,
+                    'user_agent' => $showsGeolocation ? $log->user_agent : null,
                     'room_code' => $log->room?->code ?? 'N/A',
                     'room_title' => $log->room?->title ?? $log->room?->code ?? 'N/A',
                     'last_seen_human' => $log->last_seen_at?->diffForHumans() ?? 'Recently',
                 ];
             });
+    }
+
+    /**
+     * Audit log entries the viewer may read (Admin I: all; Admin II: moderation; Admin III: none).
+     *
+     * @return Collection<int, AdminAuditLog>
+     */
+    public function getAuditEntries(User $viewer, int $limit = 50): Collection
+    {
+        return AdminAuditLog::visibleTo($viewer)
+            ->with(['actor:id,name,tag', 'subject:id,name,tag', 'room:id,code,title'])
+            ->latest('id')
+            ->limit($limit)
+            ->get();
     }
 
     /**
@@ -214,5 +276,55 @@ class AdminDashboardService
         }
 
         return round($bytes, 1).' '.$units[$i];
+    }
+
+    /**
+     * Channels in the viewer's scope.
+     *
+     * @return Builder<Room>
+     */
+    protected function roomsQuery(User $viewer): Builder
+    {
+        return Room::query()->when(
+            ! $viewer->adminPanelScope()?->seesAllChannels(),
+            fn (Builder $query) => $query->where('created_by_user_id', $viewer->id),
+        );
+    }
+
+    /**
+     * Members in the viewer's scope. Admin III sees members, invitees and removed
+     * members of their own channels, and themself.
+     *
+     * @return Builder<User>
+     */
+    protected function membersQuery(User $viewer): Builder
+    {
+        return User::query()->when(
+            ! $viewer->adminPanelScope()?->seesAllChannels(),
+            fn (Builder $query) => $query->where(fn (Builder $q) => $q
+                ->where('users.id', $viewer->id)
+                ->orWhereIn('users.id', DB::table('room_user')
+                    ->join('rooms', 'rooms.id', '=', 'room_user.room_id')
+                    ->where('rooms.created_by_user_id', $viewer->id)
+                    ->select('room_user.user_id'))),
+        );
+    }
+
+    /**
+     * Access-log entries in the viewer's scope.
+     *
+     * @return Builder<AccessLog>
+     */
+    protected function accessLogsQuery(User $viewer): Builder
+    {
+        return AccessLog::query()->when(
+            ! $viewer->adminPanelScope()?->seesAllChannels(),
+            fn (Builder $query) => $query->whereIn('room_id', Room::where('created_by_user_id', $viewer->id)->select('id')),
+        );
+    }
+
+    protected function showsGeolocation(User $viewer): bool
+    {
+        return (bool) $viewer->adminPanelScope()?->showsGeolocation();
     }
 }

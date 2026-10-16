@@ -32,4 +32,24 @@ enum AuditAction: string
             default => AuditVisibility::AdminOneOnly,
         };
     }
+
+    /**
+     * The action as shown in the admin panel's audit log.
+     */
+    public function label(): string
+    {
+        return match ($this) {
+            self::RankChanged => __('Rank changed'),
+            self::AdminTwoAppointed => __('Admin II appointed'),
+            self::AdminTwoRevoked => __('Admin II revoked'),
+            self::ChannelAccessOverride => __('Entered a channel as Admin I'),
+            self::MemberKicked => __('Member removed from channel'),
+            self::KickLifted => __('Member allowed back'),
+            self::ReportFiled => __('Report filed'),
+            self::BanCaseOpened => __('Ban vote opened'),
+            self::BanVoteCast => __('Ban vote cast'),
+            self::BanCaseClosed => __('Ban vote closed'),
+            self::MemberBanned => __('Member banned'),
+        };
+    }
 }

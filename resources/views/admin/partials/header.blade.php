@@ -18,7 +18,7 @@
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                         <span class="text-emerald-400/90 font-medium tracking-wide">{{ __('ONLINE') }}</span>
                         <span class="text-slate-600">|</span>
-                        <span class="text-slate-400">{{ __('ADMIN CONSOLE') }}</span>
+                        <span class="text-slate-400">{{ $adminUser->adminPanelScope()?->label() ?? __('ADMIN CONSOLE') }}</span>
                     </div>
                 </div>
             </a>
@@ -53,13 +53,15 @@
                     <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700">{{ $totalUsers }}</span>
                 @endif
             </a>
-            <a
+            @can('viewGeolocation')
+<a
                 href="{{ route('admin.intel.index') }}"
                 class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all {{ request()->routeIs('admin.intel.*') ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shadow-sm shadow-indigo-950/50 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/80' }}"
             >
                 <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 <span>{{ __('Network Map') }}</span>
             </a>
+            @endcan
             <a
                 href="{{ route('admin.logs.index') }}"
                 class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all {{ request()->routeIs('admin.logs.*') ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 shadow-sm shadow-amber-950/50 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/80' }}"
@@ -67,24 +69,29 @@
                 <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 <span>{{ __('Logs') }}</span>
             </a>
-            <a
+            @can('voteOnBans')
+<a
                 href="{{ route('moderation.bans.index') }}"
                 class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-slate-400 hover:text-white hover:bg-slate-800/80"
             >
                 <span>{{ __('Ban Reviews') }}</span>
             </a>
-            <a
+            @endcan
+            @can('manageEmailTemplates')
+<a
                 href="{{ route('admin.emails.index') }}"
                 class="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all {{ request()->routeIs('admin.emails.*') ? 'bg-violet-500/15 text-violet-300 border border-violet-500/30 shadow-sm shadow-violet-950/50 font-semibold' : 'text-slate-400 hover:text-white hover:bg-slate-800/80' }}"
             >
                 <svg class="w-3.5 h-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                 <span>{{ __('Emails') }}</span>
             </a>
+            @endcan
         </nav>
 
         <!-- 3. Executive Control Matrix (Right) -->
         <div class="flex items-center gap-2.5 font-mono text-xs">
 
+            @can('viewGeolocation')
             <!-- Satellite GPS Status Pill with 1-Click Sync -->
             <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300">
                 <span id="gps-status-flag" class="text-sm">{{ $adminUser->country_code ? app(\App\Services\GeoLocationService::class)->countryCodeToFlag($adminUser->country_code) : '📍' }}</span>
@@ -101,7 +108,9 @@
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                 </button>
             </div>
+            @endcan
 
+            @can('createConsoleChannels')
             <!-- Quick Action: Create Channel -->
             <button
                 type="button"
@@ -111,6 +120,7 @@
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
                 <span>{{ __('New Channel') }}</span>
             </button>
+            @endcan
 
             <!-- Admin Profile & Menu Dropdown -->
             <div class="relative" id="admin-user-menu-wrap">
@@ -220,21 +230,27 @@
                 <span class="text-teal-400">👥</span>
                 <span>{{ __('Members') }}</span>
             </a>
-            <a href="{{ route('admin.intel.index') }}" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl border flex items-center gap-2 {{ request()->routeIs('admin.intel.*') ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-300 font-semibold' : 'bg-slate-900 border-slate-800 text-slate-200' }}">
+            @can('viewGeolocation')
+<a href="{{ route('admin.intel.index') }}" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl border flex items-center gap-2 {{ request()->routeIs('admin.intel.*') ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-300 font-semibold' : 'bg-slate-900 border-slate-800 text-slate-200' }}">
                 <span class="text-indigo-400">🌐</span>
                 <span>{{ __('Network Map') }}</span>
             </a>
+            @endcan
             <a href="{{ route('admin.logs.index') }}" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl border flex items-center gap-2 {{ request()->routeIs('admin.logs.*') ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 font-semibold' : 'bg-slate-900 border-slate-800 text-slate-200' }}">
                 <span class="text-amber-400">📜</span>
                 <span>{{ __('Logs') }}</span>
             </a>
-            <a href="{{ route('moderation.bans.index') }}" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl border flex items-center gap-2 bg-slate-900 border-slate-800 text-slate-200">
+            @can('voteOnBans')
+<a href="{{ route('moderation.bans.index') }}" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl border flex items-center gap-2 bg-slate-900 border-slate-800 text-slate-200">
                 <span>{{ __('Ban Reviews') }}</span>
             </a>
-            <a href="{{ route('admin.emails.index') }}" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl border flex items-center gap-2 {{ request()->routeIs('admin.emails.*') ? 'bg-violet-500/15 border-violet-500/40 text-violet-300 font-semibold' : 'bg-slate-900 border-slate-800 text-slate-200' }}">
+            @endcan
+            @can('manageEmailTemplates')
+<a href="{{ route('admin.emails.index') }}" onclick="toggleMobileAdminMenu()" class="p-2.5 rounded-xl border flex items-center gap-2 {{ request()->routeIs('admin.emails.*') ? 'bg-violet-500/15 border-violet-500/40 text-violet-300 font-semibold' : 'bg-slate-900 border-slate-800 text-slate-200' }}">
                 <span class="text-violet-400">✉️</span>
                 <span>{{ __('Emails') }}</span>
             </a>
+            @endcan
         </div>
 
         <div class="pt-2 border-t border-slate-800 flex items-center justify-between">

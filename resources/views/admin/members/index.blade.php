@@ -32,11 +32,13 @@
                 <span class="text-slate-400">{{ __('Members:') }}</span>
                 <strong class="text-white">{{ $memberCount }}</strong>
             </div>
+            @can('viewGeolocation')
             <div class="px-3.5 py-2 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center gap-2">
                 <span class="text-purple-400">📍</span>
                 <span class="text-slate-400">{{ __('Location Verified:') }}</span>
                 <strong class="text-white">{{ $gpsVerifiedCount ?? $registeredUsers->filter(fn ($u) => $u->hasGps())->count() }}</strong>
             </div>
+            @endcan
         </div>
     </div>
 

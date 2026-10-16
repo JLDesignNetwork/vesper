@@ -3,7 +3,7 @@
 [![GVS Version](https://img.shields.io/badge/GVS-2609.11.0--bs-059669?style=flat-square&logo=git&logoColor=white)](CHANGELOG.md)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jldesignnetwork)
 [![Platform Status](https://img.shields.io/badge/Status-Active%20Defense-0284c7?style=flat-square)]()
-[![Pest Tests](https://img.shields.io/badge/Tests-495%20Passing-10b981?style=flat-square&logo=pest&logoColor=white)]()
+[![Pest Tests](https://img.shields.io/badge/Tests-552%20Passing-10b981?style=flat-square&logo=pest&logoColor=white)]()
 
 > **Vesper Enterprise** — Private, encrypted communications platform with real-time network visualization, ephemeral secure channels, and enterprise-grade privacy controls.
 
@@ -76,7 +76,7 @@
 - **Backend**: Laravel 12.x (PHP 8.4+)
 - **Frontend**: Blade templates, TailwindCSS, Vanilla JavaScript (ES6+), Leaflet.js
 - **Asset Pipeline**: Vite 8.x
-- **Testing**: Pest PHP (495 tests, 2012 assertions — 100% passing)
+- **Testing**: Pest PHP (552 tests, 2322 assertions — 100% passing)
 - **Mail Handling**: ServBay Mailpit (SMTP port 1025, Web UI port 18025)
 - **Local Environment**: ServBay Pro / macOS / PHP 8.4
 

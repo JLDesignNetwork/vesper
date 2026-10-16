@@ -4,6 +4,7 @@ use App\Enums\Rank;
 use App\Models\Message;
 use App\Models\Room;
 use App\Models\User;
+use App\Services\BanVoteService;
 use App\Services\GeoLocationService;
 use App\Services\LanguageService;
 use App\Services\TranslationService;
@@ -170,4 +171,47 @@ test('channel translate and stream endpoints serve translations in uzbek', funct
     $streamData = $streamResponse->json();
     expect($streamData['messages'])->toHaveCount(1);
     expect($streamData['messages'][0]['auto_translated_lang'])->toBe('uz');
+});
+
+test('channel refactor strings are translated in every language', function (string $key) {
+    $en = json_decode(file_get_contents(base_path('lang/en.json')), true);
+
+    foreach (LanguageService::codes() as $code) {
+        $data = json_decode(file_get_contents(base_path("lang/{$code}.json")), true);
+        expect($data)->toHaveKey($key);
+
+        if ($code !== 'en') {
+            expect($data[$key])->not->toBe($en[$key], "lang/{$code}.json leaves \"{$key}\" untranslated");
+        }
+    }
+})->with([
+    'Blocked Members',
+    'Your account is restricted pending an admin review.',
+    'Ban Reviews',
+    'Channel profile',
+    'Remove from channel',
+]);
+
+test('plural forms of the refactor strings follow each language\'s rules', function (string $locale, int $count, string $expected) {
+    app()->setLocale($locale);
+
+    expect(trans_choice(':count member|:count members', $count, ['count' => $count]))->toBe($expected);
+})->with([
+    'English one' => ['en', 1, '1 member'],
+    'English many' => ['en', 5, '5 members'],
+    'Russian few' => ['ru', 3, '3 участника'],
+    'Russian many' => ['ru', 5, '5 участников'],
+    'Polish few' => ['pl', 3, '3 członkowie'],
+    'Arabic two' => ['ar', 2, 'عضوان'],
+    'Japanese' => ['ja', 7, 'メンバー 7 人'],
+]);
+
+test('a restricted member sees the restriction notice in their language', function () {
+    $member = User::factory()->create(['preferred_locale' => 'de']);
+    app(BanVoteService::class)->open(User::factory()->adminOne()->create(), $member, 'x');
+
+    $this->actingAs($member)
+        ->get(route('profile.show'))
+        ->assertOk()
+        ->assertSee('Dein Konto ist bis zu einer Admin-Prüfung eingeschränkt.');
 });

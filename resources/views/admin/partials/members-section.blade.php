@@ -22,7 +22,9 @@
             <thead>
                 <tr class="border-b border-slate-800 text-slate-400 font-mono text-[11px] uppercase bg-slate-950/60">
                     <th class="py-3 px-4 min-w-[200px]">{{ __('Member') }}</th>
-                    <th class="py-3 px-4 min-w-[180px]">{{ __('Network & Location') }}</th>
+                    @can('viewGeolocation')
+                        <th class="py-3 px-4 min-w-[180px]">{{ __('Network & Location') }}</th>
+                    @endcan
                     <th class="py-3 px-4 min-w-[150px]">{{ __('Demographics') }}</th>
                     <th class="py-3 px-4 min-w-[150px]">{{ __('Privacy & Security') }}</th>
                     <th class="py-3 px-4 min-w-[110px]">{{ __('Joined') }}</th>
@@ -47,12 +49,13 @@
                                 <div class="min-w-0">
                                     <div class="font-semibold text-white flex items-center gap-2">
                                         <span class="truncate">{{ $regUser->name }}</span>
-                                        @if($regUser->rank->isAdminRank())
-                                            <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shrink-0 uppercase">{{ __($regUser->rank->label()) }}</span>
-                                        @else
-                                            <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-800 border border-slate-700 text-slate-400 shrink-0 uppercase">{{ __($regUser->rank->label()) }}</span>
-                                        @endif
+                                        @php
+                                            $rankShown = (Auth::user()->hasRank(\App\Enums\Rank::AdminOne) || $regUser->is(Auth::user())) ? $regUser->rank->label() : $regUser->rank->publicLabel();
+                                        @endphp
+                                        <span class="text-[9px] font-mono px-1.5 py-0.2 rounded shrink-0 uppercase {{ $regUser->displaysAsAdmin() ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' : 'bg-slate-800 border border-slate-700 text-slate-400' }}">{{ __($rankShown) }}</span>
+                                        <span class="text-[10px] font-mono text-emerald-300/80">{{ '@'.$regUser->tag }}</span>
                                     </div>
+                                    @if($panelScope?->showsEmails())
                                     <div class="flex items-center gap-1.5 text-[11px] font-mono text-slate-400 mt-0.5">
                                         <span class="truncate max-w-[180px]" title="{{ $regUser->email }}">{{ $regUser->email }}</span>
                                         <button
@@ -64,15 +67,17 @@
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                                         </button>
                                     </div>
-                                    @if($regUser->bio)
-                                        <div class="text-[10px] text-slate-500 truncate max-w-[200px] mt-0.5" title="{{ $regUser->bio }}">
-                                            {{ $regUser->bio }}
+                                    @endif
+                                    @if($regUser->bioForViewer(Auth::user()))
+                                        <div class="text-[10px] text-slate-500 truncate max-w-[200px] mt-0.5" title="{{ $regUser->bioForViewer(Auth::user()) }}">
+                                            {{ $regUser->bioForViewer(Auth::user()) }}
                                         </div>
                                     @endif
                                 </div>
                             </div>
                         </td>
 
+                        @can('viewGeolocation')
                         <!-- Col 2: Network & Location -->
                         <td class="py-3.5 px-4 font-mono">
                             <div>
@@ -115,24 +120,27 @@
                                 @endif
                             </div>
                         </td>
+                        @endcan
 
-                        <!-- Col 3: Demographics & Identity -->
+                        <!-- Col 3: Demographics & Identity (hidden fields only for viewers allowed to see them) -->
+                        @php
+                            $shownAge = $regUser->ageForViewer(Auth::user());
+                            $shownBirthday = $regUser->birthdayForViewer(Auth::user());
+                        @endphp
                         <td class="py-3.5 px-4 font-mono text-xs">
                             <div class="flex items-center gap-2">
-                                @if($regUser->age())
-                                    <span class="text-emerald-400 font-semibold">{{ $regUser->age() }} {{ __('yrs') }}</span>
+                                @if($shownAge)
+                                    <span class="text-emerald-400 font-semibold">{{ $shownAge }} {{ __('yrs') }}</span>
                                 @endif
                                 @if($regUser->gender)
                                     <span class="text-slate-300 notranslate" translate="no">· {{ __($regUser->gender) }}</span>
                                 @endif
-                                @if(!$regUser->age() && !$regUser->gender)
+                                @if(! $shownAge && ! $regUser->gender)
                                     <span class="text-slate-500 text-[11px]">—</span>
                                 @endif
                             </div>
-                            @if($regUser->birthday)
-                                <div class="text-[10px] text-slate-400 mt-0.5">
-                                    {{ $regUser->birthday->format('M d, Y') }}
-                                </div>
+                            @if($shownBirthday)
+                                <div class="text-[10px] text-slate-400 mt-0.5">{{ $shownBirthday }}</div>
                             @endif
                             @if($regUser->hide_age || $regUser->hide_birthday)
                                 <span class="text-[9px] text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20 font-mono inline-block mt-0.5" title="{{ __('Hidden from members') }}">
@@ -171,7 +179,7 @@
                                         </span>
                                     @endif
 
-                                    @if($regUser->preferred_locale)
+                                    @if($regUser->preferred_locale && $regUser->hiddenFieldsVisibleTo(Auth::user()))
                                         <span class="inline-flex items-center gap-1 text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/20 text-[10px] font-mono" title="{{ __('User preferred language override') }}">
                                             <span>🌐</span>
                                             <span>{{ strtoupper($regUser->preferred_locale) }}</span>
@@ -196,7 +204,7 @@
                             <div class="flex items-center justify-end gap-1.5 font-mono">
                                 <button
                                     type="button"
-                                    onclick='openUserDossier(@json($regUser))'
+                                    onclick='openUserDossier(@json($regUser->adminDossierFor(Auth::user())))'
                                     class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors text-[11px] cursor-pointer"
                                 >
                                     {{ __('View Profile') }}
@@ -230,6 +238,7 @@
                                             </form>
                                         @endif
                                     @endcan
+                                    @can('manageMembers')
                                     <form method="POST" action="{{ route('admin.users.destroy', ['id' => $regUser->id]) }}" class="inline" onsubmit="return confirm('{{ __('Permanently delete this member account?') }}')">
                                         @csrf
                                         @method('DELETE')
@@ -240,13 +249,14 @@
                                             {{ __('Delete') }}
                                         </button>
                                     </form>
+                                    @endcan
                                 @endif
                             </div>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="py-8 text-center text-slate-500 font-mono">
+                        <td colspan="{{ Gate::allows('viewGeolocation') ? 6 : 5 }}" class="py-8 text-center text-slate-500 font-mono">
                             {{ __('No registered members found.') }}
                         </td>
                     </tr>
