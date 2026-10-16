@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Room extends Model
 {
@@ -37,7 +38,6 @@ class Room extends Model
         'expires_at',
         'created_by_ip',
         'created_by_user_id',
-        'pinned_message_id',
         'status',
         'is_system',
     ];
@@ -116,11 +116,41 @@ class Room extends Model
     }
 
     /**
-     * Get the pinned message for this channel, if any.
+     * The channel's pins, most recently pinned first.
      */
-    public function pinnedMessage(): BelongsTo
+    public function pins(): HasMany
     {
-        return $this->belongsTo(Message::class, 'pinned_message_id');
+        return $this->hasMany(MessagePin::class)->latest('id');
+    }
+
+    /**
+     * The channel's pinned messages for the pinned tray, most recently pinned first.
+     *
+     * @return list<array{id: int, sender_name: string, content: string, created_at_time: string, pinned_at: string|null}>
+     */
+    public function pinnedTray(): array
+    {
+        return $this->pins()->with('message')->get()
+            ->filter(fn (MessagePin $pin): bool => $pin->message !== null)
+            ->map(fn (MessagePin $pin): array => [
+                'id' => $pin->message->id,
+                'sender_name' => (string) $pin->message->sender_name,
+                'content' => Str::limit($pin->message->content ?: ($pin->message->attachment_name ?: __('Media Attachment')), 120),
+                'created_at_time' => $pin->message->created_at?->format('H:i:s') ?? '',
+                'pinned_at' => $pin->created_at?->toIso8601String(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * IDs of the channel's pinned messages.
+     *
+     * @return list<int>
+     */
+    public function pinnedMessageIds(): array
+    {
+        return $this->pins()->pluck('message_id')->map(fn ($id): int => (int) $id)->all();
     }
 
     /**

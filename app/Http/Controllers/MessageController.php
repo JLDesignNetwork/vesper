@@ -6,6 +6,7 @@ use App\Enums\Rank;
 use App\Mail\NewMessageNotification;
 use App\Models\AccessLog;
 use App\Models\Message;
+use App\Models\MessagePin;
 use App\Models\MessageUserView;
 use App\Models\Reaction;
 use App\Models\Room;
@@ -173,12 +174,16 @@ class MessageController extends Controller
             })
             ->update(['last_seen_at' => now()]);
 
+        // Pinned messages are exempt from every self-destruct timer while pinned.
+        $pinnedIds = $room->pinnedMessageIds();
+
         $query = $room->messages()
             ->with(['user', 'reactions', 'replyTo', 'views'])
             ->where('id', '>', $afterId)
-            ->where(function ($q) {
+            ->where(function ($q) use ($pinnedIds) {
                 $q->whereNull('expires_at')
-                    ->orWhere('expires_at', '>', now());
+                    ->orWhere('expires_at', '>', now())
+                    ->orWhereIn('id', $pinnedIds);
             })
             ->orderBy('id', 'asc');
 
@@ -206,6 +211,10 @@ class MessageController extends Controller
 
         // For non-sender messages with ttl_seconds or media_ttl_seconds, initialize their personal view countdown upon first viewing
         foreach ($rawMessages as $m) {
+            if (in_array($m->id, $pinnedIds, true)) {
+                continue;
+            }
+
             $isSender = ($m->sender_session_id === $sessionId) || ($viewer && $m->user_id === $viewer->id);
             if (! $isSender && (! empty($m->ttl_seconds) || (! empty($m->media_ttl_seconds) && ! empty($m->attachment_path)))) {
                 $userView = $resolveView($m);
@@ -325,7 +334,11 @@ class MessageController extends Controller
         };
 
         // Filter out any messages whose per-user countdowns have both expired for this viewer
-        $rawMessages = $rawMessages->filter(function (Message $m) use ($sessionId, $viewer, $resolveView, $resolveSenderExpiresAt, $resolveSenderMediaExpiresAt): bool {
+        $rawMessages = $rawMessages->filter(function (Message $m) use ($sessionId, $viewer, $resolveView, $resolveSenderExpiresAt, $resolveSenderMediaExpiresAt, $pinnedIds): bool {
+            if (in_array($m->id, $pinnedIds, true)) {
+                return true;
+            }
+
             $isSender = ($m->sender_session_id === $sessionId) || ($viewer && $m->user_id === $viewer->id);
             $hasText = ! empty($m->content);
             $hasMedia = ! empty($m->attachment_path);
@@ -390,7 +403,9 @@ class MessageController extends Controller
             ? User::whereIn('name', $unlinkedAuthors)->get()->keyBy('name')
             : collect();
 
-        $messages = $rawMessages->map(function (Message $message) use ($sessionId, $viewer, $usersByName, $targetLang, $resolveView, $resolveSenderExpiresAt, $resolveSenderMediaExpiresAt): array {
+        $messages = $rawMessages->map(function (Message $message) use ($sessionId, $viewer, $usersByName, $targetLang, $resolveView, $resolveSenderExpiresAt, $resolveSenderMediaExpiresAt, $pinnedIds): array {
+            $isPinned = in_array($message->id, $pinnedIds, true);
+
             $flag = $message->country_code
                 ? $this->geoLocationService->countryCodeToFlag($message->country_code)
                 : '🌐';
@@ -415,13 +430,17 @@ class MessageController extends Controller
 
             $isSender = ($message->sender_session_id === $sessionId) || ($viewer && $message->user_id === $viewer->id);
 
-            $effectiveExpiresAt = $isSender
-                ? $resolveSenderExpiresAt($message)
-                : ($resolveView($message)?->expires_at ?? $message->expires_at);
+            $effectiveExpiresAt = match (true) {
+                $isPinned => null,
+                $isSender => $resolveSenderExpiresAt($message),
+                default => $resolveView($message)?->expires_at ?? $message->expires_at,
+            };
 
-            $effectiveMediaExpiresAt = $isSender
-                ? $resolveSenderMediaExpiresAt($message)
-                : ($resolveView($message)?->media_expires_at ?? $message->media_expires_at);
+            $effectiveMediaExpiresAt = match (true) {
+                $isPinned => null,
+                $isSender => $resolveSenderMediaExpiresAt($message),
+                default => $resolveView($message)?->media_expires_at ?? $message->media_expires_at,
+            };
 
             $textBurned = false;
             if (! empty($message->content) && $effectiveExpiresAt && $effectiveExpiresAt <= now()) {
@@ -483,6 +502,7 @@ class MessageController extends Controller
                 'location_hidden' => $isLocationHidden,
                 'reply_to' => $replyToData,
                 'reactions' => $message->reactionsSummary($sessionId, $viewer?->id),
+                'is_pinned' => $isPinned,
                 'ttl_seconds' => $message->ttl_seconds,
                 'expires_at' => $effectiveExpiresAt?->toIso8601String(),
                 'media_ttl_seconds' => $message->media_ttl_seconds,
@@ -493,7 +513,7 @@ class MessageController extends Controller
         });
 
         if ($room->burn_after_reading) {
-            $otherMessages = $messages->filter(fn (array $m): bool => ! $m['is_self']);
+            $otherMessages = $messages->filter(fn (array $m): bool => ! $m['is_self'] && ! $m['is_pinned']);
             if ($otherMessages->isNotEmpty()) {
                 Message::whereIn('id', $otherMessages->pluck('id'))->update(['is_burn_read' => true]);
             }
@@ -514,17 +534,13 @@ class MessageController extends Controller
                 ];
             });
 
-        $pinnedMsg = $room->pinnedMessage;
+        $pinnedMessages = $room->pinnedTray();
 
         return response()->json([
             'status' => 'active',
             'messages' => $messages,
-            'pinned_message' => $pinnedMsg ? [
-                'id' => $pinnedMsg->id,
-                'sender_name' => $pinnedMsg->sender_name,
-                'content' => Str::limit($pinnedMsg->content ?: ($pinnedMsg->attachment_name ?: __('Media Attachment')), 120),
-                'created_at_time' => $pinnedMsg->created_at?->format('H:i:s') ?? '',
-            ] : null,
+            'pinned_messages' => $pinnedMessages,
+            'pinned_message' => $pinnedMessages[0] ?? null,
             'active_count' => $activeOperatives->count(),
             'active_operatives' => $activeOperatives,
             'mention_tags' => $this->userTags->memberTagsMentionedIn(
@@ -833,7 +849,10 @@ class MessageController extends Controller
         $viewer = Auth::user();
         $isSender = ($message->sender_session_id === $sessionId) || ($viewer && $message->user_id === $viewer->id);
 
-        if (! $isSender) {
+        // Pinned media is exempt from its self-destruct timer while pinned.
+        $isPinned = MessagePin::where('room_id', $room->id)->where('message_id', $message->id)->exists();
+
+        if (! $isPinned && ! $isSender) {
             $userView = MessageUserView::where('message_id', $message->id)
                 ->where(function ($q) use ($sessionId, $viewer) {
                     if ($viewer) {
@@ -846,7 +865,7 @@ class MessageController extends Controller
             if ($userView && $userView->media_expires_at && $userView->media_expires_at <= now()) {
                 abort(410, 'Media attachment has expired and burned.');
             }
-        } elseif ($message->media_expires_at && $message->media_expires_at <= now()) {
+        } elseif (! $isPinned && $message->media_expires_at && $message->media_expires_at <= now()) {
             abort(410, 'Media attachment has expired and burned.');
         }
 

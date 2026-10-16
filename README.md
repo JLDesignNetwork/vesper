@@ -3,7 +3,7 @@
 [![GVS Version](https://img.shields.io/badge/GVS-2609.11.0--bs-059669?style=flat-square&logo=git&logoColor=white)](CHANGELOG.md)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-FFDD00?style=flat-square&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jldesignnetwork)
 [![Platform Status](https://img.shields.io/badge/Status-Active%20Defense-0284c7?style=flat-square)]()
-[![Pest Tests](https://img.shields.io/badge/Tests-376%20Passing-10b981?style=flat-square&logo=pest&logoColor=white)]()
+[![Pest Tests](https://img.shields.io/badge/Tests-389%20Passing-10b981?style=flat-square&logo=pest&logoColor=white)]()
 
 > **Vesper Enterprise** — Private, encrypted communications platform with real-time network visualization, ephemeral secure channels, and enterprise-grade privacy controls.
 
@@ -20,6 +20,7 @@
 ### 1. Ephemeral Secure Channels & Split Lifecycles
 - **Channel Types & Access Gate**: Six channel types — private or public, PIN-secured or free entry, plus two rank-restricted admin channels (`pra`, `pra-2`). Private channels are joined only by invitation; public channels are listed in the directory (`/directory`). Secured channels need their PIN, or 2FA or a passkey, each time they are opened, and close after 15 minutes without member activity. PINs are stored only as hashes, entry is rate limited, and every channel requires a signed-in account.
 - **Member-Run Channels**: Any member can create channels and edit them from a creator-only settings modal.
+- **Pinned Messages**: Channel creators (and Admin I) can pin up to 10 messages, shown in a collapsible tray at the top of the channel. Pinned messages never self-destruct while pinned.
 - **User Tags & Mentions**: Every member has a unique `@tag` used to find them and to mention them. Mentions of channel members are highlighted and open their member card. All formatted messages are sanitized with DOMPurify.
 - **Encrypted Message Stream**: End-to-end verified communication stream with encrypted payloads, inline audio, video, photos, and media attachments.
 - **Independent Dual TTL Self-Destruct Timers**: Configurable independent countdowns for text content and media attachments (`media_ttl_seconds`), ensuring media can burn separately without prematurely destroying context.
@@ -75,7 +76,7 @@
 - **Backend**: Laravel 12.x (PHP 8.4+)
 - **Frontend**: Blade templates, TailwindCSS, Vanilla JavaScript (ES6+), Leaflet.js
 - **Asset Pipeline**: Vite 8.x
-- **Testing**: Pest PHP (376 tests, 1567 assertions — 100% passing)
+- **Testing**: Pest PHP (389 tests, 1629 assertions — 100% passing)
 - **Mail Handling**: ServBay Mailpit (SMTP port 1025, Web UI port 18025)
 - **Local Environment**: ServBay Pro / macOS / PHP 8.4
 

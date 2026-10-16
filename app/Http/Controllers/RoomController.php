@@ -7,6 +7,7 @@ use App\Enums\ChannelEntry;
 use App\Models\AccessLog;
 use App\Models\AdminAuditLog;
 use App\Models\Message;
+use App\Models\MessagePin;
 use App\Models\Room;
 use App\Models\User;
 use App\Services\ChannelAccessService;
@@ -17,6 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -440,18 +442,44 @@ class RoomController extends Controller
             return response()->json(['error' => 'Message not found'], 404);
         }
 
-        if ($room->pinned_message_id == $message->id) {
-            $room->update(['pinned_message_id' => null]);
+        $existingPin = MessagePin::where('room_id', $room->id)->where('message_id', $message->id)->first();
+
+        if ($existingPin) {
+            $existingPin->delete();
             $isPinned = false;
         } else {
-            $room->update(['pinned_message_id' => $message->id]);
+            if ($message->hasSelfDestructed()) {
+                return response()->json(['error' => __('This message has already self-destructed and cannot be pinned.')], 422);
+            }
+
+            $pinned = DB::transaction(function () use ($room, $message, $request): bool {
+                if (MessagePin::where('room_id', $room->id)->lockForUpdate()->count() >= MessagePin::MAX_PER_CHANNEL) {
+                    return false;
+                }
+
+                MessagePin::create([
+                    'room_id' => $room->id,
+                    'message_id' => $message->id,
+                    'pinned_by_user_id' => $request->user()->id,
+                ]);
+
+                return true;
+            });
+
+            if (! $pinned) {
+                return response()->json([
+                    'error' => __('This channel already has :max pinned messages. Unpin one first.', ['max' => MessagePin::MAX_PER_CHANNEL]),
+                ], 422);
+            }
+
             $isPinned = true;
         }
 
         return response()->json([
             'success' => true,
             'is_pinned' => $isPinned,
-            'pinned_message_id' => $room->pinned_message_id,
+            'pinned_message_id' => $isPinned ? $message->id : null,
+            'pinned_messages' => $room->pinnedTray(),
         ]);
     }
 }

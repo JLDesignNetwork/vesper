@@ -215,7 +215,7 @@ test('admin two cannot pin in a channel they did not create', function () {
         ->postJson(route('rooms.pin', ['room' => 'PIN-2', 'message' => $message->id]))
         ->assertForbidden();
 
-    expect($room->fresh()->pinned_message_id)->toBeNull();
+    expect($room->fresh()->pinnedMessageIds())->toBe([]);
 });
 
 test('messages show only the public rank label of their sender', function (Rank $senderRank, string $expectedRole) {

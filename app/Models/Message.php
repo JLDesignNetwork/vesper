@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Message extends Model
 {
@@ -188,5 +189,28 @@ class Message extends Model
                 return round($bytes, 1).' '.$units[$i];
             },
         );
+    }
+
+    /**
+     * Whether the message's own timers have already destroyed it for everyone: its text
+     * expired, or it was media-only and the media expired. Such a message cannot be pinned.
+     */
+    public function hasSelfDestructed(): bool
+    {
+        if (! empty($this->content)) {
+            return $this->expires_at !== null && $this->expires_at->isPast();
+        }
+
+        return ! empty($this->attachment_path)
+            && $this->media_expires_at !== null
+            && $this->media_expires_at->isPast();
+    }
+
+    /**
+     * The pin holding this message at the top of its channel, if any.
+     */
+    public function pin(): HasOne
+    {
+        return $this->hasOne(MessagePin::class);
     }
 }

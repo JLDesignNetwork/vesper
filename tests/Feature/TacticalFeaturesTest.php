@@ -393,7 +393,7 @@ test('channel owners or admins can pin and unpin briefing messages', function ()
     $pinResponse->assertJsonPath('is_pinned', true);
     $pinResponse->assertJsonPath('pinned_message_id', $briefingMsg->id);
 
-    expect($room->fresh()->pinned_message_id)->toBe($briefingMsg->id);
+    expect($room->fresh()->pinnedMessageIds())->toBe([$briefingMsg->id]);
 
     // Messages index returns pinned briefing in stream
     $indexResponse = $this->actingAs($member)->withSession([
@@ -416,5 +416,5 @@ test('channel owners or admins can pin and unpin briefing messages', function ()
 
     $unpinResponse->assertStatus(200);
     $unpinResponse->assertJsonPath('is_pinned', false);
-    expect($room->fresh()->pinned_message_id)->toBeNull();
+    expect($room->fresh()->pinnedMessageIds())->toBe([]);
 });

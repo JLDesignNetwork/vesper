@@ -94,11 +94,12 @@
   {
     "id": "MSG-TODO-02",
     "title": "Replace single pin with multi-message pinning",
-    "status": "pending",
+    "status": "completed",
     "priority": "high-1",
     "existed_since": "2609.11.0-bs",
     "created_at": "2026-10-16T12:25:00+02:00",
-    "details": "Migrate rooms.pinned_message_id into message_pins (max 10 per room), exempt pinned messages from text TTL, media TTL, burn-after-reading, and per-user view expiry, collapsible pinned tray. Pin/unpin limited to channel creator and Admin I. Phase 4."
+    "details": "Replaced rooms.pinned_message_id with message_pins (existing pins carried over; rollback restores the most recent). A channel holds at most 10 pins, enforced in a transaction. Pinned messages are exempt from every self-destruct path while pinned: the stream query includes them past expires_at, no reader countdown starts, the expiry filter keeps them, text/media are never reported burned, burn-after-reading skips them, and their attachments stay downloadable. Timers resume on unpin. Messages that already self-destructed cannot be pinned. Channel purge still deletes pins. The room page has a collapsible pinned tray (count, latest preview, list with jump and unpin). Pin/unpin remains channel creator and Admin I. The pinned_message (latest) and pinned_message_id response keys are kept for compatibility. Covered by MessagePinningTest; each exemption mutation-checked.",
+    "protected": "open"
   },
   {
     "id": "MOD-TODO-01",

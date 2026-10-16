@@ -115,3 +115,11 @@ Backlog items live in [`backlog.json`](backlog.json).
 - Found and fixed two stored XSS bugs in the room page (`MSG-ISSUE-01`, `MSG-ISSUE-02`).
 - Composer autocomplete is not built (`MSG-IDEA-01`).
 
+## Phase 4 implementation notes (2026-10-16)
+
+- `message_pins` replaces `rooms.pinned_message_id`; cap of 10 per channel (`MessagePin::MAX_PER_CHANNEL`).
+- Timers are paused while pinned and resume on unpin; a message whose timer ran out while pinned disappears when unpinned.
+- A message that already self-destructed for everyone cannot be pinned, so pinning cannot revive content its sender chose to burn.
+- Pinned messages are shown to every member, including members whose personal countdown had already run out before the pin.
+- Channel expiry and purge still remove pinned messages.
+

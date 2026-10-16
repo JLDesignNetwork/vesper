@@ -9,6 +9,7 @@ This project adheres to the **JLDN Generational Versioning Schema (GVS)** (`[YYM
 ## [Unreleased]
 
 ### Added
+- **Multi-Message Pinning (Phase 4)**: up to 10 pinned messages per channel in a collapsible tray at the top of the channel. Pinned messages are exempt from text, media and burn-after-reading timers while pinned; already-destroyed messages cannot be pinned.
 - **User Tags (Phase 3)**: every member has a unique, editable `@tag`. Members can be found by tag or name from the profile (`/members/search`).
 - **Mentions**: `@tag` mentions of channel members are highlighted and open the member card; tags of non-members stay plain text.
 - **Channel Types (Phase 2)**: `rooms.type` with `prs`, `prf`, `pus`, `puf`, `pra`, `pra-2` (`App\Enums\ChannelType`). Existing rooms become private secured (`prs`). The `pra` (Admin I/II, passkey only) and `pra-2` (all admins) system channels are seeded and cannot be archived, deleted or purged.
@@ -43,6 +44,7 @@ This project adheres to the **JLDN Generational Versioning Schema (GVS)** (`[YYM
 
 ### Migration
 - Run `php artisan migrate` then `php artisan vesper:recompute-ranks`. Existing admins become Admin I; everyone else starts as User II.
+- The Phase 4 migration moves each channel's single pin into `message_pins`.
 - The Phase 2 migration hashes existing channel PINs and drops the plaintext column. This cannot be undone: a rollback restores the column empty.
 
 ## [2609.11.0-bs] - 2026-09-30

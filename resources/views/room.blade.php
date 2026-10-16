@@ -469,20 +469,22 @@
                 })();
             </script>
 
-            <!-- Pinned Channel Briefing Banner -->
-            <div id="pinned-briefing-banner" class="hidden px-4 py-2.5 bg-gradient-to-r from-amber-950/60 via-slate-900/90 to-amber-950/60 border-b border-amber-500/30 backdrop-blur-md flex items-center justify-between text-xs font-mono text-amber-200 z-20 shrink-0">
-                <div class="flex items-center gap-2.5 min-w-0 cursor-pointer flex-1" onclick="jumpToPinnedMessage()">
-                    <span class="p-1 rounded bg-amber-500/20 text-amber-400 shrink-0 text-xs">📌</span>
-                    <div class="min-w-0 truncate">
-                        <span class="font-bold text-amber-300 uppercase tracking-wider text-[10px]">{{ __('PINNED BRIEFING') }}:</span>
-                        <span id="pinned-author" class="text-amber-100 font-semibold ml-1"></span>
-                        <span id="pinned-text" class="text-amber-200/90 ml-1 truncate"></span>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2 shrink-0 ml-2">
-                    <button type="button" onclick="jumpToPinnedMessage()" class="text-[11px] text-amber-400 hover:text-amber-300 underline font-semibold">{{ __('VIEW') }}</button>
-                    <button type="button" onclick="unpinCurrentMessage()" class="p-1 rounded text-amber-400/60 hover:text-amber-300 hover:bg-amber-900/40" title="{{ __('Unpin Briefing') }}">✕</button>
-                </div>
+            <!-- Pinned Messages Tray (up to 10, collapsible) -->
+            <div id="pinned-tray" class="hidden bg-gradient-to-r from-amber-950/60 via-slate-900/90 to-amber-950/60 border-b border-amber-500/30 backdrop-blur-md text-xs font-mono text-amber-200 z-20 shrink-0">
+                <button
+                    type="button"
+                    id="pinned-tray-toggle"
+                    aria-expanded="false"
+                    aria-controls="pinned-tray-list"
+                    onclick="togglePinnedTray()"
+                    class="w-full px-4 py-2.5 flex items-center gap-2.5 text-left cursor-pointer"
+                >
+                    <span class="p-1 rounded bg-amber-500/20 text-amber-400 shrink-0 text-xs" aria-hidden="true">📌</span>
+                    <span class="font-bold text-amber-300 uppercase tracking-wider text-[10px] shrink-0">{{ __('Pinned') }} <span id="pinned-count" style="font-variant-numeric: tabular-nums">0</span>/{{ \App\Models\MessagePin::MAX_PER_CHANNEL }}</span>
+                    <span id="pinned-latest" class="text-amber-200/90 truncate min-w-0 flex-1"></span>
+                    <span id="pinned-tray-chevron" class="shrink-0 text-amber-400 transition-transform" aria-hidden="true">▾</span>
+                </button>
+                <ol id="pinned-tray-list" hidden class="max-h-64 overflow-y-auto border-t border-amber-500/20 divide-y divide-amber-500/10"></ol>
             </div>
 
             <!-- Message Stream Area -->
@@ -1822,7 +1824,6 @@
         let recordingTimerInterval = null;
         let recordingSeconds = 0;
         let loadedMessages = new Map();
-        let pinnedMessage = null;
         let revealedMediaSet = new Set();
 
         // Initialize Web Audio API synthesizer chimes
@@ -1907,8 +1908,8 @@
                     const data = await res.json();
                     rememberMentionTags(data.mention_tags);
 
-                    if (data.pinned_message !== undefined) {
-                        updatePinnedBriefing(data.pinned_message);
+                    if (data.pinned_messages !== undefined) {
+                        renderPinnedTray(data.pinned_messages);
                     }
 
                     if (data.messages && data.messages.length > 0) {
@@ -2512,28 +2513,55 @@
         }
 
         // Pinned Briefing Handlers
-        function updatePinnedBriefing(pinned) {
-            pinnedMessage = pinned;
-            const banner = document.getElementById('pinned-briefing-banner');
-            if (!banner) return;
-            if (pinned && pinned.id) {
-                document.getElementById('pinned-author').textContent = pinned.sender_name || 'Operative';
-                document.getElementById('pinned-text').textContent = `— "${pinned.content || ''}"`;
-                banner.classList.remove('hidden');
-            } else {
-                banner.classList.add('hidden');
-            }
+        let pinnedMessages = [];
+
+        function renderPinnedTray(pins) {
+            pinnedMessages = Array.isArray(pins) ? pins : [];
+            const tray = document.getElementById('pinned-tray');
+            const list = document.getElementById('pinned-tray-list');
+            if (!tray || !list) return;
+
+            tray.classList.toggle('hidden', pinnedMessages.length === 0);
+            document.getElementById('pinned-count').textContent = pinnedMessages.length;
+            const latest = pinnedMessages[0];
+            document.getElementById('pinned-latest').textContent = latest ? `${latest.sender_name || 'Member'}: ${latest.content || ''}` : '';
+
+            list.replaceChildren(...pinnedMessages.map(pin => {
+                const item = document.createElement('li');
+                item.className = 'px-4 py-2 flex items-center gap-2';
+
+                const open = document.createElement('button');
+                open.type = 'button';
+                open.className = 'flex-1 min-w-0 text-left truncate hover:text-amber-100 cursor-pointer';
+                const author = document.createElement('span');
+                author.className = 'text-amber-100 font-semibold';
+                author.textContent = pin.sender_name || 'Member';
+                open.append(author, document.createTextNode(` — ${pin.content || ''}`));
+                open.addEventListener('click', () => jumpToMessage(pin.id));
+                item.append(open);
+
+                if (CAN_PIN_MESSAGES) {
+                    const unpin = document.createElement('button');
+                    unpin.type = 'button';
+                    unpin.className = 'p-1 rounded text-amber-400/70 hover:text-amber-300 hover:bg-amber-900/40 shrink-0 cursor-pointer';
+                    unpin.title = @json(__('Unpin'));
+                    unpin.setAttribute('aria-label', @json(__('Unpin')));
+                    unpin.textContent = '✕';
+                    unpin.addEventListener('click', () => togglePin(pin.id));
+                    item.append(unpin);
+                }
+
+                return item;
+            }));
         }
 
-        function jumpToPinnedMessage() {
-            if (pinnedMessage && pinnedMessage.id) {
-                jumpToMessage(pinnedMessage.id);
-            }
-        }
-
-        async function unpinCurrentMessage() {
-            if (!pinnedMessage || !pinnedMessage.id) return;
-            await togglePin(pinnedMessage.id);
+        function togglePinnedTray() {
+            const list = document.getElementById('pinned-tray-list');
+            const toggle = document.getElementById('pinned-tray-toggle');
+            const expanded = list.hidden;
+            list.hidden = !expanded;
+            toggle.setAttribute('aria-expanded', String(expanded));
+            document.getElementById('pinned-tray-chevron').style.transform = expanded ? 'rotate(180deg)' : '';
         }
 
         async function togglePin(msgId) {
@@ -2548,18 +2576,7 @@
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    if (!data.is_pinned) {
-                        updatePinnedBriefing(null);
-                    } else {
-                        const cached = loadedMessages.get(msgId);
-                        if (cached) {
-                            updatePinnedBriefing({
-                                id: cached.id,
-                                sender_name: cached.sender_name,
-                                content: cached.content || cached.attachment_name || 'Media Attachment'
-                            });
-                        }
-                    }
+                    renderPinnedTray(data.pinned_messages);
                 } else {
                     const err = await res.json().catch(() => ({}));
                     alert(err.error || 'Only channel owners or admins can pin messages.');
